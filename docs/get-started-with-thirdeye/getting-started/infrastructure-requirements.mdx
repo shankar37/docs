@@ -1,0 +1,82 @@
+# ThirdEye infrastructure requirements
+
+ThirdEye is available as a managed platform with [StarTree Cloud](https://www.startree.ai/).  
+You can also install ThirdEye from a binary file, from sources or using Docker. See [Install ThirdEye](install-thirdeye.mdx) for installation procedures.
+
+
+## ThirdEye components
+
+ThirdEye has five different types of pods, which are the components that make up a ThirdEye deployment.
+* **Coordinator:** This is the API Server. It also powers root cause analysis (RCA) pipelines and ad hoc charting.
+* **Scheduler:** Runs all the cron jobs and creates tasks
+* **GUI:** Serves the React frontend for ThirdEye
+* **Worker:** Executes the tasks
+* **MySQL:** Provides state/metadata persistence for ThirdEye and serves the task queue
+
+Consider the following details in your capacity planning:
+* Coordinator and Worker pods do most of the heavy lifting
+* ThirdEye uses MySQL for task processing as well as for processing and storing anomalies, which can require significant DB resources
+* Memory Consumption
+  * The task that demands the most memory is the detection pipeline as it will fetch large chunks of data to process in-memory
+  * The highest memory consumption will occur in cases where:
+    * The granularity of alerts is low. For example, a process with a granularity of one minute will process significantly more data points than one with a granularity of one hour.
+    * A coordinator previews an alert on a large timeframe
+    * At the moment when an alert is created, because in the worker the alert is processed across all of the historical data.
+* CPU Requirements
+  * ThirdEye benefits greatly from parallel processing across multiple processors
+  * You can configure the number of threads and workers available
+  * More CPU greatly helps in executing multiple concurrent tasks and responding to API calls
+* The ThirdEye backend can be run entirely in a single virtual machine. This means that the coordinator, scheduler, and worker can run in a single JVM process
+
+## Example deployments
+
+Here we provide examples of what might be used for different deployment needs, such as production or development.
+
+### Minimal deployment for development
+
+We run the backend services: Coordinator, Scheduler and Worker in 1 single JVM.
+
+| Node        | Component       | Replicas | Mem | CPU  | EBS/SSD  | Type     |
+| ----------- | --------------- | -------- | --- | ---- | -------- | -------- |
+| Single node | ThirdEye Server | 1        | 8G  | 2    | 0G       | m5.large |
+|             | ThirdEye UI     | 1        | 1G  | 1    | 0G       |          |
+|             | MySQL           | 1        | 8G  | 2    | 100G     | m5.large |
+
+
+### Production examples
+
+This section includes two examples: the standard setup and the enterprise setup. Start with the standard setup.
+
+
+#### Standard setup
+
+The standard production setup involves running everything in separate pods, while keeping the coordinator, scheduled, and UI in the same node.
+
+| Node               | Component            | \# pods | Mem  | CPU | EBS/SSD         | AWS Type             | GCP Type             |
+| ------------------ | -------------------- | ------- | ---  | --- | --------------- | -------------------- | -------------------- |
+| Node-1             | ThirdEye Coordinator | 1       | 8G   | 1   | 0G              | 1.0 x m5.large       | 1 x n2-standard-2    |
+| Node-1             | ThirdEye Scheduler   | 1       | 4G   | 1   | 0G              | 0.5 x m5.large       | 0.5 x n2-standard-2  |
+| Node-1             | ThirdEye UI          | 1       | 0.5G | 0.5 | 0G              | 0.1 x m5.large       | 0.1 x n2-standard-2  |
+| Node-2             | ThirdEye Worker      | 1       | 8G   | 2   | 0G              | 1.0 x m5.large       | 1 x n2-standard-2    |
+| Node-2             | MySQL                | 1       | 8G   | 2   | 100G            | 1.0 x m5.large       | 1 x n2-standard-2    |
+
+
+#### Enterprise setup
+
+This is identical to the standard setup, except that it has more workers. Adding workers enables running more tasks in parallel. We may not need to scale up the coordinator since UI requests may remain limited, but in this example we show how you might choose to, if needed.
+
+| Node               | Component            | \# pods | Mem  | CPU | EBS/SSD          | AWS Type              | GCP Type              |
+| ------------------ | -------------------- | ------- | ---  | --- | ---------------- | --------------------- | --------------------- |
+| Node-1             | ThirdEye Coordinator | 1       | 16G  | 2   | 0G               | 1 x m5.xlarge         | 1 x n2-standard-4     |
+| Node-2             | ThirdEye UI          | 1       | 0.5G | 1   | 0G               | 0.1 x m5.xlarge       | 0.1 x n2-standard-4   |
+| Node-2             | ThirdEye Scheduler   | 1       | 8G   | 2   | 0G               | 0.5 x m5.xlarge       | 0.5 x n2-standard-4   |
+| Node-3,4,5         | ThirdEye Worker      | 3       | 16G  | 2   | 0G               | 3 x m5.xlarge         | 3 x n2-standard-4     |
+| Node-6             | MySQL                | 1       | 16G  | 2   | 100G             | 1 x m5.xlarge         | 1 x n2-standard-4     |
+
+
+## External resources
+
+* [AWS Instance Types](https://aws.amazon.com/ec2/instance-types/m5/)
+* GCP
+  * [GCP Instance Types](https://cloud.google.com/compute/docs/general-purpose-machines)
+  * [E2 Machine](https://cloud.google.com/compute/docs/general-purpose-machines#e2_machine_types_table) vs [C3 Machine](https://cloud.google.com/compute/docs/general-purpose-machines#c3_machine_types) types. (Note: E2 Machines are less expensive.)

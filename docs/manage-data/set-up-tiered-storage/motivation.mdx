@@ -1,0 +1,30 @@
+---
+description: Learn about the motivation behind tiered storage project
+---
+
+# Motivation
+
+### Tightly-coupled real-time analytics databases
+Apache Pinot, like other typical OLAP real-time databses, was a strictly tightly coupled system for many years. Which meant, that we could only use disk/SSDs as storage, from local instance storage or remote attached storage (EBS volumes). This works great for such systems, as these types of storage have very fast access speeds (microseconds for local, milliseconds for remote attached storage), and help them achieve fast milliseconds/sub-seconds query latencies.
+
+### Exploding cost with data volume increase
+As Pinot became popular and adoption increased, users wanted to put more and more data into Pinot, and use it for use-cases beyond real-time user-facing analytics, such as internal dashboarding, metrics reporting, and so on. But using disks/SSDs for storing this vast amount of data, becomes very expensive.
+There's 2 main reasons for this:
+1. Since this **storage is tightly coupled with the compute**, you'll often have to add a lot of compute just to keep up with increasing storage, whether you need to utilize the compute or not.
+2. Secondly, **compared to storage options like cloud object stores, disk/SSD cost almost 5x**
+
+At the same time, the willingness to pay reduces for historical data, as usecases tend to be for internal audiences, with slightly relaxed latency and throughput SLAs.
+
+### Decoupled analytics systems
+One option for users, is to split the data up, keeping real-time data in the tightly-coupled OLAP system, and use a decoupled system like Presto for the historical data. The advantage is that these systems use cloud object storage giving you very low cost, but the disadvantage is that your queries are now in the several seconds range, plus you have 2 systems to operate, federate and manage.
+
+### Need for best of both worlds
+It was clear that we needed a true best of both worlds
+<p>
+    <img src="/img/tiered-storage/best-of-both-worlds.png" width="600px" alt="Need a best of both worlds" />
+    <em>Need a best of both worlds</em>
+</p>
+
+
+## Tiered storage with S3 for Apache Pinot
+With this motivation in mind, we at StarTree set out to build Tiered Storage for Apache Pinot.

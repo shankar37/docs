@@ -1,0 +1,35 @@
+# ThirdEye architecture
+
+Here is the high level system architecture of ThirdEye. 
+<p>
+    <img src="/img/thirdeye/ThirdEyeArchitecture.png" alt="architecture" width="80%" />
+    <em>ThirdEye Architecture</em>
+</p>
+
+![Building blocks](/img/thirdeye/_architecture.png)
+
+Let's review the boxes one by one. 
+
+### UI 
+This is the service that ... serves the web interface. It communicates with the backend.
+
+### Coordinator
+The **Coordinator** is the entry point of the REST API. 
+The request are (optionally) authenticated and authorized.  
+The coordinator can perform CRUD operations on ThirdEye [entities](./), 
+simulate detection pipeline, and run interactive RCA.
+
+### Scheduler
+The **Scheduler** runs the task crons and create the task objects. The tasks are persisted in the database and polled by the workers. 
+The 2 main type of tasks are detection tasks and notification tasks.
+
+### Worker
+**Workers** run the tasks. Here is the execution principle: 
+- workers wait for tasks to be added to the queue
+- once a worker finds a new task, it assigns it to itself (gets a lock)
+- on successfully getting a lock, the worker executes the task
+- upon completion, the worker captures the results and persists them into the db
+
+## Notes
+UI, coordinator, and worker can be scaled independently based on their respective load.  
+The scheduler is not replicated.  

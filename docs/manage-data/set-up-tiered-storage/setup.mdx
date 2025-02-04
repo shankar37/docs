@@ -1,0 +1,545 @@
+---
+description: Learn how to set up tiered storage with cloud object store, effectively decoupling storage from compute in your Pinot cluster.
+---
+import { Callout } from 'nextra/components';
+
+# Set up tiered storage with cloud object store
+
+This page shows you how to enable tiered storage for a table.
+
+
+## Set the segment age boundary
+
+Set a segment age boundary to split data across your local and remote tiers.
+
+For example, if you have 30 days of data, and you set the segment age boundary at 7 days, segments less than 7 days old will be on the local tier, and segments older than 7 days are moved to the remote tier.
+
+## Set up a tenant
+
+Do one of the following:
+- (Recommended) Set up a server as a dedicated tenant
+- (Default) Use the same server as your table as your tenant. We do not recommend this option for production environments. 
+
+
+### (Recommended) Set up a dedicated tenant server
+
+Create a new tenant to serve as a compute-only node. This tenant will be dedicated to serving the segments which are on the remote tier backend. These do not require as much local storage as your table's default local tenant since the data is stored remotely.
+
+To add one or more dedicated tenants, do the following:
+1. Add servers. You'll need at least as many servers as in your table replication setting in the [Pinot table configuration](/docs/pinot/getting-started/ingest-batch-data-source#table-config).
+1. Tag these as `RemoteTenant_OFFLINE` (or whatever you prefer) using the `/instances/{instanceName}/updateTags` API in the Swagger UI at [http://localhost:9000/help#/Schema/](http://localhost:9000/help#/Schema/) on the host where Pinot is running. This link is only accessible when Pinot is running.
+
+
+### (Default) Use same tenant as your table
+
+We don't recommend this option for production environments.
+
+This option is selected by default. StarTree will use the same tenant that you set in `tableConfig->tenants->server` in your [Pinot table configuration](../../pinot/getting-started/ingest-batch-data-source#table-config). This option is a no-op, requiring you to do nothing.
+
+<Callout type="note">
+Processing segments from the cloud object store causes higher than usual memory and CPU utilization on nodes, and can affect local data query performance. If your local data queries are serving latency sensitive, user-facing traffic, we recommend using a separate server as your tenant.
+</Callout>
+
+
+## Add cluster configs and restart servers
+
+To enable tiered storage, do one of the following:
+- Add the configs as part of the server instance configs or
+- From the [Swagger UI found at `http://localhost:9000/help#/Schema/` where Pinot is running](http://localhost:9000/help#/Schema/) use the `POST /cluster/configs` API to add the following cluster-level tier storage configurations.
+
+After adding your configs, restart the servers for changes to take effect.
+
+Where:
+
+```json
+{
+  "pinot.server.instance.tier.enabled": "true",
+  "pinot.server.instance.segment.cache.directory": "/home/pinot/data/tieredStorage/segmentCache/",
+  "pinot.server.instance.buffer.reference.manager.ondemand.total.size": "24G",
+  "pinot.server.instance.buffer.reference.manager.ondemand.reserved.size": "4G"
+}
+```
+
+Review the related configuration options here:
+
+Property | Description | Default value
+--- | --- | ---
+tier.enabled | Configuration to enable tier storage for the cluster | false
+segment.cache.directory | Where to cache segment headers to speed up server restarts | empty (disabled)
+ondemand.total.size | Max memory for remote data access. Ensure this is smaller than direct memory available on server else you’ll get OutOfDirectMemory exceptions | 24G
+ondemand.reserved.size | This is a portion of the above total size. Ensure this is larger than size of largest uncompressed segment | 4G
+
+<Callout>
+The `pinot.server.instance.segment.cache.directory` enables caching to restart the server more quickly, but does not affect the query execution speed.
+
+The two `ondemand` configs are shown here for their importance in query performance. More information about these configs others can be found in the sections below. You may want to set some of them before restarting servers.
+</Callout>
+
+Restarting servers will take much longer than before (depending on the number of segments on the remote tier backend) because StarTree needs to read the segment metadata from the remote tier backend when loading the segment on the server.  To enable configurations that improve performance, see [recommended configurations for ease of operations](#configs-for-ease-of-operations).
+
+
+## Update the Pinot table configuration
+
+1. If not already set, set [`timeColumn`](../../get-started-with-thirdeye/templates/startree-absolute-rule-dx#data) in the [Pinot table configuration](../../pinot/getting-started/ingest-batch-data-source#table-config). 
+1. Add `tierConfigs` to your [Pinot table configuration](../../pinot/getting-started/ingest-batch-data-source#table-config) (example below). The `segmentAge` will be calculated using the primary `timeColumnName` as set in [Pinot table configuration](../../pinot/getting-started/ingest-batch-data-source#table-config).
+<Callout type="note">
+`Text-index` is under development and not functional.
+</Callout>
+
+After adding this configuration, a controller-side periodic task, `SegmentRelocator`, will check and migrate segments to the proper tier, such as when the segments cross the `segmentAge`. See the [SegmentRelocator configuration documentation](https://docs.pinot.apache.org/basics/components/controller#segmentrelocator) for more information.
+
+```json
+"tierConfigs": [
+      {
+        "name": "remoteTier",
+        "segmentSelectorType": "time",
+        "segmentAge": "7d",
+        "storageType": "pinot_server",
+        "serverTag": "RemoteTenant_OFFLINE",
+        "tierBackend": "s3",
+        "tierBackendProperties": {
+             "region": "<region>",
+             "bucket": "<bucket>",
+             ...
+        }
+      }
+    ],
+```
+
+Review the related configuration options here:
+
+Property | Description
+--- | ---
+name | Set this to anything you want, this is more for referring to this tier uniquely.
+segmentSelectorType | Can be `time` for moving segments by age, or `fixed` to move fixed segments by name
+segmentAge | Applicable if `segmentSelectorType` is `time`. Set this to the segment age boundary you picked in Step 1. This takes any period string, examples - `0s`, `12h`, `30m`, `60d`
+segmentList | Applicable if `segmentSelectorType` is `fixed`. Set this to a comma separated list of segments you wish to move to remote tier. This is a good way to do a quick test.
+storageType | Has to be `pinot_server`
+serverTag | If using setup 2.1, set this to table's server tag. If using setup 2.2, set this to the tag of the remote tier created in Step 2.2
+tierBackend | For AWS S3 tier backend, use `s3`. For Google Cloud Storage (GCS) tier backend using interoperable API, use `gcs_interoperable`.
+tierBackendProperties (for S3) | Set these as per your S3 details. Supported properties are `region` (required), `bucket` (required, but can be same as deep store bucket. If using deep store bucket, be sure to use pathPrefix to avoid collision), `pathPrefix` (optional as a relative path prefix to use in the bucket). The `accessKey` and `secretKey` can be saved if servers use role based access control to access S3.
+tierBackendProperties (for GCS) | For detail about tiered storage backend properties, see [Tiered storage with GCS](#tiered-storage-with-gcs).
+
+<Callout>
+This `segmentAge` setting is independent of the table's retention. Segments will continue to be forgotten from Pinot once the table's retention is reached, regardless of what tier the segments are on.
+</Callout>
+
+### Tiered storage with Google Cloud Storage (GCS)
+
+Tiered storage with Google Cloud Storage (GCS) is supported using the [Cloud Storage XML API](https://cloud.google.com/storage/docs/interoperability). This API lets you access Pinot segments stored in a GCS bucket using a S3 client. To use a GCS bucket as the tier backend, complete the following steps:
+
+1. To use GCS's interoperable APIs with a S3 client, you must [generate HMAC keys](https://cloud.google.com/storage/docs/authentication/managing-hmackeys#create) for the GCP bucket. Each HMAC key consists of an access ID and a secret key and can be associated with any service account.
+  ```
+  $ gsutil hmac create <SERVICE_ACCOUNT_EMAIL>
+  AccessId: <HMAC access id>
+  SecretKey: <HMAC secret key>
+  ```
+
+1. For testing purposes, you can store the HMAC key pair in `tierBackendProperties`, as shown in the following example:
+```json
+"tierBackendProperties": {
+  "bucket": "<gcs bucket name>",
+  "endpoint": "https://storage.googleapis.com",
+  "region": "auto",
+  "accesskey": "<HMAC access id>",
+  "secretkey": "<HMAC secret key>",
+  ...
+}
+```
+
+  **To avoid exposing the HMAC key pair** in the table configuration, we recommend storing the key pair as secrets in the [GCP secret manager](https://cloud.google.com/secret-manager/docs), and configuring the table to fetch them securely when creating the client. To do this, complete the following steps:
+
+  1. [Enable the GCP secret manager API](https://cloud.google.com/secret-manager/docs/configuring-secret-manager), and then [add the key pair as secrets](https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets#create) (one for the access ID and the other for the secret key).
+  2. Ensure that the service account used to create the cluster has [access to read the added secrets](https://cloud.google.com/secret-manager/docs/manage-access-to-secrets).
+  3. Set the following properties in `tierBackendProperties`:
+
+      ```json
+      "tierBackendProperties": {
+        "bucket": "<gcs bucket name>",
+        "endpoint": "https://storage.googleapis.com",
+        "accesskey": "<secret namae for HMAC AccessId>",
+        "secretkey": "<secret namae for HMAC SccessKey>",
+        "region": "auto",
+        "keyType": "SECRET",
+        "secretmanagertype": "GCS",
+        "gcpprojectid": "<projectId>",
+        "gcpkeypath": "<path to key.json on the server>",
+        ...
+        }
+      ```
+      The `gcpprojectid` and `gcpkeypath` are required to be able to access the GCP secret manager. The `gcpkeypath` should be set to the absolute path where the gcp key is mounted on the server (typically `/home/pinot/gcp/credentials.json`).
+
+
+## Upload new segments and migrate existing segments
+
+When uploading new segments to the table, the segments are put on the remote tier if their data is older than the specified `segmentAge`. For existing segments, the `SegmentRelocator` task moves them to the remote tier periodically as configured.
+
+
+## Validate and query
+
+For segments that move to the remote tenant, verify the following:
+1. From the [Swagger UI found at `http://localhost:9000/help#/Schema/` where Pinot is running](http://localhost:9000/help#/Schema/) use the `segments/{tableName}/tiers` API to check segments' current tier
+1. Segments are not present on the pinot-server’s local disk (in dataDir and indexDir)
+1. Segments are present in the remote tier backend in uncompressed form
+
+When querying, you may need to increase [timeout of your query](https://docs.pinot.apache.org/basics/getting-started/frequent-questions/query-faq#how-do-i-increase-timeout-for-a-query).
+
+We have adopted multiversion concurrency control (MVCC) to make remote segment management transparent to ongoing queries. MVCC can lead to multiple copies of segment data with different index or encoding types kept in the remote tier backend. Automatic periodic cleanup of unused segment directories can be enabled using the configs listed in the [Stale segment directory cleanup](#stale-segment-directory-cleanup) section. 
+
+With optimizations to be discussed below, the query latency can be reduced as needed.
+
+
+## Fine tunings for query speed
+
+You have the option to use the following tuning adjustments to speed up queries.
+
+
+### Preloaded index
+
+Pin some index types of some columns on the local disk to avoid frequent remote reads.
+
+For example, pin bloom filters on local disk so that segments are pruned first to reduce the number of segments processed, minimizing remote reads. Bloom filters tend to be compact, not affecting local disk usage much. All index types can be pinned, including the tree nodes inside the star-tree index. Decide what to pin based on the need for cost savings and reduced query latencies.
+
+Indexes to be preloaded can be specifed at a cluster level globally, and can be overriden at a table level by setting a table level override either via cluster configuration or table configuration.
+
+1. To enable the buffer preloading, use [cluster config apis](https://docs.pinot.apache.org/configuration-reference/cluster#cluster-configs-apis) to add the following option to your cluster configuration:
+
+```json
+{
+   "pinot.server.instance.buffer.reference.manager.preload.enable": "true",
+   "pinot.server.instance.buffer.reference.manager.preload.total.size": "100G",
+   "pinot.server.instance.buffer.reference.manager.preload.dir": "/home/pinot/data/tieredStorage/preload/",
+   "pinot.server.instance.buffer.reference.manager.preload.load.existing.buffers": "true",
+   "pinot.server.instance.buffer.reference.manager.preload.index.keys.override": "<tableNameWithType1>,col1.bloom_filter,col2.sparse;<tableNameWithType2>,startree_index_0.tree"
+}
+```
+
+The following buffer preload options are configured by default:
+
+Config | Description | Default value
+--- |--------------| ---
+preload.enable | Whether to use preload feature | false
+preload.total.size | How much disk space to hold preloaded index | 100G
+preload.dir | Where to keep the preloaded index. Be sure this is different from `dataDir` which server processes segments while loading them | required
+preload.load.existing.buffers | Whether to keep preloaded index across server restarts | true
+preload.index.keys | What index types to pin, applied to all tables | empty
+preload.index.keys.override | Same as above but for specific table. Be sure to use tableNameWithType like foo_OFFLINE | empty
+
+2. Once enabled, set global buffer preloading using the following cluster configuration:
+```json
+{
+   "pinot.server.instance.buffer.reference.manager.preload.index.keys": "*.bloom_filter,col2.sparse,startree_index_0.tree"
+}
+```
+Follow the `<columnName>.<indexType>` convention to specify the index type to preload. Use `*` as a wildcard for the column name to preload all index buffers of a given index type.
+
+3. To override the global cluster level configuration, specify the configuration option on the table level: 
+  - To specify the override in the cluster configuration, set the `pinot.server.instance.buffer.reference.manager.preload.index.keys.override` cluster configuration option as follows:
+```json
+{
+   "pinot.server.instance.buffer.reference.manager.preload.index.keys.override": "<tableNameWithType1>,*.bloom_filter,col2.sparse;<tableNameWithType2>,startree_index_0.tree"
+}
+```
+  Make sure to use `tableNameWithType` like `foo_OFFLINE`.
+
+  - To specify the override in the table configuration, set the `preload.index.keys.override` property inside `tierBackendProperties` as follows:
+```json
+"tierConfigs": [
+      {
+        "name": "remoteTier",
+         ...
+        "tierBackendProperties": {
+             "region": "<region>",
+             "bucket": "<bucket>",
+             "preload.index.keys.override": "*.bloom_filter,col2.sparse,col3.inverted_index"
+             ...
+        }
+      }
+    ],
+```
+
+4. Restart affected servers to apply cluster configuration changes.
+
+
+### Automatic caching
+
+Caching is different from preloading an index. You can decide what to cache and evict from local disk automatically, based on commonly accessed segment data by ongoing queries. If queries find cached index data, the remote reads can be saved.
+
+Automatic caching is specified as part of the cluster configuration like this:
+
+```json
+{
+   "pinot.server.instance.buffer.reference.manager.mmap.enable": "true",
+   "pinot.server.instance.buffer.reference.manager.mmap.total.size": "100G",
+   "pinot.server.instance.buffer.reference.manager.mmap.dir": "/home/pinot/data/tieredStorage/mmap/",
+   "pinot.server.instance.buffer.reference.manager.mmap.load.existing.buffers": "true"
+}
+```
+
+Review the related configuration options here:
+
+Config | Description | Default value
+--- |--------------| ---
+mmap.enable | Whether to use preload feature | false
+mmap.total.size | How much disk space to hold cached index | 100G
+mmap.dir | Where to keep the cached index. Be sure this is different from `dataDir` which server processes segments while loading them | required
+mmap.load.existing.buffers | Whether to keep cached index across server restarts | true
+mmap.num.buffers | How many index to cache | unlimited
+mmap.cache.refresh.policy | Only LFU available for now | LFU
+mmap.cache.refresh.initial.delay.seconds | When to start cache refresher | 30
+mmap.cache.refresh.frequency.seconds | How often to refresh the cache | 60
+
+Because these are cluster configs, any changes will require you to restart the servers.
+
+
+### On demand access
+
+If index data isn't found in local cache, StarTree accesses the data from the remote tier backend on demand during query execution.
+
+<Callout>
+Using cache alone does not ensure stable and predicable query performance, particularly when the amount of data in the remote tier backend is more than the size of local disk by multiple orders. But the size of each Pinot segment is limited, and at any time only a limited number of segments are processed, which lets you configure the memory space for on demand access accordingly.
+</Callout>
+
+The size of `ondemand` space is an important configuration for query performance. If it's too small, it may become a bottleneck to prefetch segment data effectively or to fully parallelize the remote reads. The `reserved` size is to ensure query execution can always proceed, so it should be larger than the max segment size in the table. If query execution tends to wait for `ondemand` space, you should increase the `reserved` space. You've seen these two configs above in [Add cluster configs and restart servers](#add-cluster-configs-and-restart-servers).
+
+```json
+{
+  "pinot.server.instance.buffer.reference.manager.ondemand.total.size": "24G",
+  "pinot.server.instance.buffer.reference.manager.ondemand.reserved.size": "4G"
+}
+```
+
+Review the related configuration options here:
+
+Property | Description | Default value
+--- | --- | ---
+ondemand.total.size | Max memory for remote data access. Ensure this is smaller than direct memory available on server else you’ll get OutOfDirectMemory exceptions | 24G
+ondemand.reserved.size | This is a portion of the above total size. Ensure this is larger than size of largest uncompressed segment | 4G
+
+Because these are cluster configs, any changes will require you to restart the servers.
+
+
+### Access methods
+
+There are two methods for on demand data access: prefetch and read ahead.
+
+Prefetching happens asynchronously before segment processing but it gets the index data as a whole. 
+
+Reading ahead happens on demand during segment processing synchronously, which adds I/O waiting time onto query latency directly, but only to get the index data requested by the query plus a small amount of bytes ahead, reading just a few small chunks from the index data.
+
+By default, all remote data is obtained via prefetching. But based on the query, such as the indexes accessed, you can enable `readAhead` to speed up the query. The access methods can be turned on/off as a query option, making it easy to experiment with both access methods, as in this example:
+
+```sql
+SET "readAhead.enable" = true;
+SET "prefetch.column.index.list.processing.phase"='col1.dictionary,col2.dictionary';
+SET "readAhead.column.index.list.processing.phase"='col3.dictionary.initialBytes=1K;maxBytes=1M;numTriesBeforeDouble=10,teamID.dictionary.downloadAll=true';
+SELECT ....
+```
+
+Even when readAhead is enabled, not all index data is accessed by reading ahead. Under the hood, a fetch planner decides which access method is used to read which column index.
+
+For example, if a column is dictionary encoded and is present in the query projection clause, the column's dictionary is prefetched. Because when evaluating the projection clause, the column's dictionary is probed (via a binary search) for every single matching document.
+
+Prefetching the whole dictionary allows us to handle those relatively random reads from binary search more efficiently.
+
+By default, this happens like in this example, but remember the order can always be overridden by the query options shown above.
+
+1. For columns in non-predicate clauses (such as `projection`, `groupBy`, and `orderBy`): if they are [dictionary encoded](https://docs.pinot.apache.org/basics/indexing/forward-index#dictionary-encoded-forward-index-with-bit-compression-default), their dictionaries are prefetched; but in any case, their [forward index](https://docs.pinot.apache.org/basics/indexing/forward-index) data is accessed via the `readAhead` method, because only part of the data is needed to evaluate the clauses.
+1. For columns in predicate clauses (such as a where clause): if they have no index to be used to evaluate the predicates, their forward index data is prefetched as a whole, because the whole forward index data is scanned to evaluate the predicates anyway; otherwise, their index data (like an [inverted index](https://docs.pinot.apache.org/basics/indexing/inverted-index), [range index](https://docs.pinot.apache.org/basics/indexing/range-index) or [json index](https://docs.pinot.apache.org/basics/indexing/json-index)) is accessed via the readAhead method, because only part of them is needed to evaluate the predicates.
+
+Review the related configuration options here:
+
+Config | Description | Default value
+--- |--------------| ---
+readAhead.enable | Whether to enable read ahead access method | false, i.e. all by prefetching
+prefetch.column.index.list.processing.phase | Force to use prefetching to access some index | empty
+readAhead.column.index.list.processing.phase | Force to use readAhead to access some index | empty
+initialBytes (readAhead specific) | Initial buffer size to access data by read ahead | 10KB
+maxBytes (readAhead specific) | Max buffer size to access data by read ahead | 1MB
+numTriesBeforeDouble (readAhead specific) | How many reads before double the buffer size | 1
+downloadAll (readAhead specific) | Whether to download all index data by a single read, avoiding the cost of growing buffer | false
+
+Change of these configs do not require you to restart servers, because they are set as query options.
+
+
+### StarTree index
+
+Enable the star-tree index with the `enable.startree.index` configuration, in `tierBackendProperties` (shown below). Changes here require you to reload the table or restart the servers. This is disabled by default.
+
+```json
+"tierConfigs": [
+      {
+        "name": "remoteTier",
+         ...
+        "tierBackend": "s3",
+        "tierBackendProperties": {
+             "region": "<region>",
+             "bucket": "<bucket>",
+             "enable.startree.index": "true"
+             ...
+        }
+      }
+    ],
+```
+
+Each [star-tree Index](https://docs.pinot.apache.org/basics/indexing/star-tree-index#tree-structure)
+consists of two major parts: tree nodes and pre-aggregated values.
+
+The tree nodes have a small number of metadata about where to find the pre-aggregated values. If a query fits a StarTree Index, the Pinot server would traverse the tree nodes to identify the pre-aggregated values and merge them.
+
+Because the total size of tree nodes tends to be much smaller than that of all pre-aggregated values, and traversing tree nodes incurs relatively random reads, we suggest preloading the tree nodes on local disk and leaving the pre-aggregated values in remote store for best performance and cost balance when using the star-tree index. If not preloaded, the tree nodes are accessed via the `readAhead` method during query.
+
+Here is an example to preload the tree nodes of StarTree Index. The count suffix is aligned with the order of star-ree index configurations set in the table configuration.
+
+```json
+{
+   "pinot.server.instance.buffer.reference.manager.preload.index.keys.override": "<tableNameWithType1>,startree_index_0.tree,startree_index_1.tree"
+}
+```
+
+
+### Tier overwrites
+
+The performance/cost requirements can be very different for data on the local and remote tiers, requiring different index across tiers.
+
+For example, if you want to add a bloom filter, inverted index, and star-tree index for segments on the local tier to lower the query latency, and just add bloom filters on the remote tier to save cost.
+
+To configure indexes according to tiers, see [Overwrite index configs at tier level](https://docs.pinot.apache.org/basics/getting-started/frequent-questions/operations-faq#overwrite-index-configs-at-tier-level).
+
+
+### S3 client configs
+
+The S3 client can also be tuned, for example, to tolerate longer request latency. However, the default of the S3 configurations should work in most cases.
+
+In case there is a need, below is the list of current configs to customize when S3 clients fetch data from remote segments. All those configs are put inside `tierBackendProperties`. Most of them need to reload the table or restart servers to take effect.
+
+Pinot supports both sync and async s3 client.
+
+By default, sync s3 client is used and a thread pool is created to fetch data via the sync s3 clients in parallel, without blocking the query processing threads. The configs for sync s3 client are prefixed with `s3client.http`.
+
+The async s3 client can reduce the size of the thread pool considerably. It uses async I/O to fetch data in parallel in a non-blocking manner; and uses the thread pool mentioned above to process the I/O completion callbacks only. The configs for the async s3 client are prefixed with `s3client.asynchttp`. Configs prefixed with `s3client.general` apply to both kinds of clients.
+
+Review the related configuration options here:
+
+Config | Description | Default value
+--- |--------------| ---
+s3client.general.apiCallTimeout | Timeout for e2e API call, which may involve a few http request retries. | no limit
+s3client.general.apiCallAttemptTimeout | Timeout for a single http request. | no limit
+s3client.general.numRetries | How many times to retry the http request, with exponential backoff and jitter. | 3
+s3client.general.readBufferSize | Size of buffer to stream data into buffers for query processing. | 8KB
+
+Config | Description | Default value
+--- |---------| ---
+s3client.http.maxConnections | The max number of connections to pool for reuse | 50
+s3client.http.socketTimeout | Timeout to read/write data | 30s
+s3client.http.connectionTimeout | Timeout to establish connection | 2s
+s3client.http.connectionTimeToLive | Timeout to reclaim the idle connection | 0s
+s3client.http.connectionAcquireTimeout | Timeout to get a connection from pool | 10s
+s3client.http.connectionMaxIdleTimeout | Timeout to mark a connection as idle to be candidate to reclaim | 60s
+s3client.http.reapIdleConnections | Reclaim the idle connection in pool | true
+
+Config | Description | Default value
+--- |--------| ---
+s3client.asynchttp.maxConcurrency | The max number of concurrent requests allowed. We use HTTP/1.1, so this controls max connections. | 50
+s3client.asynchttp.readTimeout | Timeout to read data | 30s
+s3client.asynchttp.writeTimeout | Timeout to write data | 30s
+s3client.asynchttp.connectionTimeout | Timeout to establish connection | 2s
+s3client.asynchttp.connectionTimeToLive | Timeout to reclaim the idle connection | 0s
+s3client.asynchttp.connectionAcquireTimeout | Timeout to get a connection from pool | 10s
+s3client.asynchttp.connectionMaxIdleTimeout | Timeout to mark a connection as idle to be candidate to reclaim | 60s
+s3client.asynchttp.reapIdleConnections | Reclaim the idle connection in pool | true
+
+
+## Configs for ease of operations
+
+You have the option to use the following adjustments to simplify operations.
+
+
+### Server restart optimizations
+
+When tiered storage is enabled, server restarts can take a lot longer than otherwise. This is primarily due to servers having to make multiple object store calls when loading a segment. This high restart time can be problematic especially during upgrades and server outages.
+
+To alleviate this, enable segment header caching by setting the `pinot.server.instance.segment.cache.directory` cluster configuration to a path. This path must be different from the dataDir. Setting the property leads to segment metadata files, such as `creation.meta`, `metadata.properties`, and `index_map`, along with certain byte slices (specifically, the header bytes of each of the index buffers) of the `columns.psf` file being cached onto the disk.
+
+These cached files are used during server startup and eliminate the expensive object store calls, which helps in reducing the overall server startup time.
+
+<Callout>
+This feature only helps with server restarts and not when adding a new server since no cached files will be present when a server comes up for the first time.
+</Callout>
+
+
+### Segment reloads using minions
+
+Segment reloads can be an expensive and time consuming operation with tiered storage enabled. This is due to the multiple remote segment fetches and uploads involved when reloading a tiered segment. This can increase the load on the pinot servers hosting the tiered segments during reloads.
+A recommended solution is to leverage the pinot minion task framework for segment reloads. To enable this, add `SegmentReloadTask` to the table configuration, like this:
+
+```json
+    "task": {
+      "taskTypeConfigsMap": {
+        "SegmentReloadTask": {}
+      }
+```
+
+Additionally, you can set `pinot.server.instance.segment.segment.loader.fallback.allowed` to `false` in the cluster configs when using SegmentReloadTask. This ensures that all segment reload operations, for the tables where `SegmentReloadTask` is enabled, are always handled by the minions and never by the servers. This further guarantees that servers don't get overloaded with segment reload operations.
+
+Once the configs are added, initiate a segment reload operation for the table using the `POST /tasks/schedule` API call.
+
+```bash
+curl -X POST "http://<CONTROLLER_URL>/tasks/schedule?taskType=SegmentReloadTask&tableName=<TABLE_NAME>" -H "accept: application/json"
+```
+
+### Stale segment directory cleanup
+
+With the implementation of segment directory level MVCC, a new segment directory will be created in the object store whenever a segment is reloaded to apply changes in the schema or table configs. By default, these directories are not automatically removed, potentially resulting in a significant utilization of object storage space to store outdated segment directories that correspond to previous schema or table configs.
+
+To address this issue, periodic cleanup of these stale segment directories can be enabled by adding the following cluster configs. Please note that the controller needs to be restarted after adding the configs:
+
+```json
+{
+  "controller.tieredStorage.segment.cleanup.frequencyPeriod": "1h"
+}
+```
+The following additional settings can also be used to further refine the behavior of deleting stale segment directories.
+
+Config | Description | Default value
+--- |--------| ---
+controller.tieredStorage.segment.cleanup.frequencyPeriod | The frequency at which the controller should check for stale segment directories | -1 (disabled by default)
+controller.tieredStorage.segment.cleanup.tombstoneTtlMillis | The amount of time in milliseconds before an unused segment directory can be tombstoned | 2h
+controller.tieredStorage.segment.cleanup.tombstoneToDeletionTtlMillis | The amount of time in milliseconds before a tombstoned segment directory is deleted | 6h
+
+Increasing `controller.tieredStorage.segment.cleanup.tombstoneTtlMillis` allows more time for reusing old segment directories if table config reverts. However, it prolongs the persistence of stale directories in the object store.
+
+`controller.tieredStorage.segment.cleanup.tombstoneToDeletionTtlMillis` config specifies the wait time before deleting a tombstoned directory. This prevents the wrongful deletion of a segment directory if any server starts using the segment directory concurrently during the tombstoning process.
+
+## Monitoring metrics
+
+Below are metrics we emit to help understand how tiered storage works. The metrics mainly cover how:
+
+- Segments get uploaded to the tier backend, such as data volume and operation duration, rates or failures
+- Queries fetch data from the remote segments, such as data volume and query duration breakdown over query operators, query rates or failures
+- Segment data is kept on servers temporarily, such as data volume from segments temporarily held in memory or on disk
+
+Review the available metrics here:
+
+Metrics | Description
+--- |--------
+pinot_server_s3Segments_UploadedCount | How many segments uploaded to S3 tier backend when reloading segment.
+pinot_server_s3Segments_UploadedSizeBytes | How many bytes in total uploaded to S3 tier backend when reloading segment.
+pinot_server_s3SegmentUploadTimeMs | How long segment uploading takes when reloading segment.
+pinot_server_s3Segments_DownloadedCount | How many segments downloaded to server when reloading segment.
+pinot_server_s3Segments_DownloadedSizeBytes | How many bytes in total downloaded to server when reloading segment.
+pinot_server_s3SegmentDownloadTimeMs | How long segment downloading takes when reloading segment (this is not on query path).
+pinot_server_totalPrefetch_99thPercentile/OneMinuteRate| Rate and time spent to kick off data prefetching, and should be low. The prefetching is done in async. The metric is also broken down for cache layers: `mmapCacheLayer` and `ondemandCacheLayer`.
+pinot_server_totalAcquire_99thPercentile/OneMinuteRate | Rate and time spent to wait for segment data to be available and may be varying based on the effectiveness of prefetching. The metric is also broken down for cache layers: `mmapCacheLayer` and `ondemandCacheLayer`.
+pinot_server_totalReleas_99thPercentile/OneMinuteRate | Rate and time spent to release the segment data, and should be low. The metric is also broken down for cache layers: `mmapCacheLayer` and `ondemandCacheLayer`.
+pinot_server_bufferPrefetchExceptions_OneMinuteRate | Error rate when prefetching segment data. This metric is also broken down for cache layers: `mmapCacheLayer` and `ondemandCacheLayer`.
+pinot_server_bufferAcquireExceptions_OneMinuteRate | Error rate when waiting to acquire segment data. This metric is also broken down for cache layers: `mmapCacheLayer` and `ondemandCacheLayer`.
+pinot_server_bufferReleaseExceptions_OneMinuteRate | Error rate when releasing the prefetched segment data. This metris is also broken down for cache layers: `mmapCacheLayer` and `ondemandCacheLayer`.
+pinot_server_ondemandCacheLayerReserve_99thPercentile | Time for prefetching threads to wait for ondemand memory space to be available to fetch data. If this is high, try to configure more on-demand memory or adjust the query to access less segments like making query predicates more selective.
+pinot_server_ondemandCacheLayerBufferDownloadBytes_OneMinuteRate | Bytes rate of data prefetching.
+pinot_server_ondemandCacheLayerSingleBufferFetchersCount_OneMinuteRate | Number of column index pairs being prefetched.
+pinot_server_ondemandCacheLayerBufferDownloadBytes_OneMinuteRate | Bytes rate of data prefetching.
+
+<Callout>
+In addition to the metrics emitted from tiered storage modules, the cpu util and network bandwidth util are important to help you fine tune the system.
+</Callout>

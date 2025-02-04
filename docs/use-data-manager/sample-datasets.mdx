@@ -1,0 +1,119 @@
+import { Tabs } from 'nextra/components'
+
+# Sample Datasets
+
+
+StarTree Cloud comes with some sample datasets that you can use to evaluate Apache Pinot if you don't have your own data to use.
+
+## Select Dataset
+
+<Tabs items={['Simple Website', 'Website with Anomalies']}>
+  <Tabs.Tab>
+    Click **Use Sample Data** and then  **Simple Website** under the Which data do you want to use? heading:
+
+    **Simple Website Dataset**
+    <p>
+      <img width="600px" alt="image" src="https://user-images.githubusercontent.com/98617940/176584335-89d921ec-b83f-4aba-8c63-a4a9ec76f8d0.png" />
+    </p>
+    Now click **NEXT**. 
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Click **Use Sample Data** and then  **Website with Anomalies** under the Which data do you want to use? heading:
+
+    ![Anomalies Dataset](/img/sample-anomalies.png)
+    *Anomalies Dataset*
+
+    Now click **NEXT**. 
+  </Tabs.Tab>
+</Tabs>
+
+
+## Review 
+
+<Tabs items={['Simple Website', 'Website with Anomalies']}>
+  <Tabs.Tab>
+   You'll now see the review and submit screen, where you can review the dataset before importing it. 
+
+![Review Data Source](/img/sample-simple-review.png)
+*Review Data Source*
+
+If you want to choose a different sample dataset, click on the **PREV** button to go back to the previous screen.
+
+Once you're ready to create the data source, click on the **FINISH** button. 
+You'll then see the following screen:
+
+![Data Source Created](/img/sample-simple-done.png)
+*Data Source Created*
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+      You'll now see the review and submit screen, where you can review the dataset before importing it. 
+
+![Review Data Source](/img/sample-anomalies-review.png)
+*Review Data Source*
+
+If you want to choose a different sample dataset, click on the **PREV** button to go back to the previous screen.
+
+Once you're ready to create the data source, click on the **FINISH** button. 
+You'll then see the following screen:
+
+![Data Source Created](/img/sample-anomalies-done.png)
+*Data Source Created*
+  </Tabs.Tab>
+</Tabs>
+
+## Query Data Source
+
+<Tabs items={['Simple Website', 'Website with Anomalies']}>
+  <Tabs.Tab>
+   To have a look at the data that we've imported, click on the **Query Console** link, which will open the [Pinot Data Explorer](https://docs.pinot.apache.org/basics/components/exploring-pinot).
+Click on the table name that you used (we use the name _anomalies_ in this guide) and then click **RUN QUERY** to run a basic query against the data source:
+
+![Query simple Data Source](/img/sample-simple-query.png)
+*Query simple Data Source*
+
+Below are some other queries that you can run against this dataset:
+
+```sql
+select sum(views)
+from simple
+```
+*Total views*
+
+```sql
+select count(*)
+from simple 
+WHERE hoursSinceEpoch > 770500
+```
+*Recent events*
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+      To have a look at the data that we've imported, click on the **Query Console** link, which will open the [Pinot Data Explorer](https://docs.pinot.apache.org/basics/components/exploring-pinot).
+Click on the table name that you used (we use the name _anomalies_ in this guide) and then click **RUN QUERY** to run a basic query against the data source:
+
+![Query anomalies Data Source](/img/sample-anomalies-query.png)
+*Query anomalies Data Source*
+
+Below are some other queries that you can run against this dataset:
+
+```sql
+select browser, sum(views) AS totalViews
+from anomalies 
+group by browser
+order by totalViews DESC
+```
+*Top browsers*
+
+```sql
+select country, count(*) AS count
+from anomalies 
+where clicks > 0
+group by country
+order by count DESC
+```
+*Most popular country*
+  </Tabs.Tab>
+</Tabs>
+

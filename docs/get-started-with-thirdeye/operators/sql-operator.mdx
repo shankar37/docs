@@ -1,0 +1,83 @@
+# SqlExecution
+
+Applies arbitrary SQL on any data. SQL is applied in memory.
+
+
+## Inputs
+
+Any number of inputs. `targetProperty` is used as the table name when SQL is executed. 
+
+
+## Outputs
+
+One output for each query. `outputKey` names are `0`, `1`, `2` etc... corresponding to the number of the query.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|  `sql.engine` | SQL Engine to use. <br/>Either `CALCITE` or `HYPERSQL`. | `HYPERSQL` |
+|  `sql.queries` | A list of sql queries to execute. |   |
+|  `jdbc.parameters` | Additional jdbc parameters to pass. In a key-value format.  |   |
+
+
+### Available SQL Engines for `engine`
+
+
+#### HYPERSQL
+HSQLDB SQL. [See SQL reference](http://hsqldb.org/doc/2.0/guide/sqlgeneral-chapt.html).  
+Input data is copied to an in-memory HSQLDB, then SQL is applied.
+
+
+#### CALCITE
+Apache Calcite SQL. Very close to ANSI SQL. [See SQL reference](https://calcite.apache.org/docs/reference.html).  
+Try Calcite SQL [online here](https://calcite-online.system.gavinray.dev).  
+BigQuery functions [listed here](https://calcite.apache.org/docs/reference.html#dialect-specific-operators) are available.
+In particular, `TIMESTAMP_MILLIS` and `UNIX_MILLIS`  are available to easily convert epoch to time and vice-versa.  
+The implementation is zero-copy, meaning no data is copied from the ThirdEye app to another process. SQL is run on the Java data directly.
+
+
+## Example
+
+```json
+{
+  "name": "sql-join",
+  "type": "SqlExecution",
+  "params": {
+    "sql.engine": "HYPERSQL",
+    "sql.queries": [
+      "SELECT ts as timestamp, met as value FROM baseline WHERE ts BETWEEN 20200715 AND 20200720",
+      "SELECT ts as timestamp, met as value FROM current WHERE ts BETWEEN 20200715 AND 20200720",
+      "SELECT ts, avg(met) as met FROM (SELECT ts, met FROM baseline UNION ALL SELECT ts, met FROM current) WHERE ts BETWEEN 20200715 AND 20200720 GROUP BY ts ORDER BY ts"
+    ],
+    "jdbc.parameters": {"key":  "value"}   # dictionnary format
+  },
+  "inputs": [                              # two inputs
+    {
+      "targetProperty": "baseline",        # name of the table in the queries
+      "sourcePlanNode": "baselineDataFetcher",
+      "sourceProperty": "baselineOutput"
+    },
+    {
+      "targetProperty": "current",         # name of the table in the queries
+      "sourcePlanNode": "currentDataFetcher",
+      "sourceProperty": "currentOutput"
+    }
+  ],
+  "outputs": [
+    {
+      "outputKey": "0",                   # result of first query
+      "outputName": "baseline"
+    },
+    {
+      "outputKey": "1",                   # result of second query
+      "outputName": "current"
+    },
+    {
+      "outputKey": "2",                   # result of last query
+      "outputName": "final"
+    }
+  ]
+}
+```

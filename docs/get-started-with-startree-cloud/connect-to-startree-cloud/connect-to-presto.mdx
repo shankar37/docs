@@ -1,0 +1,79 @@
+---
+description: In this developer guide, you'll learn how to install PrestoDB and how the Pinot proxy makes it possible to use PrestoDB with Pinot.
+---
+
+# Connect PrestoDB to StarTree Cloud
+
+## How to install PrestoDB
+
+There are a few ways to install and utilize PrestoDB. You can:
+
+- [Use the tarball to install PrestoDB manually](https://prestodb.io/docs/current/installation/deployment.html#installing-presto)
+- [Install PrestoDB using Homebrew](https://prestodb.io/docs/current/installation/deploy-brew.html)
+- [Install PrestoDB using the Presto CLI](https://prestodb.io/docs/current/installation/cli.html#installation-cli--page-root)
+- [Install PrestoDB using the JDBC driver](https://prestodb.io/docs/current/installation/jdbc.html)
+
+For more information, view [How to Get Started with PrestoDB](https://prestodb.io/getting-started.html).
+
+## PrestoDB Pinot Proxy
+
+### Our Solution
+
+In a StarTree deployment, Pinot components are hosted within a Kubernetes cluster. Pinot server endpoints are not exposed outside the Kubernetes cluster in this setup. While this is fine for most use cases, it creates a problem for external services like PrestoDB.
+
+Pinot Proxy is our solution to enable PrestoDB connection into the Pinot cluster when inside the Kubernetes cluster. Without Pinot Proxy, we will have to create dedicated Kubernetes routes for each single Pinot Server host, and such a solution is not scalable for Kubernetes.
+
+### High-Level Architecture
+
+At a very high level, Pinot Proxy behaves similarly to a reverse proxy like Nginx. It proxies RPC requests into Pinot clusters inside Kubernetes.
+
+A special feature of Pinot Proxy is that it can forward PrestoDB gRPC requests to specific Pinot Servers rather than routing them by load balancers.
+
+This diagram illustrates how it communicates with PrestoDB Pinot drivers.
+
+![proxy-architecture](/img/proxy-architecture.png)
+
+We have [detailed slides](https://docs.google.com/presentation/d/1DNWmAg4YqU3ZD2ckrnVpBHRtSKDqMrCXFuistUk5gII/edit#slide=id.g1198770321e_0_15) explaining the technical aspect of this design and why we need a Pinot proxy.
+
+### What does it mean for Pinot Clients
+
+The main benefit is that with Pinot Proxy, PrestoDB can finally run queries in streaming mode when connecting to Pinot inside a Kubernetes cluster.
+
+Example:
+You can use `pinot.use-streaming-for-segment-queries=true` in your `pinot.properties` file.
+
+For more information on Pinot connectors, view [Apache Pinot Connector](https://prestodb.io/docs/current/connector/pinot.html) documentation.
+
+### Connection Settings for PrestoDB
+
+> **NOTE**: PrestoDB has to be version `0.273` or higher to properly connect to Pinot in Kubernetes.
+
+The PrestoDB connection URLs must be modified to point to Pinot Proxy host names to connect via Pinot Proxy. Suppose your pinot cluster is named `pug`, the environment name is `prod`, and StarTree cloud domain is `awesome-company.startree.cloud`. Below are the configs needed in `pinot.properties` configuration in PrestoDB:
+
+```
+## Replace the pug.prod.awesome-company.startree.cloud with the link to your pinot cluster
+## For the clusters without TLS enabled, the port number will be 80
+pinot.controller-urls=proxy.broker.pug.prod.awesome-company.startree.cloud:443
+
+## Enable Pinot Rest Proxy
+pinot.proxy-enabled=true
+
+## Replace the pug.prod.awesome-company.startree.cloud with the link to your pinot cluster
+pinot.grpc-host=proxy-grpc.broker.pug.prod.awesome-company.startree.cloud
+## For the clusters without TLS enabled, the port number will be 80
+pinot.grpc-port=443
+```
+
+#### Extra settings for clusters with TLS enabled
+
+If the cluster has TLS enabled, we will need the extra properties in the configuration file.
+
+```
+## Enable secure connection for all traffic
+pinot.secure-connection=true
+
+#### Extra settings for clusters with "Secure" flag enabled (Auth enabled)
+## The bearer token will have to be retrieved manually and long-lived
+pinot.extra-http-headers=Authorization: Bearer eyJhbGciOiJSUz
+pinot.extra-grpc-metadata=Authorization: Bearer eyJhbGciOiJSUz
+```

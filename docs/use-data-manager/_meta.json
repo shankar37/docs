@@ -1,0 +1,16 @@
+{
+    "ingest-data": "Ingest data",
+    "custom-connection": "Custom connector",
+    "kafka": "Apache Kafka",
+    "kinesis": "AWS Kinesis",
+    "s3-old": {
+        "title": "AWS S3 (previous version)",
+        "display": "hidden"
+    },
+    "s3": "AWS S3",
+    "confluent": "Confluent Cloud",
+    "delta-lake": "Delta Lake",
+    "upload-file": "Upload file",
+    "sample-datasets": "Sample Datasets",
+    "recipes": "Recipes"
+}

@@ -1,0 +1,46 @@
+import { Callout } from 'nextra/components';
+
+# Alert templates
+
+Creating alerts can take time. To help reduce the time needed, you can make an alert detection logic configurable, and reuse it in multiple alerts with alert templates.
+
+
+## Install StarTree templates
+
+ThirdEye comes packaged with ready-to-use templates. To reinstall these templates, make the following call to the ThirdEye API:
+
+```js
+    curl -X POST "<YOUR_THIRDEYE_URL>/api/alert-templates/load-defaults" -H "Content-Type: application/x-www-form-urlencoded" -d "updateExisting=true"
+```
+
+Or use the [Swagger UI](../use-the-api.md): Alert Template → load-defaults.
+
+The StarTree templates are actively maintained and updated regularly. To update the templates in your environment, run the same command.
+
+<Callout>
+Updates are backward compatible. They will not break your alert configuration nor change the alert behavior, except for bug fixes.
+</Callout>
+
+If you don't want to update the existing templates and only want to add new templates, use `-d "updateExisting=false"` in the command above.
+
+
+## Create a new template
+
+1. Click **Create** → **Create Alert Template**.
+1. Create your template. The JSON schema is the same as the template field in an alert. See [alert configuration](../../alert-configuration.md#template).
+1. Add a `name` and a `description`.
+1. Use properties in format `${myProperty}` where you want the detection logic to be configurable. These properties will be set by the alert using the template.
+
+<img src="/img/thirdeye/_create_template.png" width="90%" />
+
+<Callout>
+Most of the time, the template creation process looks like this:
+- Create an alert - experiment, make sure it works fine and validate it can be reused for similar problems.  
+- Copy the template of the alert inside an alert template.
+- Add a `name` and a `description` to the template. Save.  
+- Reuse the alert
+</Callout>
+
+
+## Use the template
+See [how to use the alert creation UI](./how-to-use-alert-creation-ui.md).

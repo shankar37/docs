@@ -1,0 +1,62 @@
+# Install Pinot
+
+import { Callout } from 'nextra/components';
+
+<Callout type="info">In this guide you'll learn how to install Apache Pinot on your local machine.</Callout>
+
+Pinot can be installed directly on your machine from a binary file or using the Brew package manager. It is also
+available via Docker. Instructions for each option are described below:
+
+## With Docker
+
+1. To install Docker, see [Get Docker](https://docs.docker.com/get-docker/).
+2. To pull the Docker image onto your machine, run the following command:
+
+ ```bash
+    docker pull apachepinot/pinot:1.0.0
+ ```
+
+## With Brew
+
+Pinot can also be installed on Mac OS using the Brew package manager. For instructions on installing Brew, see the [Brew
+documentation](https://brew.sh/).
+
+```js copy
+brew install pinot
+```
+
+## With Launcher Scripts 
+
+Download the latest binary release from [pinot.apache.org/download](https://pinot.apache.org/download/) or run the following command from the terminal:
+
+###### Download Pinot
+```bash
+PINOT_VERSION=1.0.0
+wget https://downloads.apache.org/pinot/apache-pinot-$PINOT_VERSION/apache-pinot-$PINOT_VERSION-bin.tar.gz
+```
+
+
+<Callout type="warning">
+    Pinot requires JDK11 or higher (JDK16 is not yet supported).
+</Callout>
+
+
+Once you have the tar file:
+
+###### Untar it
+```bash
+tar -zxvf apache-pinot-$PINOT_VERSION-bin.tar.gz
+```
+
+###### Navigate to directory containing launcher scripts
+```bash
+cd apache-pinot-$PINOT_VERSION-bin
+```
+
+
+## Next Steps
+
+You've now got Pinot installed on your machine and the next step is to try it out.
+
+* To see an example of all the Pinot components running in a single process with a pre-loaded dataset, see the [Quickstart](quick-start.mdx) guide.
+* To create a local cluster, with each Pinot component running separately, see the [Create Cluster](create-cluster.md) guide.

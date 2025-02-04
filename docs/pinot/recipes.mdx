@@ -1,0 +1,148 @@
+# Recipes
+
+Recipes help you learn how to solve common problems with Apache Pinot. To use recipes, do the following:
+
+1. [Download recipes](#download-recipes)
+2. Browse recipes by category, to see where you'd like to start:
+   - [Batch ingestion](#batch-ingestion)
+   - [Streaming ingestion](#streaming-ingestion)
+   - [Transformation functions](#transformation-functions)
+   - [Deep storage](#deep-storage)
+   - [Upserts](#upserts)
+   - [Real-time to offline job](#real-time-to-offline-job)
+   - [JSON documents](#json-documents)
+   - [Geospatial](#geospatial)
+   - [Merge and roll up](#merge-and-roll-up)
+   - [Clickstream Analytics Dashboard App](#clickstream-analytics-dashboard-app)
+   - [Other](#other)
+
+## Download recipes
+
+To download Apache Pinot recipes, do one of the following:
+
+- [Clone the `pinot-recipes` repository using SSH](/docs/pinot/recipes/#clone-the-pinot-recipes-repository-using-ssh)
+- [Clone the `pinot-recipes` repository using HTTPS](/docs/pinot/recipes/#clone-the-pinot-recipes-repository-using-https)
+- If you **don't have a Git client** or **don't want to clone** the repository, [click to download a zip file](https://github.com/startreedata/pinot-recipes/archive/refs/heads/main.zip) that contains the recipes.
+
+### Clone the `pinot-recipes` repository using SSH
+
+To clone the `pinot-recipes` repository using SSH, do the following:
+
+1. Set up SSH keys associated with your GitHub account on your local machine. For more information, see [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
+2. Run the following command:
+ ```bash
+  git clone git@github.com:startreedata/pinot-recipes.git
+  ```
+
+### Clone the `pinot-recipes` repository using HTTPS
+
+To clone the `pinot-recipes` repository using HTTPS, do the following:
+
+1. Run the following command:
+ ```bash
+  git clone https://github.com/startreedata/pinot-recipes.git
+  ```
+2. At the prompt, enter your GitHub username and a personal access token. If you forgot your GitHub username, see [Remembering your GitHub username or email](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/remembering-your-github-username-or-email).
+If you need a personal access token, see [Creating a personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+
+## Batch ingestion
+
+To learn about batch ingestion in Pinot, see the following recipes:
+
+* [Importing CSV files with columns containing spaces](recipes/csv-files-spaces-column-names.md)
+* [Import data files from different directories](recipes/import-data-files-different-directories.md)
+* [Ingest CSV files from a S3 bucket](recipes/ingest-csv-files-from-s3.md)
+* [Ingest JSON files](recipes/ingest-json-files.md)
+* [Ingest Parquet Files from a S3 Bucket into Pinot Using Spark](recipes/ingest-parquet-files-from-s3-using-spark.md)
+* [Backfill offline segment](recipes/backfill.md)
+
+## Streaming ingestion
+
+To learn about stream ingestion in Pinot, see the following recipes:
+
+* [Ingest simple JSON data from Kafka](recipes/ingest-json-files-kafka.md)
+* [Ingest data from Kafka configured with SASL authentication](recipes/kafka-sasl.md)
+* [Ingest data from Kafka configured with SSL and SASL authentication](recipes/kafka-ssl-sasl.md)
+* [Ingest GitHub API events using Kinesis](recipes/github-events-stream-kinesis.md)
+* [Ingest data from Pulsar](recipes/pulsar.md)
+* [Configuring segment threshold](recipes/configuring-segment-threshold.md)
+* [Ingest Avro messages with Confluent Schema registry](recipes/ingest-avro.md)
+* [Ingest CDC data using PostgreSQL, Kafka, and Debezium](recipes/debezium-cdc.mdx)
+* [Ingest CDC data using DynamoDB and Kinesis](recipes/dynamodb-pinot-cdc.mdx)
+
+## Transformation functions
+
+To learn about transforming data with functions in Pinot, see the following recipes:
+
+* [Groovy transformation functions](recipes/groovy-transformation-functions.md)
+* [JSON transformation functions](recipes/json-transformation-functions.md)
+* [Chaining transformation functions](recipes/chaining-transformation-functions.md)
+* [Filtering functions](recipes/filtering-ingestion.md)
+* [DateTime strings to timestamps](recipes/datetime-string-to-timestamp.md)
+* [Combine source fields](recipes/combine-fields.md)
+
+## Deep storage
+
+To learn about deep storage for Pinot, see the following recipes:
+
+* [MinIO as deep storage](recipes/minio-deep-store.md)
+* [Google Cloud Storage as deep storage](recipes/google-cloud-storage-deep-store.md)
+
+## Upserts
+
+To learn about upserts in Pinot, see the following recipes:
+
+* [Full upserts](recipes/upserts-full.md)
+* [Partial upserts](recipes/upserts-partial.md)
+
+## Real-time to offline job
+
+To learn about a real-time (streaming) to offline job (batch job) in Pinot, see the following recipes:
+
+* [Manually scheduling real-time to offline job](recipes/real-time-offline-job.md)
+* [Automatically scheduling real-time to offline job](recipes/real-time-offline-job-automatic-scheduling.md)
+* [Upserts and the real-time to offline job](recipes/upserts-real-time-offline-job.md)
+
+## JSON documents
+
+To learn about handling JSON data in Pinot, see the following recipes:
+
+* [Unnest arrays in JSON documents](recipes/json-unnest.md)
+* [Rename fields when unnesting arrays in JSON documents](recipes/json-unnest-rename-fields.md)
+* [Flattening nested objects](recipes/json-flatten.md)
+* [Index JSON columns](recipes/json-index.md)
+* [Update JSON index](recipes/json-update-index.md)
+
+## Geospatial
+
+To learn about geospatial data in Pinot, see the following recipes:
+
+* [Storing Geospatial objects](recipes/geospatial.md)
+* [Geospatial indexing](recipes/geospatial-indexing.md)
+* [Default values for Geospatial columns](recipes/geospatial-default-value.md)
+
+## Merge and roll up 
+
+To learn about merge and roll ups in Pinot, see the following recipes:
+
+* [Merge small segments](recipes/merge-small-segments.md)
+* [Automatically merge real-time segments](recipes/merge-segments-realtime.md)
+
+## Clickstream Analytics Dashboard App
+This guide will walk you through creating a real-time clickstream analytics dashboard using StarTree Cloud Free Tier (Apache Pinot) and Streamlit.
+* [Create a Clickstream Analytics Dashboard App](recipes/real-time-clickstream-dashboard-guide.md)
+
+## Other
+
+See other recipes available:
+
+* [Lookup-based join support](recipes/lookup-joins.md)
+* [Infer schema from JSON data](recipes/infer-schema-json-data.md)
+* [Get time boundary](recipes/time-boundary-hybrid-table.md)
+* [Handle null values](recipes/handle-null-values.md)
+* [Extract components of dates](recipes/extract-parts-of-date.md)
+* [Query by segment name](recipes/query-by-segment.md)
+* [Force Commit](recipes/force-commit.md)
+* [Using a star-tree index](recipes/startree-index.md)
+* [Managed offline flow](recipes/managed-offline-flow.md)
+* [Real-Time RAG Pinot](recipes/genai.md)

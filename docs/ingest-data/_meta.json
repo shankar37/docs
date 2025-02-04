@@ -1,0 +1,9 @@
+{
+    "google-cloud-pubsub": "Google Cloud Pubsub",
+    "sql-connector": "SQL Connector",
+    "file-ingestion-task": "File Ingestion Task",
+    "atomic-sync-consistent-push": "Consistent Push",
+    "segment-import-task": "Segment Import Task",
+    "debezium-message-decoder": "Debezium Message Decoder",
+    "delta-lake-connector": "Delta Lake Connector"
+}

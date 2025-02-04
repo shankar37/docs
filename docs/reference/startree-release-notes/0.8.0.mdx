@@ -1,0 +1,77 @@
+# Release version 0.8.0: February 2024
+
+
+## Apache Pinot updates since last StarTree release
+
+For details on Pinot changes, see [Releases](https://docs.pinot.apache.org/basics/releases).
+
+* Permit defining `NULL` handling at the table level or at each individual column level. [Link](https://github.com/apache/pinot/pull/11960)
+* Add `lastUsed` option in `resumeConsumption` endpoint in the broker API to improve UX. [Link](https://github.com/apache/pinot/pull/12200)
+* Improve ingestion validation with `TimeValidationTransformer` to mark a record as invalid if the primary time column is out of range (1971 inclusive to 2071 exclusive). [Link](https://github.com/apache/pinot/pull/11907)
+* Update the `tables` API endpoint to list only the dimension tables by specifying `dimension` as the type, for example:
+    ```
+    curl -X 'GET' \
+        'http://localhost:9000/tables?type=dimension; \
+        - H 'accept: application/json'
+    ```
+    [Link](https://github.com/apache/pinot/pull/11859)
+* Enhance consuming segment handling to avoid an under-counting error with upsert tables. [Link](https://github.com/apache/pinot/pull/11978)
+* Improve the logic for taking snapshots by making them more atomic and in an order that permits correct table preloading. [Link](https://github.com/apache/pinot/pull/12232)
+* Add the following new metrics:
+    * `pinot_server_tableRebalanceInProgress_Value{table=${tableName},tabletype=${tableType}}` indicates whether a table is being rebalanced. `1` indicates rebalancing is in progress and `0` when it's not. [Link](https://github.com/apache/pinot/pull/12270)
+    * `pinot_server_tableDisabled_Value{table=${tableName},tableType=${tableType}}` indicates whether a table is disabled. It uses `1` to indicate the table is disabled and `0` when it is not. [Link](https://github.com/apache/pinot/pull/12000)
+    * `pinot_server_tableConsumptionPaused_Value{table=${tableName},tableType=${tableType}}` indicates whether table consumption is paused. `1` indicates the table is consumption is paused and `0` when it's not. [Link](https://github.com/apache/pinot/pull/12000)
+* Add a set of catch-all regexes for JMX -> Prometheus Exporter for when a regex used does not match a metric. [Link](https://github.com/apache/pinot/pull/12073)
+* Add compression configuration for aggregation in a star-tree index. [Link](https://github.com/apache/pinot/pull/11744)
+* Add a new flag to indicate whether the query result is partial or full. [Link](https://github.com/apache/pinot/pull/11592)
+* Add `DATETIMECONVERTWINDOWHOP` transformation function. [Link](https://github.com/apache/pinot/pull/11773)
+* Enable tracking of out of order events in an upsert-enabled table using a new configuration `outOfOrderRecordColumn`. [Link](https://github.com/apache/pinot/pull/11877)
+* Enable support for leveraging a star-tree index in conjunction with filtered aggregations, including filtered group-by aggregations. [Link](https://github.com/apache/pinot/pull/11886)
+* Add a new MV dictionary-encoded forward index format that only stores the unique MV entries, reducing storage footprint for indexes. [Link](https://github.com/apache/pinot/pull/1199)
+* Introduce low disk mode to table rebalance, which is set to false by default. When set to true, the server will first offload segments before loading the new segments during rebalance. [Link](https://github.com/apache/pinot/pull/12072)
+* Introduce a new configuration `controller.realtime.segment.deepStoreUploadRetry.parallelism` (the default setting  is `1`) to increase the size of the thread pool used for retrying segment uploads. Also the upload retry is now an asynchronous operation. [Link](https://github.com/apache/pinot/pull/12017)
+* Enable `SegmentGenerationAndPushTask` to push segment(s) to a realtime table, supporting bootstrapping an upsert enabled table. [Link](https://github.com/apache/pinot/pull/12084)
+* Add the ability to specify a custom Lucene analyzer used by text index for indexing and search on an individual column basis. [Link](https://github.com/apache/pinot/pull/12027)
+* Add murmur3 support as partition function
+* Enhance `DistinctCountThetaSketch` aggregation function by adding new parameters to give the end-user more control over how sketches are aggregated at query time. [Link](https://github.com/apache/pinot/pull/12042)
+* Add new configuration in upsert, `deletedKeysTTL`, which when set will remove deleted keys and mark the `validDocID` as invalid after the `deletedKeysTTL` threshold period, improving memory utilization. [Link](https://github.com/apache/pinot/pull/12037)
+* Add support for vector index using Hierarchical Navigable Small World (HNSW). [Link](https://github.com/apache/pinot/pull/11977)
+* Add the ability to initialize broker tags from configuration and automatically update the broker resource when broker joins the cluster for the first time. [Link](https://github.com/apache/pinot/pull/12175)
+* Enable partition level force-commit functionality, expanding the endpoint to accept a comma-separated list of partitions or consuming segment names. [Link](https://github.com/apache/pinot/pull/12088)
+* The following updates are specific to the multi-stage query engine:
+    * Optimize partition-based query performance when using the multi-stage query engine. The engine is now able to determine table partitioning and apply the best data shuffle mechanism automatically. [Link](https://github.com/apache/pinot/issues/12015)
+    * Enable the multi-stage query engine to run multiple operator chains, provided there is no requirement for distributed data shuffling. [Link](https://github.com/apache/pinot/pull/11937)
+    * Enable multiple SEMI-JOINs in the multi-stage query engine to use index lookup within the same node for a left-table scan. [Link](https://github.com/apache/pinot/pull/12038)
+    * Add support in the multi-stage query engine for early termination and direct error, warning, or stats return in the multi-stage query engine. [Link](https://github.com/apache/pinot/pull/11746)
+* Bug fix: Segments created in realtime tables are guided by the parameter `realtime.segment.flush.threshold.segment.size` if it is set. [Link](https://github.com/apache/pinot/pull/12016)
+
+
+## StarTree Cloud
+
+### StarTree Extensions for Apache Pinot
+
+* Enable bootstrapping of upsert-enabled tables by supporting batch ingestion using `fileingestiontask` into a realtime table.
+* StarTree Upsert on by default for all StarTree deployments, providing enhanced scalability and stability when using upsert.
+    * Improved server restart times when using StarTree upserts
+    * Ability to take snapshot for improved recoverability of upsert tables
+* Provide visibility into the health of various components (Server, Broker, Controller, Tables, etc.) using the Cluster Health Dashboard in Pinot Control Panel. The dashboard is updated every 20 minutes and can be triggered on-demand by using the `/periodictask/run` API call.
+*  Ability to gate access to Pinot tables using a new Role Based Access Control (RBAC) system. Roles can be assigned to individual users, IDP groups or Pinot API tokens. Access can be controlled at a table-level granularity along with the ability to allow/deny specific APIs on Pinot clusters and tables. **Alpha Release**
+
+
+### Data Manager
+
+* Add [Custom Connector option](/docs/use-data-manager/custom-connection) that lets you create a dataset using a JSON connection configuration to a Google Cloud Storage (GCS) data source.
+* Enhance interface to select a directory or multiple directories in an [AWS S3 bucket](/docs/use-data-manager/s3).
+* Add SSL certificate support for Kafka. Now, you can enter details to connect with Kafka under SSL Authentication Type in Kafka Source.
+* Enhance Delta Lake connector to support IAM role access in AWS.
+
+
+### ThirdEye
+
+* Link anomaly alerts to PagerDuty for instant notification and efficient incident management. [Link](https://dev.startree.ai/docs/get-started-with-thirdeye/how-tos/add_notification#pagerduty-support)
+* Enable customizable bounds for precise anomaly detection, enhancing decision-making accuracy. [Link](https://dev.startree.ai/docs/get-started-with-thirdeye/templates/startree-mean-variance)
+* Protect sensitive information with automated data masking during the automated anomaly detection alert creation process.[Link](https://dev.startree.ai/docs/get-started-with-thirdeye/templates/startree-experimental-mean-variance-with-mask)
+* UI/UX improvements
+    * View related tasks for each alert, including success, failure, and access to logs for troubleshooting.
+    * View a list of notifications sent per subscription group for better insight into alert distribution.
+    * Easily identify which subscription groups are receiving specific alerts.

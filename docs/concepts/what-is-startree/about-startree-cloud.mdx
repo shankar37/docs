@@ -1,0 +1,86 @@
+# StarTree Cloud
+
+StarTree Cloud provides managed hosting for Apache Pinot on all major cloud platforms, including AWS, GCP, and Azure. StarTree Cloud offers public SaaS (software-as-a-service) and private BYOC deployment options. For more information about our public or private SaaS offering, [schedule a demo](https://startree.ai/demo) with our StarTree solutions architect team. Or, [get started with a free 30-day trial](../../get-started-with-startree-cloud/saas_trial).
+
+StarTree Cloud lets you provision Apache Pinot clusters of different sizes, ingest data from real-time and batch data sources, and run analytics workloads with ultra-low latency. StarTree manages the underlying infrastructure for you, provides insights from a diverse set of data, and helps you make informed business decisions.
+
+StarTree Cloud also includes tools for a better developer experience, including [StarTree Data Manager](../../concepts/what-is-startree/about-startree-data-manager.md) (for data ingestion) and [StarTree ThirdEye](../../concepts/what-is-startree/about-startree-thirdeye.md) (for anomaly detection), and additional key features to enhance Pinot.
+
+## Why use StarTree Cloud?
+
+We recommend using StarTree Cloud for the following use cases:
+
+- User facing analytics
+- Business metrics
+- Anomaly detection
+- Root cause analysis
+- Dashboards
+- Log analytics
+- Cohort analytics
+- Ad hoc exploration
+
+|                                | **Query throughput (queries/sec)** | **Query latency (p95th)** | **Consistency/accuracy** | **Query flexibility** |
+|--------------------------------|------------------------------------|---------------------------|--------------------------|-----------------------|
+| **User facing analytics**      | Very high: 10k-100k                | 10ms-100ms                | Best effort              | Low                   |
+| **Personalization**            | Very high: 10k-100k                | 10ms-100ms                | Best effort              | Low                   |
+| **Metrics**                    | High: 100s-10k                     | 10ms-100ms                | Accurate                 | Low                   |
+| **Anomaly detection**          | Moderate: 100s-1k                  | 10ms-100ms                | Best effort              | Low                   |
+| **Root cause analysis**        | High: 100s-10k                     | 10ms-100ms                | Best effort              | Low                   |
+| **Visualization/dashboarding** | Moderate: 100s-1k                  | 100ms                     | Best effort              | Medium                |
+| **Ad hoc analytics**           | Low                                | Single-digit seconds      | Best effort              | High                  |
+| **Log analytics/text search**  | Moderate: 100s-1k                  | Sub-second                | Best effort              | Medium                |
+
+## Key features of StarTree Cloud
+
+StarTree offers the following features to enhance Apache Pinot: 
+
+- [Tiered storage](../../manage-data/set-up-tiered-storage)
+- **Additional support for ingesting data**:
+  - [Google Cloud Pubsub](../../ingest-data/google-cloud-pubsub.md)
+  - [SQL Connector](../../ingest-data/sql-connector.md)
+  - [Flexible batch file ingestion](../../ingest-data/file-ingestion-task.md)
+  - [Segment import - Parallel real-time to offline segment conversion](../../ingest-data/segment-import-task.md)
+  - [IAM role-based authentication for Amazon S3 ingestion ](../../use-data-manager/s3.md)
+
+- **Additional support for managing data**:
+  - [Segment refresh to keep segments consistent with table config](../../manage-data/segment-refresh-task.md)
+  - [Off-heap upsert in Apache Pinot](../../manage-data/offheap-upsert.md)
+  - [Spark-Pinot connector](https://github.com/apache/pinot/blob/master/pinot-connectors/pinot-spark-3-connector/README.md)
+
+ ### Managed Apache Pinot
+ 
+ - **Query latency and speed:** Computes on the fly and is very fast due to the indexing strategies, partitioning/data layout, and bloom filters.  StarTree Cloud supports partial pre-aggregated values to provide very low latency, real-time analytics on the data.
+   - Millisecond level latencies for most OLAP queries.
+   - Ability to achieve a hard upper bound for query latencies for a given use case
+   - Low latency with high throughput.
+ - **Data Mutability:** Designed for low cost to answer OLAP queries and low latency on immutable data and mutable data (upsert support).
+ - **Indexing:** The following indexing techniques are supported:
+   - Inverted index
+   - Sorted index
+   - Range index
+   - JSON index
+   - Text index
+   - Geospatial index
+   - Star-tree index
+ - **Throughput:** Purpose-built for supporting very high throughput for the analytical workload. Can support 10000+ QPS in a single cluster.
+ - **Cost to serve:** Low columnar storage provides excellent compression leading to lower storage and in-memory footprint.
+ - **Operational/Production Readiness:** Built to be multi-tenant. Provides an easy way to scale a cluster up or down, replace nodes, and reshuffle data.
+ - **Advanced query features (joins):** Limited support-dim join supported and an early version of fact-fact distributed shuffle join is also available.
+ - **Integration with existing data eco-systems:** Integrates well with the rest of the data ecosystem with support for backfills.
+ - **Monitoring with alerts sent to StarTree SRE team:** StarTree provides service-level agreement (SLA) guarantees. To meet SLA guarantees, StarTree-managed Pinot environments have a [comprehensive set of metrics being monitored](https://docs.pinot.apache.org/configuration-reference/monitoring-metrics). 
+     Additionally, the StarTree site reliability engineering team monitors and resolves Prometheus alerts, and provides notification of these updates as applicable.
+
+ ### StarTree Data Manager
+ 
+ The StarTree Data Manager is a UI that makes it easy to onboard data into a StarTree Cloud.
+ 
+To open Data Manager, go to StarTree Cloud, and click **Data Manager.**
+
+## Learn more
+
+For more information, see the following:
+
+  * [Get started with StarTree Cloud](../../get-started-with-startree-cloud)
+  * [Learn about Data Manager](../../concepts/what-is-startree/about-startree-data-manager.md).
+  * [Use Data Manager](../../use-data-manager)
+  {/* * [API Access] (_api-access.md) */}

@@ -1,0 +1,39 @@
+# StarTree data security
+
+StarTree takes the security of customer data and its own data seriously. This includes securing devices, networks, and
+systems.
+
+StarTree has implemented features in the following areas to protect data.
+
+## Authentication and authorization
+
+- Controlled access on all company assets, using the principle of least privilege
+- Strong password requirements
+- Dedicated customer instances with controlled access
+
+## Encryption
+
+- AES disk encryption for data at rest
+- SSL/TLS for data encryption in transit
+- Support for encryption options in AWS S3, Google Cloud Storage (GCS), and Amazon Elastic Block Storage (EBS)
+
+## Networking
+
+- Antivirus
+- Anti-malware
+- Endpoint detection and response (EDR) solutions
+- Monitoring, including for file integrity
+- Intrusion detection
+- Firewalls
+
+## Audit trails and data loss prevention
+
+- Logging
+- Offsite backups
+- Regular updates to operating system and application software
+- Testing and peer review and approval prior to pushing changes to production
+
+Your real-time analytics data is stored in your Apache Pinot cluster. Depending on your account, this could be running
+in StarTree Cloud or in your own cloud account for BYOC deployments.
+
+Configuration details and access management secrets are stored in secure locations. Sensitive data is encrypted.

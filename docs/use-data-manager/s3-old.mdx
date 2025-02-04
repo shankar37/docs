@@ -1,0 +1,218 @@
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+To determine if the instructions below apply to you, navigate to **Data Manager** > **Create a Connection** > **Amazon S3** and select **IAM Role** in the **Authentication Type** field. If the **External ID** and **IAM Role ARN** fields appear, refer to the [new S3 documentation](s3.md) instead. 
+</Callout>
+
+# IAM Role-based authentication for Amazon S3 ingestion (Previous Version)
+
+StarTree Enterprise Edition allows users to ingest data from Amazon S3 using IAM role-based authentication. This page covers 
+how to import data from an Amazon S3 bucket into a Pinot table when:
+1. [(Cross-account) the ingested S3 bucket is in a different AWS account than the StarTree DataPlane](#cross-account-S3-bucket-access-and-data-ingestion) 
+2. [(Same-account) the ingested S3 bucket is in the same AWS account as the StarTree DataPlane](#same-account-S3-bucket-access-and-data-ingestion) 
+
+## Cross-account S3-bucket access and data ingestion
+
+**For BYOC users**
+Often, the ingestion S3 bucket is in a different AWS Account (say Account A) than where the ingestion job / 
+Startree Data Plane runs (say Account B). In such scenarios, AWS recommends the use of cross-account access as 
+described in this [article](https://aws.amazon.com/premiumsupport/knowledge-center/cross-account-access-s3/). 
+
+**For (Dedicated) SaaS users**
+Often, the ingestion S3 bucket is in a different AWS Account (say Account A - This is owned by SaaS user) than where the ingestion job / 
+Startree Data Plane runs (say Account B - This is owned by StarTree). For (Dedicated) SaaS users,  follow steps 1 and 2 below. For 3 and 4, reach out to StarTree Support (owner of Account B in this example).
+
+In such scenarios, AWS recommends the use of cross-account access as 
+described in this [article](https://aws.amazon.com/premiumsupport/knowledge-center/cross-account-access-s3/). 
+
+The following steps need to be taken in order to ingest data from a cross-account S3 bucket into a StarTree Data Plane:
+
+### 1. EC2 Instance Profile Role ARN 
+Grab the EC2 Instance Profile Role ARN from Data Manager UI when you create a new Dataset.
+
+![Grab IAM Role from DM UI](/img/startree-distribution/grab-iam-role-from-dm-ui.png)
+
+This role is auto-created by startree during the environment provisioning and deployment.
+
+<Callout type="info">
+_Reach out to the admin of Account B to get the &lt;AccountB_Number&gt; (in the following sample policy snippet)_ <br />
+_If you are using the StarTree SaaS version - reach out to your StarTree customer support team to get &lt;AccountB_Number&gt; (in the following sample policy snippet)._
+_[Link to locate AWS account number](https://docs.aws.amazon.com/marketplace/latest/buyerguide/GettingSupport.html)_
+
+_Use the IAM Role ID in the above picture as &lt;AccountB_RoleArn&gt; in the following sample poicly snippet_
+</Callout>
+
+### 2. (Account A) >> Create a bucket policy
+The bucket owner creates a bucket policy to provide access to the ec2 instance profile role noted from step #1.
+
+**Sample Policy:**
+
+```js showLineNumbers copy
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Statement1",
+      "Principal": {
+        "AWS": ["arn:aws:iam::<AccountB_Number>:role/<AccountB_RoleArn>"] },
+      "Effect": "Allow",
+      "Action": [
+        "s3:List*",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<my-bucket>",  "arn:aws:s3:::<my-bucket>/*"
+      ]
+    }
+  ]
+}
+```
+
+<Callout type="info">
+_Reach out to the admin of Account B for steps 3 and 4._ <br />
+_If you are using the StarTree SaaS version, reach out to your StarTree customer support team._
+</Callout>
+
+### 3.(Account B) >> Create an IAM policy to allow access to the ingestion S3 bucket 
+Admin of Account B should create an S3 policy with required permissions to the source bucket.
+
+**Sample Snippet:**
+```js showLineNumbers copy
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:List*",
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::<my-bucket>", "arn:aws:s3:::<my-bucket>/*"
+            ]
+        }
+    ]
+}
+```
+
+<details>
+<summary>With CLI</summary>
+
+```shell copy
+aws --profile ${CLUSTER_NAME} iam --region ${REGION} create-policy  --policy-name devrel-demos-policy --policy-document file://devrel-demos-policy.json
+```
+
+</details>
+
+### 4. (Account B) >> Attach the policy to the EC2 instance role 
+Admin of Account B attaches the S3 policy created in previous step to the EC2 Instance Role discovered in Step 1.
+
+<details>
+<summary>With CLI</summary>
+
+```shell
+aws --profile ${CLUSTER_NAME} iam --region ${REGION} attach-role-policy --role-name sc-staging-startree-dev-ui-team20220113030258471200000009 --policy-arn arn:aws:iam::462173948356:policy/devrel-demos-policy
+```
+
+</details>
+
+<hr />
+
+## Same account S3 bucket access and data ingestion
+When the ingestion S3 bucket is in the same AWS account as the ingestion job, all steps for accessing the S3 bucket via 
+the IAM role can be taken by the account owner. 
+
+The following steps need to be taken in order to ingest data from an S3 bucket into a StarTree data plane:
+
+### 1. EC2 Instance Profile Role ARN
+Grab the EC2 Instance Profile Role ARN from Data Manager UI when you create a new Dataset.
+
+![Grab IAM Role from DM UI](/img/startree-distribution/grab-iam-role-from-dm-ui.png)
+
+This role is auto-created by startree during the environment provisioning and deployment.
+
+### 2. Create an IAM policy for the S3 bucket 
+Create a new IAM Policy for the S3 bucket as shown below:
+
+**Sample Policy:**
+
+```js copy
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListAllMyBuckets",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:List*",
+        "s3:ListBucket",
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<my-bucket>",
+        "arn:aws:s3:::<my-bucket>/*"
+      ]
+    }
+  ]
+}
+```
+
+This policy can be set up via the AWS IAM console UI or via AWS Command Line (CLI).
+
+<details>
+<summary>Using AWS Console UI</summary>
+
+1. Proceed to the AWS IAM dashboard and select `Policies` in the left menu bar.
+   ![Click on Policies](/img/startree-distribution/iam-policies-click.png)
+
+2. Click on `Create Policy` and copy the JSON policy definition.
+   ![Click Create Policy](/img/startree-distribution/iam-create-policy.png)
+
+3. Click through `Tags` form and proceed to save your policy with a suitable name, such as `${my-bucket}-policy`.
+   ![Name policy and Create](/img/startree-distribution/iam-policy-save.png)
+
+</details>
+
+<details>
+<summary>Using the AWS CLI</summary>
+
+1. Save the policy in a file called `${my-bucket}-policy.json`
+2. Create the IAM policy
+
+```shell
+aws --profile ${CLUSTER_NAME} iam --region ${REGION} create-policy --policy-name ${my-bucket}-policy --policy-document file://${my-bucket}-policy.json
+```
+</details>
+
+### 3. Attach the IAM policy to the EC2 instance profile role
+Attach the IAM policy defined in Step 2 to the EC2 instance profile role identified in Step 1.
+This can be done in AWS using the console UI or AWS command line. 
+
+<details>
+<summary>Using the AWS console UI</summary>
+
+1. Proceed to the AWS IAM dashboard and select `Roles` in the left menu bar.
+
+   ![Search for IAM role from Step 1](/img/startree-distribution/iam-search-role.png)
+
+2. Search for the role identified in Step 1 and click on the role name.
+3. Under the permissions tab, click on `Add Permissions` -> `Attach Policies`. <br />
+Search for the policy `${my-bucket}-policy` created in Step 2
+
+![Search policy and attach](/img/startree-distribution/iam-attach-policy.png)
+
+</details>
+
+<details>
+
+<summary>Using the AWS CLI</summary>
+
+```shell
+aws --profile ${CLUSTER_NAME} iam --region ${REGION} attach-role-policy --role-name ${ROLE_NAME} --policy-arn ${my-bucket}-policy
+```
+
+</details>

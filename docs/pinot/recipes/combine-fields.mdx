@@ -1,0 +1,190 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to combine the data from fields in our data source into a single column in Apache Pinot.
+---
+import { Callout } from 'nextra/components';
+
+# How to combine source fields into one column
+
+In this recipe we'll learn how to combine the data from fields in our data source into a single column in Apache Pinot.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.10.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/combine-fields">startreedata/pinot-recipes/combine-fields</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+```bash
+cd pinot-recipes/recipes/combine-fields
+```
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/json-unnest/docker-compose.yml) file on GitHub.
+
+## Dataset
+
+We're going to import the following JSON file:
+
+```json
+{"name":"Pete", "surname": "Smith"}
+{"name":"John", "surname": "Jones"}
+```
+*data/movies.json*
+
+
+## Pinot Schema and Table
+
+Now let's create a Pinot Schema and Table.
+
+First, the schema:
+
+```json
+{
+  "schemaName": "people",
+  "dimensionFieldSpecs": [
+    {
+      "name": "fullName",
+      "dataType": "STRING"
+    }
+  ]
+}
+```
+*config/schema.json*
+
+You can create the schema by running the following command:
+
+```bash
+docker exec -it pinot-controller-json bin/pinot-admin.sh AddSchema \
+  -schemaFile /config/schema.json \
+  -exec
+```
+
+We'll also have the following table config:
+
+```json {9-14}
+{
+  "tableName": "people",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "people"
+  },
+  "ingestionConfig": {
+    "transformConfigs": [
+      {
+        "columnName": "fullName",
+        "transformFunction": "concat(name, surname, ' ')"
+      }
+    ],
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP"
+  },
+  "metadata": {}
+}
+
+```
+*config/table.json*
+
+The highlighted section contains a [transformation function](https://docs.pinot.apache.org/developers/advanced/ingestion-level-transformations) that concatenates the `name` and `surname` fields, separated by a space.
+
+You can create the table by running the following command:`
+
+```bash
+docker exec -it pinot-controller-json bin/pinot-admin.sh AddTable \
+  -tableConfigFile /config/table.json \
+  -exec
+```
+
+## Ingestion Job
+
+Now we’re going to import the JSON file into Pinot. 
+We'll do this with the following ingestion spec:
+
+```yaml
+executionFrameworkSpec:
+  name: 'standalone'
+  segmentGenerationJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentGenerationJobRunner'
+  segmentTarPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentTarPushJobRunner'
+jobType: SegmentCreationAndTarPush
+inputDirURI: '/data'
+includeFileNamePattern: 'glob:**/import.json'
+outputDirURI: '/opt/pinot/data/people/'
+overwriteOutput: true
+pinotFSSpecs:
+  - scheme: file
+    className: org.apache.pinot.spi.filesystem.LocalPinotFS
+recordReaderSpec:
+  dataFormat: 'json'
+  className: 'org.apache.pinot.plugin.inputformat.json.JSONRecordReader'
+tableSpec:
+  tableName: 'people'
+pinotClusterSpecs:
+  - controllerURI: 'http://pinot-controller-combine:9000'
+pushJobSpec:
+  pushAttempts: 2
+  pushRetryIntervalMillis: 1000
+
+```
+*config/job-spec.yml*
+
+You can run the following command to run the import:
+
+```bash
+docker exec -it pinot-controller-json bin/pinot-admin.sh LaunchDataIngestionJob \
+  -jobSpecFile /config/job-spec.yml
+```
+
+## Querying 
+
+Once that's completed, navigate to [localhost:9000/#/query](http://localhost:9000/#/query) and click on the `people` table or copy/paste the following query:
+
+```sql
+select * 
+from people 
+```
+
+You will see the following output:
+
+|fullName|
+|----------|
+| Pete Smith|
+|John Jones|
+
+*Query Results*
+
+We can see that the `name` and `surname` fields from our JSON file have been combined into a single `fullName` column for each person.

@@ -1,0 +1,268 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to use the forceCommit API to immediately commit consuming segments.
+sidebar_label: Force Commit
+---
+import { Callout } from 'nextra/components';
+
+# How to force commit consuming segments
+
+In this recipe we'll learn how to use the `forceCommit` API to immediately commit consuming segments.
+This API is usually used when we've made stream compatible changes to our table config, like changing `segment.threshold` parameters.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.0.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank"  href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/force-commit">startreedata/pinot-recipes/force-commit</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+You will need to [install Docker](https://docs.docker.com/get-docker/) to follow the code examples in this guide.
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/force-commit
+  ```
+  
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, Kafka, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/force-commit/docker-compose.yml) file on GitHub.
+
+## Data generator
+
+This recipe contains a data generator that creates events with a timestamp, count, and UUID.
+You can generate data by running the following command:
+
+```bash
+python datagen.py 2>/dev/null | head -n1 | jq
+```
+
+Output is shown below:
+
+```json
+{
+  "ts": 1680171022742,
+  "uuid": "5328f9b8-83ff-4e4c-8ea1-d09524866841",
+  "count": 260
+}
+```
+
+## Kafka ingestion
+
+We're going to ingest this data into an Apache Kafka topic using the [kcat](https://github.com/edenhill/kcat) command line tool.
+We'll also use `jq` to structure the data in the `key:payload` structure that Kafka expects:
+
+```bash
+python datagen.py --sleep 0.0001 2>/dev/null |
+jq -cr --arg sep ø '[.uuid, tostring] | join($sep)' |
+kcat -P -b localhost:9092 -t events -Kø
+```
+
+We can check that Kafka has some data by running the following command:
+
+
+```bash
+docker exec -it kafka-querysegment kafka-run-class.sh \
+  kafka.tools.GetOffsetShell \
+  --broker-list localhost:9092 \
+  --topic events
+```
+
+We'll see something like the following:
+
+```bash
+events:0:19960902
+```
+
+## Pinot Schema and Table
+
+Now let's create a Pinot Schema and Table.
+
+First, the schema:
+
+```json
+{
+  "schemaName": "events",
+  "dimensionFieldSpecs": [{"name": "uuid", "dataType": "STRING"}],
+  "metricFieldSpecs": [{"name": "count", "dataType": "INT"}],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "ts",
+      "dataType": "TIMESTAMP",
+      "format": "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    }
+  ]
+}
+```
+
+Now for the table config:
+
+```json {13}
+{
+    "tableName": "events",
+    "tableType": "REALTIME",
+    "segmentsConfig": {
+      "timeColumnName": "ts",
+      "schemaName": "events",
+      "replication": "1",
+      "replicasPerPartition": "1"
+    },
+    "tableIndexConfig": {
+      "loadMode": "MMAP",
+      "streamConfigs": {
+        "realtime.segment.flush.threshold.rows":"2500000",
+        "streamType": "kafka",
+        "stream.kafka.topic.name": "events",
+        "stream.kafka.broker.list": "kafka-forcecommit:9093",
+        "stream.kafka.consumer.type": "lowlevel",
+        "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+        "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+        "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+        "realtime.segment.flush.threshold.time":"1h"
+      }
+    },
+    "ingestionConfig": {
+       
+      },
+    "tenants": {},
+    "metadata": {}
+}
+```
+*config/table.json*
+
+This highlighted section indicates that we're going to create new segments after every 2.5 million rows.
+
+We'll create the table by running the following:
+
+```bash
+docker run \
+   --network forcecommit \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table.json \
+     -controllerHost "pinot-controller-forcecommit" \
+    -exec
+```
+
+## Querying by segment
+
+Once that's been created, we can head over to the [Pinot UI](http://localhost:9000/#/query) and run some queries.
+
+Pinot has several built-in virtual columns inside every schema that can be used for debugging purposes:
+
+| Column Name  | Column Type | Data Type | Description                                  |
+| ------------ | ----------- | --------- | -------------------------------------------- |
+| $hostName    | Dimension   | STRING    | Name of the server hosting the data          |
+| $segmentName | Dimension   | STRING    | Name of the segment containing the record    |
+| $docId       | Dimension   | INT       | Document id of the record within the segment |
+
+The one that's useful for us is `$segmentName`, which we can use like this to count the number of records in each segment:
+
+```sql
+select $segmentName, ToDateTime(max(ts), 'YYYY-MM-dd HH:mm:ss') as maxTs, count(*)
+from events
+group by $segmentName
+order by maxTs desc
+limit 100
+```
+
+
+| $segmentName                | maxTs                | count(*) |
+|-----------------------------|----------------------|----------|
+| events\_\_0\_\_1\_\_20230602T1305Z  | 2023-06-02 13:04:34 | 1423028  |
+| events\_\_0\_\_0\_\_20230602T1304Z  | 2023-06-02 13:04:27 | 2500000  |
+
+*Query Results*
+
+Now, let's say that we decide we want to reduce the segment threshold to 1m rows.
+We can do that with the following table config:
+
+```json {12}
+{
+    "tableName": "events",
+    "tableType": "REALTIME",
+    "segmentsConfig": {
+      "timeColumnName": "ts",
+      "schemaName": "events",
+      "replication": "1",
+      "replicasPerPartition": "1"
+    },
+    "tableIndexConfig": {
+      "loadMode": "MMAP",
+      "streamConfigs": {
+        "realtime.segment.flush.threshold.rows":"1000000",
+        "streamType": "kafka",
+        "stream.kafka.topic.name": "events",
+        "stream.kafka.broker.list": "kafka-forcecommit:9093",
+        "stream.kafka.consumer.type": "lowlevel",
+        "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+        "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+        "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+        "realtime.segment.flush.threshold.time":"1h"
+      }
+    },
+    "ingestionConfig": {
+       
+      },
+    "tenants": {},
+    "metadata": {}
+}
+```
+*config/table-newthreshold.json*
+
+Let's update the table config:
+
+```bash
+docker run \
+   --network forcecommit \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table-newthreshold.json \
+     -controllerHost "pinot-controller-forcecommit" \
+    -exec -update
+```
+
+We now have to wait until the current consuming segment reaches 2.5 million rows before this config will be used.
+Or...we can have it start immediately if we call the `forceCommit` API:
+
+```bash
+curl -X POST "http://localhost:9000/tables/events/forceCommit" -H "accept: application/json"
+```
+
+After a few seconds the consuming segment will be committed and segments will be committed every 1m rows.
+If we run the query again, we'll see this output:
+
+| $segmentName                | maxTs                | count(*) |
+|-----------------------------|----------------------|----------|
+| events\_\_0\_\_5\_\_20230602T1305Z  | 2023-06-02 13:04:55 | 1000000  |
+| events\_\_0\_\_4\_\_20230602T1305Z  | 2023-06-02 13:04:50 | 1000000  |
+| events\_\_0\_\_3\_\_20230602T1305Z  | 2023-06-02 13:04:45 | 1000000  |
+| events\_\_0\_\_2\_\_20230602T1305Z  | 2023-06-02 13:04:39 | 1000000  |
+| events\_\_0\_\_1\_\_20230602T1305Z  | 2023-06-02 13:04:34 | 1423028  |
+| events\_\_0\_\_0\_\_20230602T1304Z  | 2023-06-02 13:04:27 | 2500000  |
+
+*Query Results*

@@ -1,0 +1,86 @@
+# Identity provider
+
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+In this guide we're going to learn how to add an identity provider to a StarTree Cloud account. You will need to
+have created an <a href="/docs/get-started-with-startree-cloud/startree-cloud-byoc/organizations" className="underline">organization</a> and <a href="/docs/get-started-with-startree-cloud/startree-cloud-byoc/users" className="underline">user</a>.
+</Callout>
+
+StarTree Cloud supports GitHub, GCP, and OIDC (Ex: OKTA) as identity providers. The identity provider is used to secure
+access to an [environment](environments.md).
+
+From the organizations screen, click the **Identity Providers** tab and then **Create identity provider** in the top
+right. You will see the following screen:
+
+<p>
+  <img src="/img/identity-provider.png" width="60%" alt="Select Identity Provider" />
+  <em>Select Identity Provider</em>
+</p>
+
+Select your preferred identity provider and then generate the credentials by following the instructions below.
+
+## GitHub
+After selecting the **Github** identity provider, you'll see the following screen:
+
+<p>
+    <img src="/img/identity-provider.png" width="60%" alt="Select GitHub as Identity Provider" />
+    <em>Select GitHub as Identity Provider</em>
+</p>
+
+On a new browser tab, navigate to the [Register a new OAuth application](https://github.com/settings/applications/new) page.
+You should see the following:
+
+![Register OAuth application](/img/github-register-oauth-application.png)
+*Register OAuth application*
+
+Choose an application name.
+Now, type `https://www.startree.cloud` into the **Homepage URL** field and `http://identity.<env\>.<org\>.startree.cloud/` into the **Authorization callback URL** field.
+
+Click **Register application**. 
+
+You will now be redirected to a page that describes your OAuth application.
+
+Copy **Client ID** and paste it into the **Client Id** field on the StarTree Cloud UI.
+Now click on the **Generate a new client secret** button, copy the generated secret, and paste it into the **Client Secret** field on the StarTree Cloud UI.
+Finally, enter your **Organization name** and click on **Create**.
+
+Your identity provider has now been created.
+
+## Google
+After selecting the **Google** identity provider, you'll see the following screen:
+
+<p>
+    <img src="/img/identity-provider-gcp.png" width="60%" alt="Select Google as Identity Provider" />
+    <em>Select Google as Identity Provider</em>
+</p>
+
+On a new browser tab, navigate to the [Credentials page](https://console.developers.google.com/apis/credentials).
+
+1. Click **Create credentials > OAuth client ID**.
+2. Select the **Web application** application type.
+3. Name your OAuth 2.0 client and click **Create**
+
+Copy **Client ID** and paste it into the **Client Id** field on the StarTree Cloud UI.
+Copy **Client Secret** and paste it into the **Client Secret** field on the StarTree Cloud UI.
+
+Your identity provider has now been created.
+
+## OIDC
+After selecting the **OIDC** identity provider, you'll see the following screen:
+
+<p>
+    <img width="889" alt="image" src="https://user-images.githubusercontent.com/98617940/175642144-57540cc1-5fd1-4dcc-ad3f-262d83bd73e9.png" alt="Select OIDC as Identity Provider" />
+    <img width="623" alt="image" src="https://user-images.githubusercontent.com/98617940/175648842-eb80786e-6190-4264-9b08-86f47852a6de.png" alt="You will see login as OKTA once configured when you try to use any apps for the organization" />
+</p>
+
+1. Specify identify provider name
+2. Specify **OIDC client ID**
+3. Specify **OIDC client secret**
+4. Specify **Issuer URL**
+
+If you are trying to configure OKTA, then on a new browser tab, navigate to this page to get the details for Client ID and Sercret: [Credentials page](https://developer.okta.com/docs/guides/find-your-app-credentials/main/).
+For getting the details for issuer page, visit this page [Redirect page](https://developer.okta.com/docs/guides/sign-into-web-app-redirect/spring-boot/main/#create-an-okta-integration-for-your-app)
+
+Your identity provider has now been created.
+*/

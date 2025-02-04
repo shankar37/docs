@@ -1,0 +1,259 @@
+import { Callout } from 'nextra/components';
+
+# Data Ingestion – Mapping Functions
+
+Data Ingestion mapping functions allows users to transform their source data column values before they are ingested into Pinot.
+
+## Notes
+1. Mapping functions are Scalar in nature, in the sense that, they operate on one or more values and generate a single output value.
+2. Column names in the mapping functions are **not** case-sensitive.
+3. While applying the `Transformation Function`, the column name should be different in `Original Data` and `Pinot Data`.
+
+## Math Functions
+
+<Callout type="info">
+List of all supported **[Math Functions](https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#math-functions)**.
+</Callout>
+
+The following is an example of the Math `add` function.
+
+Input Data
+
+| student_name | subject | scores* |
+|--------------|---------|---------|
+| Jane         | Maths   | 4       |
+| Joe          | Physics | 3       |
+
+
+The **add** mapping function is applied as follows.
+
+```
+add(scores, 10)
+```
+
+Output Data
+
+| student_name | subject | new_scores* |
+|--------------|---------|-------------|
+| Jane         | Maths   | 14          |
+| Joe          | Physics | 13          |
+
+
+<Callout>
+The following will not work as the add function works on two operands.
+```
+1. add(columnNameA, columnNameB, columnNameC)
+2. add(columnNameA, 10, 20)
+```
+</Callout>
+
+## String Functions
+
+<Callout type="info">
+List of all supported **[String Functions](https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#string-functions)**.
+</Callout>
+
+The following is an example of the String `upper` function.
+
+Input Data
+
+| student_name* | subject | scores |
+|---------------|---------|--------|
+| Jane          | Maths   | 4      |
+| Joe           | Physics | 3      |
+
+
+The **upper** mapping function is applied as follows.
+
+```
+UPPER(student_name)
+```
+
+Output Data
+
+| student_name* | subject | scores |
+|---------------|---------|--------|
+| JANE          | Maths   | 4      |
+| JOE           | Physics | 3      |
+
+
+## DateTime Functions
+
+<Callout type="info">
+List of all supported **[DateTime Functions](https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions)**.
+</Callout>
+
+### toDateTime
+Converts from milliseconds to a formatted date-time string, based on the provided **[Joda-Time pattern.](https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html)** 
+
+The following is an example of the `toDateTime` DateTime function.
+
+Input Data
+
+| movie_name | release_date* |
+|------------|---------------|
+| MyMovie1   | 1118966400000 |
+| MyMovie2   | 1216339200000 |
+
+The **toDateTime** mapping function is applied as follows.
+
+```
+toDateTime(release_date, 'yyyy-MM-dd''T''HH:mm:ss.SSS''Z''')
+```
+
+Output Data
+
+| movie_name | release_date*             |
+|------------|---------------------------|
+| MyMovie1   | 2005-06-17T00:00:00.000Z  |
+| MyMovie2   | 2008-07-18T00:00:00.000Z  |
+
+
+<Callout>
+If the time column in source data is named as **timestamp** then it needs to be quoted while applying the mapping function.
+Example: `toDateTime("timestamp", 'yyyy-MM-dd')`
+</Callout>
+
+### fromDateTime
+Converts a formatted date-time string to milliseconds, based on the provided **[Joda-Time pattern](https://www.joda.org/joda-time/apidocs/org/joda/time/format/DateTimeFormat.html)**.
+
+The following is an example of the `fromDateTime` DateTime function.
+
+Input Data
+
+| movie_name | release_date*             |
+|------------|---------------------------|
+| MyMovie1   | 2005-06-17T00:00:00.000Z  |
+| MyMovie2   | 2008-07-18T00:00:00.000Z  |
+
+
+The **fromDateTime** mapping function is applied as follows.
+
+```
+fromDateTime(release_date, 'yyyy-MM-dd''T''HH:mm:ss.SSS''Z''')
+```
+
+Output Data
+
+| movie_name | release_date*   |
+|------------|-----------------|
+| MyMovie1   | 1118966400000   |
+| MyMovie2   | 1216339200000   |
+
+
+### DATETIMECONVERT
+Converts value from one unit into another. Following conversions are possible.
+
+| From  |  To   |
+|-------|-------|
+| Epoch | Epoch |
+| Epoch | ISO   |
+| ISO   | ISO   |
+| ISO   | Epoch |
+
+Examples using the `DATETIMECONVERT` function.
+
+| ColumnName  | INPUT_VALUE                      | OUTPUT_VALUE            | MAPPING_FUNCTION                                                                                                                    |
+|-------------|----------------------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| timeFieldA  | "2024-03-07T00:23:06.407974"     | 1709770986407           | DATETIMECONVERT("timeFieldA", 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd''T''HH:mm:ss.SSSSSS', 'EPOCH\|MILLISECONDS\|1', 'MILLISECONDS\|1')    |
+| timeFieldB  | 1709770986407                    | "2024-03-07 00:23:06Z"  | DATETIMECONVERT("timeFieldB", 'EPOCH\|MILLISECONDS\|1', 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd HH:mm:ss''Z''', 'MILLISECONDS\|1')          |
+| timeFieldC  | 1709770986                       | "2024-03-07 00:23:06Z"  | DATETIMECONVERT("timeFieldC", 'EPOCH\|SECONDS\|1', 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd HH:mm:ss''Z''', 'MILLISECONDS\|1')               |
+| timeFieldD  | "2024-03-07"                     |  1709769600000          | DATETIMECONVERT("timeFieldD", 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd', 'EPOCH\|MILLISECONDS\|1', 'MILLISECONDS\|1')                        |
+| timeFieldE  | "2024-03-07T00:23:06"            |  1709770986000          | DATETIMECONVERT("timeFieldE", 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd''T''HH:mm:ss', 'EPOCH\|MILLISECONDS\|1', 'MILLISECONDS\|1')           |
+| timeFieldF  | "2024-03-07T00:23:06.123Z"       |  1709770986000          | DATETIMECONVERT("timeFieldF", 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd''T''HH:mm:ss.SSS''Z''', 'EPOCH\|MILLISECONDS\|1', 'MILLISECONDS\|1')  |
+| timeFieldG  | "2024-03-07 00:23:06.123Z"       |  1709770986000          | DATETIMECONVERT("timeFieldG", 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd HH:mm:ss.SSS''Z''', 'EPOCH\|MILLISECONDS\|1', 'MILLISECONDS\|1')      |
+| timeFieldH  | "2024-03-07 00:23:06.123 Z"      |  1709770986000          | DATETIMECONVERT("timeFieldH", 'SIMPLE_DATE_FORMAT\|yyyy-MM-dd HH:mm:ss.SSS ''Z''', 'EPOCH\|MILLISECONDS\|1', 'MILLISECONDS\|1')     |
+
+
+<Callout type="info">
+**[Additional DateTime Function Examples](https://docs.pinot.apache.org/developers/advanced/ingestion-level-transformations#inbuilt-pinot-functions)**.
+</Callout>
+
+## Json Functions
+
+<Callout type="info">
+List of all supported **[Json Functions](https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#scalar-functions)**.
+</Callout>
+
+### jsonPath
+
+Extracts the object value from jsonField based on 'jsonPath', the result type is inferred based on JSON value.
+
+Input Data
+
+| student_name | results*                                                                           |
+|--------------|----------------------------------------------------------------------------------|
+| Jane         | `{"results":{"subjects":[{"name":"maths","score":90},{"name":"english","score":70}]}}` |
+| Joe          | `{"results":{"subjects":[{"name":"maths","score":88},{"name":"english","score":91}]}}` |
+
+
+Output Data
+
+| student_name | math_score* |
+|--------------|-------------|
+| Jane         | 90          |
+| Joe          | 88          |
+
+The **jsonPath** mapping function is applied as follows.
+```
+jsonPath(results, '$.results.subjects[0].score')
+```
+
+## Binary Functions
+
+<Callout type="info">
+List of all supported **[Binary Functions](https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#binary-functions)**.
+</Callout>
+
+### toBase64
+
+Input Data
+
+| resource_name | resource_path*                                                          |
+|---------------|-------------------------------------------------------------------------|
+| base64_docs   | https://docs.oracle.com/javase/8/docs/api/java/util/Base64.Encoder.html |
+
+Output Data
+
+| resource_name | resource_path*                                                                                    |
+|---------------|---------------------------------------------------------------------------------------------------|
+| base64_docs | aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy9hcGkvamF2YS91dGlsL0Jhc2U2NC5FbmNvZGVyLmh0bWwK  |
+
+The **toBase64** mapping function is applied as follows.
+```
+toBase64(toUTF8(resource_path))
+```
+
+### fromBase64
+
+Input Data
+
+| resource_name  | encoded_resource_path*                                                                           |
+|----------------|--------------------------------------------------------------------------------------------------|
+| base64_docs | aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy9hcGkvamF2YS91dGlsL0Jhc2U2NC5FbmNvZGVyLmh0bWwK |
+
+Output Data
+
+| resource_name | resource_path*                                                           |
+|---------------|--------------------------------------------------------------------------|
+| base64_docs | https://docs.oracle.com/javase/8/docs/api/java/util/Base64.Encoder.html  |
+
+The **fromBase64** mapping function is applied as follows.
+```
+fromBytes(fromBase64(encoded_resource_path), 'UTF8')
+```
+
+## Tips and Tricks
+<Callout>
+tip
+**How to check if a given function is supported?**
+
+Enter the function within the `Mapping Function` textbox and click on `Test Transformation`.
+
+```
+myCoolFunction()
+```
+
+If the function is not supported an error message is returned back.
+> Unsupported function: mycoolfunction not found
+</Callout>

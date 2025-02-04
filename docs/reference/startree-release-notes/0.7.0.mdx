@@ -1,0 +1,74 @@
+# Release Version 0.7.0: August 2023
+
+## Apache Pinot updates since last StarTree release
+
+For details on Pinot changes, see [Releases](https://docs.pinot.apache.org/basics/releases).
+
+* Delete records in upsert-enabled tables 
+* Pipeline breaker and dynamic broadcast support for semi-joins 
+* Null value support in aggregate and filters
+* Order null values
+* Support `UNION`, `INTERSECT`, and `EXCEPT` operators
+* Support ranking window functions for v2 engine:
+    * `ROW_NUMBER` window function support
+    * `RANK`
+    * `DENSE_RANK`
+* Multistage query updates:
+    - Table-level access validation
+    - Queries per second (QPS) quota check for all tables
+    - Phase timers for `REQUEST_COMPILATION`, `AUTHORIZATION`, and `QUERY_EXECUTION`
+
+
+## StarTree Cloud
+
+The following updates apply to both bring-your-own-cloud (BYOC) and SaaS deployments.
+
+* Configure tags to add to all StarTree-managed AWS resources, which can be useful for auditing and compliance initiatives.
+* StarTree's Pinot deep store S3 bucket has additional default protections. The bucket policy now actively denies any non-SSL traffic. 
+* All new and existing clusters will be upgraded to use Kubernetes version 1.24.
+* StarTree-provisioned Google Cloud Platorm (GCP) clusters are now VPC-native. Specify subnet CIDRs for nodes, pods, and services.
+* We've added automated certification renewal to TLS certiticates to improve the architecture's stability and reliability.
+* In a disaster, recover a workspace in from a region failure by recovering the StarTree cluster state.
+* Administrators can release individual components, like Pinot or Data Manager, without requiring a full release.
+
+### StarTree extensions for Apache Pinot 
+
+* Delete selected records from a Pinot table to meet GDPR requirements. See [Segment purge](/docs/manage-data/purge-data-with-segment-purge-task) for details.
+
+#### Beta extensions
+
+* <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full">BETA</span> Pinot server restart time is optimized for large upsert-enabled tables.
+* <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full">BETA</span> Tiered storage:
+    * Tiered storage supports sparse indexes, leading to performance improvements for queries running against high cardinality columns. For details, see [Use sparse index](/docs/set-up-tiered-storage/use-sparse-index)
+    * Google Cloud Services (GCS) is available as a cloud tier.
+    * Stale segments are automatically cleaned up from the object tier.
+    * Trace remote reads with newly available statistics.
+    * Overwrite index configurations for the object tier.
+
+#### Alpha extensions 
+
+* <span className="bg-yellow px-3 py-1.5 rounded-full">ALPHA</span> Push data into Pinot to create a table with the write API. Send data from any application to a REST API endpoint.
+
+## Data Manager
+
+* Data Manager now masks connection credentials to improve security. 
+* We've optimized minion segment creation to avoid out-of-memory (OOM) and out-of-disk (OOD) issues during ingestion, increasing batch ingestion reliability.
+* The segment refresh task is more stable and reliabile when users change table configuration of an existing table.
+* Integrate with Delta Lake and Databricks Lakehouse to ingest data and keep it in sync in Pinot. For details, see [Delta Lake connector](../../use-data-manager/delta-lake.md).
+* Configure batch ingestion to be performed atomically (either all or none of the data is ingested), preventing inconsistency in query results. For details, see [Sync mode with atomic switch](../../ingest-data/file-ingestion-task.md#sync-mode-with-atomic-switch).
+* Continuously backfill data from BigQuery with each periodic sync. 
+* Connect to Amazon Web Services (AWS) Kinesis and S3 using an AWS cross-account IAM role. For details, see [AWS Kinesis connector](../../use-data-manager/kinesis.md) and [AWS S3 connector](../../use-data-manager/s3.md).
+* Integrate with Confluent Cloud. For details, see [Confuent Cloud connector](../../use-data-manager/confluent.md).
+* <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full">BETA</span>  Backfill data from SQL sources on an ad hoc basis. 
+
+
+## ThirdEye
+
+* We've simplified the workflow for creating and configuring new alerts. 
+* ThirdEye alerts support data mutability, meaning they can handle recent changes in underlying data. For details, see [Streaming upsert use case](../../get-started-with-thirdeye/concepts-data-alerts-notifications/concepts-mutable-data.md#streaming-upsert-use-case).
+* Configure subscription groups on a per-dimension basis within an alert to alert specific teams to for anomalies in different slices of the underlying dataset. For details, see [Create a subscription group](../../get-started-with-thirdeye/how-tos/add_notification.md#create-a-subscription-group).
+* Filter and sort dimensions by name and latest anomaly from the UI. We've also improve performance for dimension exploration.
+* Anomaly detector algorithm updates:
+    * [Exponential smoothing (ETS)](../../get-started-with-thirdeye/operators/) performance has improved.
+    * Find anomalies in seasonal patterns with the new [Matrix profile algorithm](/docs/get-started-with-thirdeye/operators/anomaly-detector/ets.md). 
+* [Default alert templates](../../get-started-with-thirdeye/how-tos/alert/use-templates.md) are now automatically refreshed on new releases instead of requiring an API request.

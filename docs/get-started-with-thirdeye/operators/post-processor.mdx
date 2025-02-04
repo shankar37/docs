@@ -1,0 +1,71 @@
+# PostProcessor
+
+`PostProcessor` operators apply labels on anomalies returned by `AnomalyDetector` operators. Labels can be filters, priorities or any metadata that can help when investigating an anomaly. Filtered anomalies are not notified, and by default they are hidden in the anomalies list and charts.
+
+`PostProcessor` can use side inputs and be chained.
+
+There are many types of post-processors detectors. The `type` is given in the node parameters.  
+
+```json
+ {
+  "name": "root",               # name of the operator
+  "type": "PostProcessor",      # type of operator
+  "params": {
+    "type": "COLD_START",       # type of post-processor
+    # other parameters ...
+    "component.ignore": "true",
+    ...
+  },
+  "inputs" : [
+    {
+      "sourcePlanNode": "anomalyDetector"
+    },
+    ... # other optional inputs
+  ],
+  "outputs" : [...]
+}
+```
+
+
+## Inputs
+
+Anomalies inputs are passed with the `sourcePlanNode` name only:
+
+```json
+"inputs" : [
+    {
+      "sourcePlanNode": "anomalyDetector"
+    }
+ ]
+```
+The post-processor automatically finds the detection result and the data that was used.
+To chain post-processor operators, apply the next post-processor to the previous post-processor. See [example here](https://github.com/startreedata/thirdeye/blob/master/thirdeye-plugins/thirdeye-bootstrap-open-core/src/main/resources/alert-templates/startree-threshold.json).  
+
+Other side-inputs should be passed with the usual standard:
+```json
+"inputs" : [
+    {
+      "targetProperty": "current",
+      "sourcePlanNode": "controlSideInputData",
+      "sourceProperty": "controlSideData"
+    }
+ ]
+```
+
+Refer to the sub-sections for side inputs. 
+
+
+## Shared parameters
+
+Post-processors share a set of parameters. Type specific parameters are described in the sub-sections.
+
+| name  | description  | default value  |
+|---|---|---|
+|`type`| The type of post-processor.| |
+|`component.ignore`| If true, anomalies that match the rule will be filtered. The default behaviour depends on the post-processor.| |
+
+
+
+
+
+

@@ -1,0 +1,113 @@
+# Use pre-computed time columns
+
+To begin, it's useful to understand how ThirdEye generates queries.
+
+## Understanding ThirdEye query generation
+
+ThirdEye can monitor metrics at any granularity.
+
+Consider this alert:
+
+```json
+{
+  "name": "example-alert",
+  "template": {
+    "name": "startree-threshold"
+  },
+  "templateProperties": {
+    "dataSource": "pinotQuickStartLocal",
+    "dataset": "order_events",
+    "aggregationFunction": "count",
+    "aggregationColumn": "customer_id",
+    "monitoringGranularity": "PT1H",
+    ... # other parameters
+  },
+  "cron": "0 0 0 1/1 * ? *"
+}
+```
+*example_alert.json*
+
+`monitoringGranularity` is `PT1H`. This means ThirdEye will aggregate data into buckets of 1 hour. `monitoringGranularity` can be changed to 15 minutes `PT15M` or daily `P1D`, ThirdEye will generate the corresponding SQL query.
+
+A generated query looks like this:
+
+```sql
+SELECT 
+  DATETIMECONVERT(<timeColum>, <timeColumnFormat>, 1:MILLISECONDS:EPOCH, <monitoringGranularity> ) as ts,
+  COUNT(metric),
+FROM order_events
+WHERE ...
+GROUP BY DATETIMECONVERT(timeColum, <timeColumnFormat>, 1:MILLISECONDS:EPOCH, <monitoringGranularity>)
+ORDER BY ts
+``` 
+
+`GROUP BY DATETIMECONVERT(<timeColum>, <timeColumnFormat>, 1:MILLISECONDS:EPOCH, <monitoringGranularity>)` means: take the time column, convert it to milliseconds and group by buckets of `<monitoringGranularity>`.
+
+This time transformation can make the query slow, especially when there are a lot of rows in the Pinot table.
+
+To avoid this performance hit, you can add a time column that corresponds to the specific  
+granularity you want to use and configure ThirdEye to use it.
+
+## Setting pre-computed time columns in dataset configurations
+
+Pre-computed time columns are set in the dataset configuration. Your dataset configuration details are found at `https://<your.thirdeye.instance.cloud>/configuration/datasets/all`. You can click on a dataset there to edit it.
+
+Consider this dataset configuration:
+
+```json
+{
+  "name": "pageviews",
+  "dimensions": [
+    "country",
+    "browser",
+    ...
+  ],
+  "timeColumn": {
+    "name": "pageviewdate",
+    "interval": 0.001,
+    "format": "SIMPLE_DATE_FORMAT:yyyy-MM-dd",
+    "timezone": "UTC"
+  },
+  "dataSource": {
+    "name": "pinot"
+  }
+}
+```
+*dataset.json*
+
+If you know you will often use an hourly monitoringGranularity `PT1H`:
+1. add a pre-computed time column in your pinot table that correspond to hourly buckets
+2. update the dataset configuration `timeColumns` metadata:    
+    ```json
+    {
+      "name": "pageviews",
+      "dimensions": [
+        "country",
+        "browser",
+        ...
+      ],
+      "timeColumn": {
+        "name": "pageviewdate",
+        "interval": 0.001,
+        "format": "SIMPLE_DATE_FORMAT:yyyy-MM-dd",
+        "timezone": "UTC"
+      },
+      "dataSource": {
+        "name": "pinot"
+      },
+      #### ADD THIS #### 
+      "timeColumns": [
+        {
+          "name": "hourlyBuckets",      # the name of the column
+          "format": "1:HOURS:EPOCH",    # the Pinot format of the column 
+          "granularity": "PT1H"         # the granularity of the buckets - in ISO-8601 format
+          "timezone": "UTC"             # the timezone of the buckets
+        }
+      ]
+    }
+    ```
+    *dataset_with_precomputed_time_column*
+
+With this change, when an alert is in timezone UTC and has granularity hourly `PT1H`, ThirdEye will optimize the query using the `hourlyBuckets` column. For other configurations, it will use the default time column. You can add as many precomputed time columns as you want.
+
+For time format see [timeFormat strings](../../operators/data-fetcher.md#timeformat-strings). 

@@ -1,0 +1,11 @@
+{
+    "database": "Add a datasource",
+    "alert": "Create alerts",
+    "optimize": "Optimize Performance",
+    "add_notification": "Add a notification system",
+    "alert-tuning": "Alert tuning for accuracy",
+    "perform-root-cause-analysis": "Root Cause Analysis",
+    "manage-holiday-effect": "Manage Holiday Effect",
+    "use-the-api": "Using ThirdEye API",
+    "thirdeye_recipes": "ThirdEye recipes"
+}

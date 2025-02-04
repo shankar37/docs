@@ -1,0 +1,10 @@
+{
+    "anomaly-detector": "AnomalyDetector",
+    "dimension-drift": "Dimension Drift",
+    "post-processor": "PostProcessor",
+    "data-fetcher": "DataFetcher",
+    "dimension-exploration": "DimensionExploration",
+    "event-fetcher": "EventFetcher",
+    "sql-operator": "SqlExecution",
+    "time-index-filler": "TimeIndexFiller"
+}

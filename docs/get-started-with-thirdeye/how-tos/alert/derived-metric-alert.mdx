@@ -1,0 +1,44 @@
+import { Callout } from 'nextra/components';
+
+# Derived metric alerts
+
+ThirdEye supports monitoring derived metrics. [StarTree templates](./use-templates.md#install-startree-templates) are directly compatible with derived metrics, but a piece of configuration is required for root-cause analysis (RCA) to work.  
+
+Here is an example of monitoring the 95th percentile of the difference of 2 metrics `met1` and `met2`, with the `startree-threshold-percentile` template:
+
+<Callout type="warning">
+You must have StarTree templates [installed and up to date](./use-templates.md#install-startree-templates) to use this template.
+</Callout>
+
+## Configuration:
+
+```json
+{
+  "name": "derived-metric-95-percentile-threshold",
+  "description": "Monitor 95th percentile of met1-met2 with threshold alert.",
+  "template": {
+    "name": "startree-threshold-percentile"
+  },
+  "templateProperties": {
+    "dataSource": "yourDatasource",
+    "dataset": "yourDataset",
+    "monitoringGranularity": "P1D",
+    "min": "1000",
+    "max": "2500",
+    "aggregationFunction": "PERCENTILETDIGEST",
+    "aggregationParameter": "95",
+    "aggregationColumn": "met2-met1",
+    "rcaAggregationFunction": "PCT95"
+  },
+  "cron": "0 0 0 1/1 * ? *"
+}
+```
+*derived_metric_percentile_threshold_monitoring.json*
+
+Notes: 
+- `aggregationFunction` calls the Pinot [PERCENTILETDIGEST](https://docs.pinot.apache.org/configuration-reference/functions/percentiletdigest) function
+- `aggregationParameter` is the second parameter of the function. It sets the percentile to 95.
+- `aggregationColumn` contains the derived metric.
+- `rcaAggregationFunction` sets the RCA aggregation function. It binds to `aggregationFunction` in the alert configuration. `PCT95` corresponds to 95th percentile. 
+  The set of aggregation functions is limited. For more detail, [see Aggregation functions](../../rca-aggregation-functions.md).
+  **RCA would not work without this configuration**. It is necessary because the derived metric is not registered in ThirdEye, so no default aggregation function is available.  

@@ -1,0 +1,6 @@
+{
+    "motivation": "Motivation",
+    "architecture": "Tiered storage with S3",
+    "setup": "Setup guide",
+    "use-sparse-index": "Use sparse index"
+}

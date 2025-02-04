@@ -1,0 +1,149 @@
+# Dimension Drift Operators
+
+The ThirdEye drift operators are used to measure population drift across each value of a dimension.
+
+Thirdeye has two drift operators: 
+1. [Static Drift Operator](dimension-drift/static-drift-operator.md)
+2. [Lookback Drift Operator](dimension-drift/lookback-drift-operator.md)
+
+The output of the dimension drift operators can be passed into any anomaly detector.
+
+
+#### Sample alert configuration
+
+[Link to video how it works](https://drive.google.com/file/d/1lyJWop0K6UHkl39JRbIXgWJgYMiUVDRD/view?usp=sharing)
+
+```
+{
+  "name": "USStoreSales-drift-lookback-dx",
+  "description": "",
+  "template": {
+    "name": "startree-drift-lookback-threshold-dx"
+  },
+  "templateProperties": {
+    "dataSource": "mypinot",
+    "dataset": "USStoreSalesOrderData",
+    "aggregationColumn": "*",
+    "aggregationFunction": "COUNT",
+    "seasonalityPeriod": "P7D",
+    "lookback": "P28D",
+    "monitoringGranularity": "P1D",
+    "sensitivity": "3",
+    "bucketSize": "${bucketSize}",
+    "bucketCount": "${bucketCount}",
+    "bucketStart": "${bucketStart}",
+    "encoder": "${encoder}",
+    "max": "${max}",
+    "min": "0",
+    "enumerationItems": [
+      {
+        "name": "DiscountApplied",
+        "params": {
+          "dimension": "DiscountApplied",
+          "encoder": "LINEAR_BUCKETS",
+          "bucketSize": 0.05,
+          "bucketCount": 10,
+          "bucketStart": 0,
+          "max": 0.5
+        }
+      },
+      {
+        "name": "UnitPrice",
+        "params": {
+          "dimension": "UnitPrice",
+          "encoder": "LINEAR_BUCKETS",
+          "bucketSize": 50,
+          "bucketCount": 120,
+          "bucketStart": 0,
+          "max": 0.5
+        }
+      },
+      {
+        "name": "UnitCost",
+        "params": {
+          "dimension": "UnitCost",
+          "encoder": "LINEAR_BUCKETS",
+          "bucketSize": 50,
+          "bucketCount": 120,
+          "bucketStart": 0,
+          "max": 0.5
+        }
+      },
+      {
+        "name": "OrderQuantity",
+        "params": {
+          "dimension": "OrderQuantity",
+          "encoder": "LINEAR_BUCKETS",
+          "bucketSize": 1,
+          "bucketCount": 10,
+          "bucketStart": 0,
+          "max": 0.7
+        }
+      },
+      {
+        "name": "SalesChannel",
+        "params": {
+          "dimension": "SalesChannel",
+          "encoder": "ENUMERATE",
+          "bucketSize": 0,
+          "bucketCount": 0,
+          "bucketStart": 0,
+          "max": 0.5
+        }
+      },
+      {
+        "name": "StoreLocation",
+        "params": {
+          "dimension": "StoreLocation",
+          "encoder": "ENUMERATE",
+          "bucketSize": 0,
+          "bucketCount": 0,
+          "bucketStart": 0,
+          "max": 0.9
+        }
+      },
+      {
+        "name": "SalesRegion",
+        "params": {
+          "dimension": "SalesRegion",
+          "encoder": "ENUMERATE",
+          "bucketSize": 0,
+          "bucketCount": 0,
+          "bucketStart": 0,
+          "max": 0.5
+        }
+      },
+      {
+        "name": "WarehouseCode",
+        "params": {
+          "dimension": "WarehouseCode",
+          "encoder": "ENUMERATE",
+          "bucketSize": 0,
+          "bucketCount": 0,
+          "bucketStart": 0,
+          "max": 0.5
+        }
+      }
+    ],
+    "dimension": "${dimension}",
+    "dayHoursOfWeek": {}
+  },
+  "cron": "0 0 5 ? * MON-FRI *",
+}
+```
+### How does this work?
+
+#### What it does?
+- Detects Changes in Data: This operator is like a microscope for your data. It looks for shifts or unusual patterns in specific parts of your data (dimensions). For example, imagine you're tracking website traffic by country – this operator could alert you if there's a sudden spike in visitors from a new location.
+- Compares to the Past: The "lookback" part means it compares your current data to a historical snapshot. This helps it figure out what's normal and what's an unexpected change.
+- Gives You a "Drift Score": The operator calculates how different your current data is from the past. A higher score means a potentially significant change.
+
+#### How it Works (simplified)?
+- Choose Your Focus: You tell the operator which dimension to watch (e.g., country of website visitors, product category, customer age group).
+- Lookback Window: You set how far back in time it should compare (e.g., last week, last month).
+- Calculates Differences: It compares the distribution of values in your current data against the historical data. Is the mix of countries, product types, or ages roughly the same?
+- Assigns "Drift Score": Based on the calculated difference, it gives you a score to indicate the level of change or "drift".
+
+#### Why This Matters?
+- Spotting problems early: If a critical part of your data suddenly changes, it could signal a problem (website outage in a certain country, a product becoming unexpectedly popular) or a new opportunity.
+- Keeping track of trends: It helps you understand if your data is gradually shifting over time, even if the changes aren't dramatic at any one moment.

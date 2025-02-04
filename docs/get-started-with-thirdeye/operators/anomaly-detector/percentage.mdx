@@ -1,0 +1,49 @@
+# PERCENTAGE_CHANGE
+
+Compares the current timeseries to a baseline. If the current value is not in `[baseline - percentage * baseline, baseline + percentage * baseline]`, detects an anomaly.
+
+
+## Inputs
+
+`"targetProperty": "current"`: The data on which to perform detection.
+
+`"targetProperty": "baseline"`: The data to use as a baseline.
+
+The inputs should have the same size.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.percentageChange`| The percentage threshold. If the percentage change is above this threshold, detect an anomaly. <br/> In ratio. Eg 0.1 means 10 percent. | `Inf`|
+|`component.pattern`| Detect as an anomaly if the metric drop, rise or both directions. `UP`, `DOWN`, `UP_OR_DOWN`. | `UP_OR_DOWN`|
+
+
+## Example
+
+```json
+{
+    "name": "root",
+    "type": "AnomalyDetector",
+    "params": {
+    "type": "PERCENTAGE_CHANGE",
+    "component.percentageChange": "0.2",   # 20% threshold 
+    "component.pattern": "UP",             # only detect change up       
+      ...  # shared parameters
+    }, 
+  "inputs": [
+    {    # baseline data
+      "targetProperty": "baseline",               
+      "sourcePlanNode": "baselineDataFetcher",
+      "sourceProperty": "baselineOutput"
+    },
+    {    # current data
+      "targetProperty": "current",                
+      "sourcePlanNode": "currentDataFetcher",
+      "sourceProperty": "currentOutput"
+    }
+  ]
+}
+```
+

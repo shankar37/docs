@@ -1,0 +1,10 @@
+{
+    "absolute": "ABSOLUTE_CHANGE",
+    "ets": "ETS",
+    "http": "REMOTE_HTTP",
+    "matrix_profile": "MATRIX_PROFILE",
+    "mean_variance": "MEAN_VARIANCE",
+    "offset_aggregation": "OFFSET_AGGREGATION",
+    "percentage": "PERCENTAGE_CHANGE",
+    "threshold": "THRESHOLD"
+}

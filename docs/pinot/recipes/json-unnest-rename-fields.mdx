@@ -1,0 +1,257 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to rename fields when unnesting/exploding/flattening values in nested JSON documents.
+sidebar_label: Rename fields in unnested or flattened JSON documents
+---
+import { Callout } from 'nextra/components';
+
+# How to rename fields when unnesting arrays or flattening objects in JSON documents
+
+In this recipe we'll learn how to rename fields when [unnesting/exploding values](json-unnest.md) or [flattening objects](json-flatten.md) while ingesting JSON documents into Apache Pinot.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.10.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+         <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/json-unnest-rename-fields">startreedata/pinot-recipes/json-unnest-rename-fields</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/json-unnest-rename-fields
+  ```
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/json-unnest-rename-fields/docker-compose.yml) file on GitHub.
+
+## Dataset
+
+We're going to import the following JSON file:
+
+<div class="text-output">
+
+```json
+{"Title":"The Matrix","Year":"1999","Rated":"R","Meta": {"Released":"31 Mar 1999","Runtime":"136 min"},"Genre":"Action, Sci-Fi","Director":"Lana Wachowski, Lilly Wachowski","Writer":"Lilly Wachowski, Lana Wachowski","Actors":"Keanu Reeves, Laurence Fishburne, Carrie-Anne Moss","Plot":"When a beautiful stranger leads computer hacker Neo to a forbidding underworld, he discovers the shocking truth--the life he knows is the elaborate deception of an evil cyber-intelligence.","Language":"English","Country":"United States, Australia","Awards":"Won 4 Oscars. 42 wins & 51 nominations total","Ratings":[{"Source":"Internet Movie Database","Value":"8.7/10"},{"Source":"Rotten Tomatoes","Value":"88%"},{"Source":"Metacritic","Value":"73/100"}],"Metascore":"73","imdbRating":"8.7","imdbVotes":"1,851,767","imdbID":"tt0133093","Type":"movie","DVD":"15 May 2007","BoxOffice":"$172,076,928","Production":"N/A","Website":"N/A","Response":"True"}
+{"Title":"Avatar","Year":"2009","Rated":"PG-13","Meta": {"Released":"18 Dec 2009","Runtime":"162 min"},"Genre":"Action, Adventure, Fantasy","Director":"James Cameron","Writer":"James Cameron","Actors":"Sam Worthington, Zoe Saldana, Sigourney Weaver","Plot":"A paraplegic Marine dispatched to the moon Pandora on a unique mission becomes torn between following his orders and protecting the world he feels is his home.","Language":"English, Spanish","Country":"United States","Awards":"Won 3 Oscars. 89 wins & 131 nominations total","Ratings":[{"Source":"Internet Movie Database","Value":"7.8/10"},{"Source":"Rotten Tomatoes","Value":"82%"},{"Source":"Metacritic","Value":"83/100"}],"Metascore":"83","imdbRating":"7.8","imdbVotes":"1,189,326","imdbID":"tt0499549","Type":"movie","DVD":"22 Apr 2010","BoxOffice":"$760,507,625","Production":"N/A","Website":"N/A","Response":"True"}
+{"Title":"The Boss Baby","Year":"2017","Rated":"PG","Meta": {"Released":"31 Mar 2017","Runtime":"97 min"},"Genre":"Animation, Adventure, Comedy","Director":"Tom McGrath","Writer":"Michael McCullers, Marla Frazee","Actors":"Alec Baldwin, Steve Buscemi, Jimmy Kimmel","Plot":"A suit-wearing, briefcase-carrying baby pairs up with his 7-year old brother to stop the dastardly plot of the CEO of Puppy Co.","Language":"English, Spanish","Country":"United States","Awards":"Nominated for 1 Oscar. 4 wins & 21 nominations total","Ratings":[{"Source":"Internet Movie Database","Value":"6.3/10"},{"Source":"Rotten Tomatoes","Value":"53%"},{"Source":"Metacritic","Value":"50/100"}],"Metascore":"50","imdbRating":"6.3","imdbVotes":"122,684","imdbID":"tt3874544","Type":"movie","DVD":"25 Jul 2017","BoxOffice":"$175,003,033","Production":"N/A","Website":"N/A","Response":"True"}
+{"Title":"Tall Girl","Year":"2019","Rated":"TV-PG","Meta": {"Released":"13 Sep 2019","Runtime":"101 min"},"Genre":"Comedy, Drama, Family","Director":"Nzingha Stewart","Writer":"Sam Wolfson","Actors":"Ava Michelle, Griffin Gluck, Sabrina Carpenter","Plot":"Jodi, the tallest girl in her high school, has always felt uncomfortable in her own skin. But after years of slouching, being made fun of, and avoiding attention at all costs, Jodi finally decides to find the confidence to stand t...","Language":"English","Country":"United States","Awards":"2 wins & 1 nomination","Ratings":[{"Source":"Internet Movie Database","Value":"5.2/10"},{"Source":"Rotten Tomatoes","Value":"38%"}],"Metascore":"N/A","imdbRating":"5.2","imdbVotes":"22,990","imdbID":"tt9252508","Type":"movie","DVD":"13 Sep 2019","BoxOffice":"N/A","Production":"N/A","Website":"N/A","Response":"True"}
+{"Title":"Love Hard","Year":"2021","Rated":"TV-MA","Meta": {"Released":"05 Nov 2021","Runtime":"104 min"},"Genre":"Comedy, Romance","Director":"Hernan Jimenez","Writer":"Daniel Mackey, Rebecca Ewing","Actors":"Nina Dobrev, Jimmy O. Yang, Darren Barnet","Plot":"An LA girl, unlucky in love, falls for an East Coast guy on a dating app and decides to surprise him for the holidays, only to discover that she's been catfished. This lighthearted romantic comedy chronicles her attempt to reel in lo","Language":"English","Country":"United States","Awards":"1 win & 1 nomination","Ratings":[{"Source":"Internet Movie Database","Value":"6.3/10"},{"Source":"Rotten Tomatoes","Value":"57%"},{"Source":"Metacritic","Value":"42/100"}],"Metascore":"42","imdbRating":"6.3","imdbVotes":"48,458","imdbID":"tt10752004","Type":"movie","DVD":"05 Nov 2021","BoxOffice":"N/A","Production":"N/A","Website":"N/A","Response":"True"}
+```
+*data/movies.json*
+
+</div>
+
+We're particularly interested in the `Ratings` property of each movie.
+We're going to unnest or explode the ratings so that we have one row per rating in our database after the data is ingested.
+
+We'll also pull out the `Meta.Released` property.
+
+
+## Pinot Schema and Table
+
+Now let's create a Pinot Schema and Table.
+
+First, the schema:
+
+```json 
+{
+  "schemaName": "movie_ratings",
+  "dimensionFieldSpecs": [
+    {
+      "name": "Title",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Released",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Rated",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Source",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Rating",
+      "dataType": "STRING"
+    }
+  ]
+}
+```
+*config/schema.json*
+
+You can create the schema by running the following command:`
+
+```bash
+docker exec -it pinot-controller-json bin/pinot-admin.sh AddSchema \
+  -schemaFile /config/schema.json \
+  -exec
+```
+
+We'll also have the following table config:
+
+```json {9-25}
+{
+  "tableName": "movie_ratings",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "movie_ratings"
+  },
+  "ingestionConfig": {
+    "complexTypeConfig": {
+      "fieldsToUnnest": ["Ratings"]
+    },
+    "transformConfigs": [
+      {
+        "columnName": "Released",
+        "transformFunction": "Meta.Released"
+      },
+      {
+        "columnName": "Source",
+        "transformFunction": "Ratings.Source"
+      },
+      {
+        "columnName": "Rating",
+        "transformFunction": "Ratings.Value"
+      }
+    ],
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP"
+  },
+  "metadata": {}
+}
+```
+*config/table.json*
+
+The existence of the `complexTypeConfig` section means that nested JSON objects will be flattened into individual fields.
+It also which field in the data source should be unnested.
+The `Ratings` field contains an array of JSON objects and that array will be exploded to create one row for each item in the array.
+
+The `transformConfigs` section maps the following values:
+
+* `Ratings.Source` to the `Source` column
+* `Ratings.Value` to the `Rating` column
+* `Meta.Released` to the `Released` column.
+
+You can create the table by running the following command:`
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table.json \
+     -controllerHost "pinot-controller-json" \
+    -exec
+```
+
+## Ingestion Job
+
+Now we’re going to import the JSON file into Pinot. 
+We'll do this with the following ingestion spec:
+
+```yaml
+executionFrameworkSpec:
+  name: 'standalone'
+  segmentGenerationJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentGenerationJobRunner'
+  segmentTarPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentTarPushJobRunner'
+jobType: SegmentCreationAndTarPush
+inputDirURI: '/data'
+includeFileNamePattern: 'glob:**/movies.json'
+outputDirURI: '/opt/pinot/data/movies/'
+overwriteOutput: true
+pinotFSSpecs:
+  - scheme: file
+    className: org.apache.pinot.spi.filesystem.LocalPinotFS
+recordReaderSpec:
+  dataFormat: 'json'
+  className: 'org.apache.pinot.plugin.inputformat.json.JSONRecordReader'
+tableSpec:
+  tableName: 'movie_ratings'
+pinotClusterSpecs:
+  - controllerURI: 'http://pinot-controller-json:9000'
+pushJobSpec:
+  pushAttempts: 2
+  pushRetryIntervalMillis: 1000
+```
+*config/job-spec.yml*
+
+The import job will map fields in each JSON document to a corresponding column in the `movie_ratings` schema.
+If one of the fields doesn't exist in the schema it will be skipped.
+
+You can run the following command to run the import:
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+  -jobSpecFile /config/job-spec.yml
+```
+
+## Querying 
+
+Once that's completed, navigate to [localhost:9000/#/query](http://localhost:9000/#/query) and click on the `movie_ratings` table or copy/paste the following query:
+
+```sql
+select * 
+from movie_ratings 
+limit 10
+```
+
+You will see the following output:
+
+|Rated	|Rating	|Released	|Source	|Title|
+|----------|-------------|-------------|-------------|-------------|
+|R|	8.7/10|	31 Mar 1999|	Internet Movie Database|	The Matrix|
+|R	|88%	|31 Mar 1999	|Rotten Tomatoes	|The Matrix|
+|R	|73/100	|31 Mar 1999|	Metacritic	|The Matrix|
+|PG-13|	7.8/10	|18 Dec 2009|	Internet Movie Database|	Avatar|
+|PG-13|	82%	|18 Dec 2009	|Rotten Tomatoes	|Avatar|
+|PG-13|	83/100	|18 Dec 2009|	Metacritic	|Avatar|
+|PG	|6.3/10	|31 Mar 2017	|Internet Movie Database|	The Boss Baby|
+|PG	|53%	|31 Mar 2017	|Rotten Tomatoes	|The Boss Baby|
+|PG	|50/100	|31 Mar 2017|	Metacritic	|The Boss Baby|
+|TV-PG|	5.2/10	|13 Sep 2019|	Internet Movie Database	|Tall Girl|
+
+*Query Results*
+
+We can see that each movie has multiple rows, one for each rating given to that movie.

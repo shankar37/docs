@@ -1,0 +1,59 @@
+import { Callout } from 'nextra/components';
+
+# MATRIX_PROFILE
+
+<Callout>
+    Enterprise only
+</Callout>
+
+Gives an anomaly score to each point using a left matrix profile algorithm[^1]. To make the matrix profile approach better at point anomaly detection, a proprietary transformation function is applied to the matrix profile.
+
+This detector returns an anomaly score, it does not return expected values, upper and lower bounds. This detector is recommended for granularity \<= 1 hour.
+
+
+## Inputs
+
+`"targetProperty": "current"`: The data on which to perform detection. It should contain the historical data to use for training.
+
+
+## Parameters
+
+| name                                    | description                                                                                                                                                                                                                                                     | default value                   |
+|-----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|
+| `component.sensitivity`                 | Anomaly score threshold. Eg for `0.8`` every point that has as a score bigger that `0.8` is flagged as an anomaly.                                                                                                                                              |                                 |
+| `component.lookbackPeriod`              | Historical period to use as a reference. In [ISO-8601][iso-8601] format. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). Eg: `P14D`. If `component.lookbackPeriod` is not set, `component.lookback` is used. |                                 |
+| `component.seasonalityPeriod`           | Seasonality biggest period. Used to infer the window size of the matrix profile. In ISO-8601 format. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). Eg: `P7D`.                                              | `null` (inferred from the data) |
+| `component.distance`                    | For advanced users. Whether to use `NORMALIZED` or `NON_NORMALIZED` euclidean distance for the matrix profile computation.                                                                                                                                      | `NORMALIZED`                    |
+| `component.computeBounds`               | Experimental. If true, attempts to compute expected values, upper and lower bounds.                                                                                                                                                                             | `false`                         |
+| `component.scoringMethod` | Experimental. Experimental. Post-processing of the matrix profile anomaly scores. `FIRST_ORDER_DIFFERENCE` is good at detecting spikes. `DIRECT` is good at detecting drifts.                                                                                                                                                   | `FIRST_ORDER_DIFFERENCE`                         |
+
+
+## Example
+
+### Recommended defaults
+
+```json
+{
+      "name": "root",
+      "type": "AnomalyDetector",
+      "params": {
+        "type": "MATRIX_PROFILE",
+        "component.sensitivity": "2",
+        "component.lookbackPeriod": "P21D",
+        ...  # shared parameters
+      },
+      "inputs": [
+        {
+          "targetProperty": "current",
+          "sourcePlanNode": "currentData",
+          "sourceProperty": "currentOutput"
+        }
+      ],
+      "outputs": []
+    }
+```
+
+
+[^1]: See https://www.cs.ucr.edu/~eamonn/MatrixProfile.html
+
+[iso-8601]: https://en.wikipedia.org/wiki/ISO_8601#Durations

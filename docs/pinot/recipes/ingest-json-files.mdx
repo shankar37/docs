@@ -1,0 +1,86 @@
+import { Callout } from 'nextra/components';
+
+# Ingesting JSON files
+
+Learn how to ingest JSON documents from a newline-delimited JSON (jsonlines) file. Watch the following video, or complete the tutorial below, starting with [Prerequites](/docs/pinot/recipes/upserts-full#prerequisites).
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/zuuQwqkXNK8" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.0.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a  style={{textDecoration: 'underline'}}  href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/ingest-json-files" target="_blank">startreedata/pinot-recipes/ingest-json-files</a>       
+       </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+Clone this repository and navigate to this recipe:
+
+```bash
+git clone git@github.com:startreedata/pinot-recipes.git
+cd pinot-recipes/recipes/ingest-json-files
+```
+
+## Run the recipe
+
+Spin up a Pinot cluster using Docker Compose:
+
+```bash
+docker compose up
+```
+
+Open another tab to add the `movies` table:
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -tableConfigFile /config/table.json   \
+     -schemaFile /config/schema.json \
+     -controllerHost "pinot-controller-json" \
+    -exec
+```
+
+Import [data/ingest.json](data/import.json) into Pinot:
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+     -jobSpecFile /config/job-spec.yml
+```
+
+Navigate to http://localhost:9000/#/query and run the following query:
+
+```sql
+select * 
+from movies 
+limit 10
+```
+
+You will see the following output:
+
+| genre       | id | title | year |
+|----------|-------------|-------------|-------------|
+| Drama	|300441473147483650	|Dear John	|2010 |
+|Comedy	|332567813147483648	|The Ugly Truth	|2009|
+| Romance|	346905752147483649	|P.S. I Love You	|2007|
+| Comedy|	361248901147483647|	Valentine's Day	|2010|
+| Fantasy	|394030854147483651	|The Curious Case of Benjamin Button	|2008|

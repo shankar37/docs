@@ -1,0 +1,196 @@
+---
+description: This dataset contains records of house sales in the UK over the last 8 years.
+---
+
+# UK House Prices
+
+This dataset contains the price paid for houses sold in the UK from 2015 until 2022.
+You can learn more about the dataset at [Price Paid Data](https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads)
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/house-prices-dataset
+  ```
+
+## Download data
+
+The dataset contains `.csv` files with house sales from specific years.
+You will need to download at least one of these ffiles from https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads#yearly-file and put it in the `raw` directory.
+
+You'll then need to call `clean_csv.py` with the name of the CSV file in the `raw` directory.
+For example, if you download the 2021 dataset, you'd run this command, passing in `pp-2021.csv`:
+
+```bash
+python clean_csv.py pp-2021.csv
+```
+
+The CSV file will have a header line appended to the front and will be written to the `data` directory.
+
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+
+docker compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper. 
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/house-prices-dataset/docker-compose.yml) file on GitHub.
+
+## Pinot Schema and Table
+
+Now let's create a Pinot Schema and Table.
+
+First, the schema:
+
+```json
+{
+  "schemaName": "house_prices",
+  "dimensionFieldSpecs": [
+    {"name": "UniqueTransactionIdentifier", "dataType": "STRING"},
+    {"name": "Postcode", "dataType": "STRING"},
+    {"name": "PropertyType", "dataType": "STRING"},
+    {"name": "OldNew", "dataType": "STRING"},
+    {"name": "Duration", "dataType": "STRING"},
+    {"name": "PAON", "dataType": "STRING"},
+    {"name": "SAON", "dataType": "STRING"},
+    {"name": "Street", "dataType": "STRING"},
+    {"name": "Locality", "dataType": "STRING"},
+    {"name": "TownCity", "dataType": "STRING"},
+    {"name": "District", "dataType": "STRING"},
+    {"name": "County", "dataType": "STRING"},
+    {"name": "PPDCategoryType", "dataType": "STRING"},
+    {"name": "RecordStatus", "dataType": "STRING"}
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "TransferDate",
+      "dataType": "TIMESTAMP",
+      "format": "1:MILLISECONDS:EPOCH",
+      "granularity": "1:MILLISECONDS"
+    }
+  ],
+  "metricFieldSpecs": [{"name": "Price", "dataType": "INT"}]
+}
+```
+*config/schema.json*
+
+We'll also have the following table config:
+
+```json
+{
+  "tableName": "house_prices",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "house_prices",
+    "timeColumnName": "TransferDate"
+  },
+  "tenants": {},
+  "tableIndexConfig": {},
+  "ingestionConfig": {
+    "transformConfigs": [
+      {
+        "columnName": "TransferDate",
+        "transformFunction": "FromDateTime(DateOfTransfer, 'YYYY-MM-dd HH:mm')"
+      }
+    ]
+  },
+  "metadata": {}
+}
+```
+*config/table.json*
+
+
+You can create the table and schema by running the following command:`
+
+```bash
+docker run \
+   --network houseprices \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table.json \
+     -controllerHost "pinot-controller-houseprices" \
+    -exec
+```
+
+
+## Ingesting CSV files
+
+We're going to use Pinot's SQL insert syntax to import the CSV files. 
+Navigate to the [Pinot UI](http://localhost:9000) and click on `Query Console`
+You can then run the following query to run the ingestion job:
+
+```sql
+SET taskName = 'houseprices-dataload';
+SET input.fs.className = 'org.apache.pinot.spi.filesystem.LocalPinotFS';
+SET includeFileNamePattern='glob:**/*.csv';
+INSERT INTO house_prices 
+FROM FILE 'file:///data/';
+```
+
+Wait a few minutes for the job to complete. You can check on the status by navigating to the [Minion Task Manager](http://localhost:9000/#/minion-task-manager) page.
+
+## Querying the dataset
+
+Once the data is loaded, we can run some queries.
+
+We can find the highest average prices paid by county:
+
+```sql
+select County, avg(Price) AS averagePrice, max(Price) AS maxPrice, count(*) AS numberOfSales
+from house_prices
+group by County
+order by averagePrice DESC
+limit 10
+```
+
+| County                      |      averagePrice |      numberOfSales |
+|:-----------------------|-------:|-------:|
+| GREATER LONDON         | 820453 | 241466 |
+| WINDSOR AND MAIDENHEAD | 713789 |   5637 |
+| SURREY                 | 674173 |  47885 |
+| BUCKINGHAMSHIRE        | 592569 |  21111 |
+| HERTFORDSHIRE          | 562596 |  42077 |
+| OXFORDSHIRE            | 553955 |  26880 |
+| WOKINGHAM              | 530317 |   7072 |
+| SLOUGH                 | 522438 |   3314 |
+| BRIGHTON AND HOVE      | 518568 |  10847 |
+| BRACKNELL FOREST       | 501640 |   4986 |
+
+Or find the most expensive property sold by town/city in 2021:
+
+
+```sql
+select TownCity, County, avg(Price) AS averagePrice, mode(Price), 
+       max(Price) AS maxPrice, 
+       count(*) AS numberOfSales
+from house_prices
+WHERE year(TransferDate) = 2021
+group by TownCity, County
+order by maxPrice DESC
+limit 10
+```
+
+| TownCity     | County             |   maxPrice |   numberOfSales|
+|:--------------|:-------------------|------------:|------------------:|
+| LONDON        | GREATER LONDON     |   523000000 |             81988 |
+| OXFORD        | OXFORDSHIRE        |   414108660 |              2795 |
+| MANCHESTER    | GREATER MANCHESTER |   292000000 |             19965 |
+| RETFORD       | NOTTINGHAMSHIRE    |   186586777 |               864 |
+| GREENHITHE    | KENT               |   168000000 |               411 |
+| BRISTOL       | CITY OF BRISTOL    |   166105301 |              9560 |
+| SLOUGH        | SLOUGH             |   155000000 |              1946 |
+| MILTON KEYNES | MILTON KEYNES      |   146750000 |              5565 |
+| LUTTERWORTH   | LEICESTERSHIRE     |   135087821 |               686 |
+| WEMBLEY       | GREATER LONDON     |   130500000 |               907 |

@@ -1,0 +1,64 @@
+# Release Version 0.7.1: November 2023
+
+## Significant Apache Pinot updates since last StarTree release
+
+For complete details on Pinot changes, see [Releases](https://docs.pinot.apache.org/basics/releases).
+
+* Skip unparseable records in the CSV reader. To enable, set the `skipUnParseableLines` flag to true ([pull request](https://github.com/apache/pinot/pull/11487)). 
+* Protocol buffer ingestion supports null values with Proto 3 ([pull request](https://github.com/apache/pinot/pull/11553))
+* Upgrade Confluent libraries from 5.5.3 to 7.2.6 ([pull request](https://github.com/apache/pinot/pull/11753)) 
+* Faster real-time table ingestion with updates to the segment builder. To enable, edit the table configuration to set `realtime.segment.flush.enable_column_major` to `true` ([pull request](https://github.com/apache/pinot/pull/11776))
+* Improve alias handling in single-stage engine with multiple fixes to column aliases ([pull request](https://github.com/apache/pinot/pull/11610))
+* Enhance handling of new partitions when using [`StrictReplicaRouting`](https://docs.pinot.apache.org/basics/data-import/dedup#use-strictreplicagroup-for-routing) to prevent "instance unavailable" exceptions ([pull request](https://github.com/apache/pinot/pull/11585)) 
+* Optimize performance in the multi-stage engine:
+    * For a single join key and group key scenario, operate directly on the key values without wrappers ([pull request](https://github.com/apache/pinot/pull/11630)) 
+    * Operate on column indexes in multi-stage aggregations to prevent extra conversion steps
+    * Avoid converting unnecessary rows in aggregations ([pull request](https://github.com/apache/pinot/pull/11607)) 
+* Enhance segment assignments for upsert tables with more checks to ensure that the conditions required for upsert functionality to work are not violated ([pull request](https://github.com/apache/pinot/pull/11628)) 
+* Fix handling of literals used in aggregation for v2 engine ([pull request](https://github.com/apache/pinot/pull/11863)) 
+
+### Breaking changes 
+
+* You must now specify the data type of literals in Pinot queries. Before this change, for example, `2022-02-02 22:22:22.123` was automatically treated as a timestamp data type. Now, following standard SQL behavior, use `CAST('2022-02-02 22:22:22.123' AS TIMESTAMP)` instead ([pull request](https://github.com/apache/pinot/pull/11763)). 
+* Change the "forbidden" error to "unauthorized" ([pull request](https://github.com/apache/pinot/pull/11501))
+* Table configurations that point to a different schema name no longer work ([pull request](https://github.com/apache/pinot/pull/11591)).
+* You can no longer change the table state using the `GET` call ([pull request](https://github.com/apache/pinot/pull/11621)).
+* You can no longer create a schema with `NaN` as the default value ([pull request](https://github.com/apache/pinot/pull/11661)).
+* `BigDecimal` responses are now stored as a string with double quotes instead of a number ([pull request](https://github.com/apache/pinot/pull/11716)).
+
+
+## Dependencies
+* Upgrade to Parquet 1.12.3 ([pull request](https://github.com/apache/pinot/pull/11337)) 
+* Upgrade to Hadoop 3.2.4 ([pull request](https://github.com/apache/pinot/pull/11369))
+* Upgrade to AVRO 1.10.2 ([pull request](https://github.com/apache/pinot/pull/11698)) 
+
+### StarTree extensions for Apache Pinot 
+
+The following updates are available only in StarTree Cloud.
+
+* Improvements to [file ingestion task](https://dev.startree.ai/docs/ingest-data/file-ingestion-task): 
+    * Enhancements to batch ingestion using minion to improve atomic ingestion and backfill operations
+    * Control size-based segment creation with [`desiredSegmentSize`](https://dev.startree.ai/docs/ingest-data/file-ingestion-task#control-the-ingestion-parallelism) to improve performance
+* Automatically tune segment size for segment refresh task without configuring `maxNumRecordsPerTask` and `maxNumRecordsPerSegment`. Size-based tuning helps make predictable segment sizes and avoid memory- or size- related exceptions 
+* Validation is stricter for using sync mode in conjunction with other tasks. You can no longer schedule the segment refresh task at the same time as sync mode.
+* Separate RocksDB log from server logs to improve debugging experience and allow you to set different retention and rollover policies
+* Improve Kafka logs by changing the following classes to error-level:
+    * `KafkaConsumer`
+    * `AppInfoParser`
+    * `ConsumerConfig`
+* Enhancements to upsert tables: 	
+    * Correctly track primary key count and add corresponding metrics
+    * Improve stability during deletion
+* Improve performance and navigation in broker and server Grafana dashboards
+* Move to Google Trust Services Certificate Authority to improve certification management
+
+## Data Manager
+
+* Improve data sampling from Kafka topics with large numbers of partitions by preventing "no data" error in preview 
+* Automate Google Cloud Platform (GCP) credentials in Data Manager so you can ingest instead of having to contact StarTree support
+* Improve error messages to aid troubleshooting
+
+## ThirdEye
+
+* Improve loading time for multi-dimension alerts and dashboard statistics
+* Simplified alert creation with advanced anomaly detection and tuning options, reducing complexity of data patterns and seasonality 

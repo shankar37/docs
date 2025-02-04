@@ -1,0 +1,21 @@
+# Release version 0.8.1: April/May 2024
+
+
+This release impacts customers with StarTree Cloud deployments on AWS and GCP.
+
+## Upgrade Kubernetes Release Version
+
+* Kubernetes 1.25 is reaching end-of-life soon. To support StarTree Cloud customers with deployments on AWS and GCP, we've upgraded to Kubernetes 1.29. For more information about Amazon EKS Kubernetes versions, see [the AWS documentation](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html). For more information about Google Cloud GKE Kubernetes versions, see the [GKE documentation](https://cloud.google.com/kubernetes-engine/docs/release-schedule]).
+
+Additionally, there are a few platform stability improvements impacting the following:
+- Alerts configuration
+- Adding requests / limits to all platform components
+
+We will be doing this upgrade beginning in April and completing by the end of May 2024. We will begin with the Non-production (dev, staging, qa, etc.) environments, followed by Production environments. Note that all environments created after StarTree release 0.8.0 are already on Kubernetes version 1.29.
+
+Downtime?
+
+- There will be a rolling restart. For tables with replication > 1, there should not be any downtime though performance may be impacted in some cases.
+- For V2 Query Engine users, there will be some downtime that is dependent on how long it takes the servers to restart. This is generally dependent on factors such as the amount of data on a server.
+
+Questions? Please contact StarTree Support for any questions regarding release.

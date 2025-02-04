@@ -1,0 +1,351 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to flatten objects in nested JSON documents.
+---
+import { Callout } from 'nextra/components';
+
+# How to flatten objects in JSON documents
+
+In this recipe we'll learn how to flatten nested objects when ingesting JSON documents into Apache Pinot.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.10.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+         <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/json-flatten">startreedata/pinot-recipes/json-flatten</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/json-flatten
+  ```
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/json-flatten/docker-compose.yml) file on GitHub.
+
+## Dataset
+
+We're going to import the following JSON file:
+
+<div class="text-output">
+
+```json
+{"id":1,"name":"Leanne Graham","username":"Bret","email":"Sincere@april.biz","address":{"street":"Kulas Light","suite":"Apt. 556","city":"Gwenborough","zipcode":"92998-3874","geo":{"lat":"-37.3159","lng":"81.1496"}},"phone":"1-770-736-8031 x56442","website":"hildegard.org","company":{"name":"Romaguera-Crona","catchPhrase":"Multi-layered client-server neural-net","bs":"harness real-time e-markets"}}
+{"id":2,"name":"Ervin Howell","username":"Antonette","email":"Shanna@melissa.tv","address":{"street":"Victor Plains","suite":"Suite 879","city":"Wisokyburgh","zipcode":"90566-7771","geo":{"lat":"-43.9509","lng":"-34.4618"}},"phone":"010-692-6593 x09125","website":"anastasia.net","company":{"name":"Deckow-Crist","catchPhrase":"Proactive didactic contingency","bs":"synergize scalable supply-chains"}}
+{"id":3,"name":"Clementine Bauch","username":"Samantha","email":"Nathan@yesenia.net","address":{"street":"Douglas Extension","suite":"Suite 847","city":"McKenziehaven","zipcode":"59590-4157","geo":{"lat":"-68.6102","lng":"-47.0653"}},"phone":"1-463-123-4447","website":"ramiro.info","company":{"name":"Romaguera-Jacobson","catchPhrase":"Face to face bifurcated interface","bs":"e-enable strategic applications"}}
+{"id":4,"name":"Patricia Lebsack","username":"Karianne","email":"Julianne.OConner@kory.org","address":{"street":"Hoeger Mall","suite":"Apt. 692","city":"South Elvis","zipcode":"53919-4257","geo":{"lat":"29.4572","lng":"-164.2990"}},"phone":"493-170-9623 x156","website":"kale.biz","company":{"name":"Robel-Corkery","catchPhrase":"Multi-tiered zero tolerance productivity","bs":"transition cutting-edge web services"}}
+{"id":5,"name":"Chelsey Dietrich","username":"Kamren","email":"Lucio_Hettinger@annie.ca","address":{"street":"Skiles Walks","suite":"Suite 351","city":"Roscoeview","zipcode":"33263","geo":{"lat":"-31.8129","lng":"62.5342"}},"phone":"(254)954-1289","website":"demarco.info","company":{"name":"Keebler LLC","catchPhrase":"User-centric fault-tolerant solution","bs":"revolutionize end-to-end systems"}}
+{"id":6,"name":"Mrs. Dennis Schulist","username":"Leopoldo_Corkery","email":"Karley_Dach@jasper.info","address":{"street":"Norberto Crossing","suite":"Apt. 950","city":"South Christy","zipcode":"23505-1337","geo":{"lat":"-71.4197","lng":"71.7478"}},"phone":"1-477-935-8478 x6430","website":"ola.org","company":{"name":"Considine-Lockman","catchPhrase":"Synchronised bottom-line interface","bs":"e-enable innovative applications"}}
+{"id":7,"name":"Kurtis Weissnat","username":"Elwyn.Skiles","email":"Telly.Hoeger@billy.biz","address":{"street":"Rex Trail","suite":"Suite 280","city":"Howemouth","zipcode":"58804-1099","geo":{"lat":"24.8918","lng":"21.8984"}},"phone":"210.067.6132","website":"elvis.io","company":{"name":"Johns Group","catchPhrase":"Configurable multimedia task-force","bs":"generate enterprise e-tailers"}}
+{"id":8,"name":"Nicholas Runolfsdottir V","username":"Maxime_Nienow","email":"Sherwood@rosamond.me","address":{"street":"Ellsworth Summit","suite":"Suite 729","city":"Aliyaview","zipcode":"45169","geo":{"lat":"-14.3990","lng":"-120.7677"}},"phone":"586.493.6943 x140","website":"jacynthe.com","company":{"name":"Abernathy Group","catchPhrase":"Implemented secondary concept","bs":"e-enable extensible e-tailers"}}
+{"id":9,"name":"Glenna Reichert","username":"Delphine","email":"Chaim_McDermott@dana.io","address":{"street":"Dayna Park","suite":"Suite 449","city":"Bartholomebury","zipcode":"76495-3109","geo":{"lat":"24.6463","lng":"-168.8889"}},"phone":"(775)976-6794 x41206","website":"conrad.com","company":{"name":"Yost and Sons","catchPhrase":"Switchable contextually-based project","bs":"aggregate real-time technologies"}}
+{"id":10,"name":"Clementina DuBuque","username":"Moriah.Stanton","email":"Rey.Padberg@karina.biz","address":{"street":"Kattie Turnpike","suite":"Suite 198","city":"Lebsackbury","zipcode":"31428-2261","geo":{"lat":"-38.2386","lng":"57.2232"}},"phone":"024-648-3804","website":"ambrose.net","company":{"name":"Hoeger LLC","catchPhrase":"Centralized empowering task-force","bs":"target end-to-end models"}}
+```
+*data/users.json*
+
+</div>
+
+Each document has a nested `address` and `company` that we're going to flatten so that we can import all the fields into Pinot.
+
+## Pinot Schema
+
+Working out all the column names and their types is tedious with complex JSON documents, but luckily Pinot provides a tool that [infers the schema](infer-schema-json-data) for us.
+We'll call it by running the following command:
+
+```bash
+docker exec -it pinot-controller-json \
+  bin/pinot-admin.sh JsonToPinotSchema \
+  -dimensions "" \
+  -jsonFile /data/users.json \
+  -pinotSchemaName users \
+  -outputDir /data/schema \ 
+  -delimeter '_'
+```
+
+The generated schema file, which gets written to `/data/schema/users.json`, looks like this:
+
+```json
+{
+  "schemaName" : "users",
+  "dimensionFieldSpecs" : [ {
+    "name" : "id",
+    "dataType" : "INT"
+  }, {
+    "name" : "name",
+    "dataType" : "STRING"
+  }, {
+    "name" : "username",
+    "dataType" : "STRING"
+  }, {
+    "name" : "email",
+    "dataType" : "STRING"
+  }, {
+    "name" : "address_street",
+    "dataType" : "STRING"
+  }, {
+    "name" : "address_suite",
+    "dataType" : "STRING"
+  }, {
+    "name" : "address_city",
+    "dataType" : "STRING"
+  }, {
+    "name" : "address_zipcode",
+    "dataType" : "STRING"
+  }, {
+    "name" : "address_geo_lat",
+    "dataType" : "STRING"
+  }, {
+    "name" : "address_geo_lng",
+    "dataType" : "STRING"
+  }, {
+    "name" : "phone",
+    "dataType" : "STRING"
+  }, {
+    "name" : "website",
+    "dataType" : "STRING"
+  }, {
+    "name" : "company_name",
+    "dataType" : "STRING"
+  }, {
+    "name" : "company_catchPhrase",
+    "dataType" : "STRING"
+  }, {
+    "name" : "company_bs",
+    "dataType" : "STRING"
+  } ]
+}
+```
+*config/schema.json*
+
+We can see that those nested properties have been converted into individual columns e.g. `address_street`, `address_geo_lat`, `company_name`. 
+
+<Callout type="info">
+The `.` character is used as the default delimiter, but we have overriden that by passing in the `-delimiter` parameter.
+We'll need to make sure that we pass in this delimiter to our table config later on in this guide.
+</Callout>
+
+We'll need to create two copies of the schema file as Pinot requires each table to have its own schema.
+We also need to update the `schemaName` to be `users_flatten` in one and `users_no_flatten` in the other.
+
+## Pinot Table
+
+Now let's create Pinot tables that uses the above schemas.
+We're going to create two different tables so that we can see what happens if we don't specify the config that flattens JSON documents.
+
+First, the table config that doesn't do any flattening:
+
+
+```json
+{
+  "tableName": "users_no_flatten",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "users_no_flatten"
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP"
+  },
+  "metadata": {}
+}
+```
+*config/table-no-flatten.json*
+
+And now one that has the flattening config:
+
+```json {13-15}
+{
+  "tableName": "users_flatten",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "users_flatten"
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    },
+    "complexTypeConfig": {
+      "delimeter": "_"
+    }
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP"
+  },
+  "metadata": {}
+}
+```
+*config/table-flatten.json*
+
+The highlighted config flattens the nested JSON fields.
+We need to specify `delimiter` if our schema doesn't use the `.` character to separate nested field names.
+
+You can create the tables by running the following commands:
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema-no-flatten.json \
+     -tableConfigFile /config/table-no-flatten.json \
+     -controllerHost "pinot-controller-json" \
+    -exec
+```
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema-flatten.json \
+     -tableConfigFile /config/table-flatten.json \
+     -controllerHost "pinot-controller-json" \
+    -exec
+```
+
+## Ingestion Job
+
+Now we’re going to import the JSON file into Pinot. 
+We'll do this with the following ingestion spec:
+
+```yaml
+executionFrameworkSpec:
+  name: 'standalone'
+  segmentGenerationJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentGenerationJobRunner'
+  segmentTarPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentTarPushJobRunner'
+jobType: SegmentCreationAndTarPush
+inputDirURI: '/data'
+includeFileNamePattern: 'glob:users.json'
+outputDirURI: '/opt/pinot/data/${tableName}/'
+overwriteOutput: true
+pinotFSSpecs:
+  - scheme: file
+    className: org.apache.pinot.spi.filesystem.LocalPinotFS
+recordReaderSpec:
+  dataFormat: 'json'
+  className: 'org.apache.pinot.plugin.inputformat.json.JSONRecordReader'
+tableSpec:
+  tableName: ${tableName}
+pinotClusterSpecs:
+  - controllerURI: 'http://pinot-controller-json:9000'
+pushJobSpec:
+  pushAttempts: 2
+  pushRetryIntervalMillis: 1000
+```
+*config/job-spec.yml*
+
+The import job will map fields in each JSON document to a corresponding column in the `users` schema.
+
+You can run the following command to run the import:
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+  -jobSpecFile /config/job-spec.yml \
+  -values tableName='users_no_flatten'
+```
+
+```bash
+docker run \
+   --network json \
+   -v $PWD/config:/config \
+      -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+  -jobSpecFile /config/job-spec.yml \
+  -values tableName='users_flatten'
+```
+
+## Querying 
+
+Once that's completed, navigate to [localhost:9000/#/query](http://localhost:9000/#/query) and we'll run some queries see how the JSON flattening works.
+
+First, let's query `users_no_flatten`:
+
+```sql
+select id, name, username, 
+       company_name, company_bs,
+	   address_street, address_geo_lat, address_geo_lng
+from users_no_flatten 
+limit 5
+```
+
+You will see the following output:
+
+|id|	name|	username|	company_name|	company_bs|	address_street|	address_geo_lat|	address_geo_lng|
+|----------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|
+|1|	Leanne Graham|	Bret|		null|	null|	null|	null|	null|
+|2|	Ervin Howell|	Antonette|	null|	null|	null|	null|	null|
+|3|	Clementine Bauch|	Samantha|	null|	null|	null|	null|	null|
+|4|	Patricia Lebsack|	Karianne|	null|	null|	null|	null|	null|
+|5|	Chelsey Dietrich|	Kamren|	null|	null|	null|	null|	null|
+
+*Query Results*
+
+We can see that the nested fields all have null values.
+
+Now let's try the same query on the `users_flatten` table:
+
+```sql
+select id, name, username, 
+       company_name, company_bs,
+	   address_street, address_geo_lat, address_geo_lng
+from users_flatten 
+limit 5
+```
+
+You will see the following output:
+
+|id|	name|	username|	company_name|	company_bs|	address_street|	address_geo_lat|	address_geo_lng|
+|----------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|
+|1|	Leanne Graham	|Bret	|Romaguera-Crona|	harness real-time e-markets|	Kulas Light	|-37.3159	|81.1496|
+|2|	Ervin Howell	|Antonette	|Deckow-Crist|	synergize scalable supply-chains|	Victor Plains	|-43.9509	|-34.4618|
+|3|	Clementine Bauch|	Samantha|	Romaguera-Jacobson|	e-enable strategic applications	|Douglas Extension|	-68.6102|	-47.0653|
+|4|	Patricia Lebsack|	Karianne|	Robel-Corkery	|transition cutting-edge web services	|Hoeger Mall|	29.4572	|-164.2990|
+|5|	Chelsey Dietrich|	Kamren|	Keebler LLC	|revolutionize end-to-end systems	|Skiles Walks	|-31.8129	|62.5342|
+
+*Query Results*
+
+On this table the flattened fields are all hydrated with values from the source data.

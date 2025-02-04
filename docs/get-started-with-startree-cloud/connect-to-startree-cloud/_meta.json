@@ -1,0 +1,7 @@
+{
+    "connect-to-presto": "Connect PrestoDB to StarTree Cloud",
+    "connect-superset-to-startree-cloud": "Connect Superset to StarTree Cloud",
+    "connect-tableau-to-startree-cloud": "Connect Tableau to StarTree Cloud",
+    "connect-to-trino": "Connect Trino to StarTree Cloud",
+    "delta-connector": "Delta table"
+}

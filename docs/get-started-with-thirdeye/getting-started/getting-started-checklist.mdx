@@ -1,0 +1,61 @@
+import { Tabs } from 'nextra/components';
+import { Callout } from 'nextra/components';
+
+# StarTree ThirdEye getting started checklist
+
+To get started with [StarTree ThirdEye](https://startree.ai/products/startree-thirdeye), do the following:
+1. Review [prerequisites](#prerequisites)
+1. [Make your data accessible by ThirdEye](#make-your-data-accessible-by-thirdeye)
+1. [Add a notification system](#add-a-notification-system)
+1. [Create alerts](#create-alerts)
+
+
+## Prerequisites
+
+1. Apache Pinot must be installed and running. To install Pinot, do one of the following:
+    - Install the open source version of [Apache Pinot](https://pinot.apache.org/) on your own infrastructure (called BYOC for _bring your own cloud_)
+    - Use [StarTree Cloud](https://www.startree.ai/), which includes Pinot hosted as software-as-a-service (SaaS) along with a few other perks.
+1. StarTree ThirdEye must be installed and running. To install ThirdEye, do one of the following:
+    - Install the open source version of [ThirdEye](./install-thirdeye.md). For more information, see [infrastructure requirements](./infrastructure-requirements.md).
+    - Use StarTree Cloud, which includes an available instance of ThirdEye, ready to connect to data you've uploaded into your StarTree Cloud instance of Pinot.
+1. [Upload your data into Apache Pinot](../../ingest-data.md)
+    <Callout type="info">
+        Data to be used must have the right data architecture in order to be useful. See [ThirdEye data requirements](data-requirements.md) for more information.
+    </Callout>
+1. Work through the [ThirdEye use case planning template](use-case-template.md) to ensure you understand what intend to accomplish in the following checklist.
+1. Data readiness and validation checklist:
+   - Timestamp needs to be in epoch millis for ThirdEye to work efficiently. If there is a non-epoch millis column then convert it to epoch millis using the “derived column” and apply time range indexes based on time granularity used in ThirdEye (Daily, hourly, 15 mins, 1 min).
+   - Cannot have data gaps [Link to completeness delay](https://dev.startree.ai/docs/get-started-with-thirdeye/alert-configuration#metadata), [definition](https://dev.startree.ai/docs/get-started-with-thirdeye/alert-configuration#completenessdelay), [Link to external blog how to do DQ check using ThirdEye](https://medium.com/the-ab-tasty-tech-blog/data-quality-timeseries-anomaly-detection-at-scale-with-thirdeye-468f771154e6)
+   - Based on Query patterns from ThirdEye to Pinot - apply those specific indexing. 
+   - Joins are not supported in ThirdEye. Make sure derived columns pre-ingestion are created for those to support TE use cases.
+   - ThirdEye needs a denormalized schema for the following reasons:
+     - TE can run any SQL query Pinot can support for just running alerts. We can do this with a custom template. [Link to ThirdEye templates](https://dev.startree.ai/docs/get-started-with-thirdeye/templates). One can clone this to create a custom template and update the dag in it (query against Pinot). However, all the templates need to be cloned to add this custom query)
+     - The complexity is more on: how the metric is then defined, how people can choose different detection algorithms on it, how it is exposed in the UI, how that is shared in RCA, notifications, etc., alerts might work, but the entire experience is not great. RCA may break. If RCA top contributors, heatmap needs to provide accurate insights at a quicker speed then transformed data will be ideal.
+   - If there are too many dimensions in the table how to make RCA more performant? Ans: Number of dimensions in a schema - indexes on dimensions (too many dimensions will slow down RCA UI) - rcaExcludedDimensions [Link to the doc](https://dev.startree.ai/docs/get-started-with-thirdeye/alert-configuration#rcaexcludeddimensions)
+
+## Make your data accessible by ThirdEye
+
+To make your data accessible by ThirdEye, you must [connect ThirdEye to a datasource](../how-tos/database.md).
+
+If you're using StarTree Cloud, see an example of how to [load a sample dataset section](./create-your-first-alert.md#load-a-sample-dataset).
+
+If you are using StarTree Cloud, when you open ThirdEye, ThirdEye automatically connects to Pinot and guides you through the connection process.
+
+
+## Add a notification system
+
+Create one or more groups for alerts to be sent to, each with one or more routes for sending the notifications, such as email, Slack, or PagerDuty. These groups are called _Subscription Groups_ in ThirdEye.
+
+Notifications are sent to subscription groups. The entire set of subscription groups and routes is referred to as a _notification system_.
+
+[Create your notification system](../how-tos/add_notification) first so that you have a place to send alert notifications when you create the alerts.
+
+
+## Create alerts
+
+Read [Create your first alert](./create-your-first-alert.md) for a basic example you can use to guide you through the process.
+
+The [Create alerts](../how-tos/alert.md) section of the docs contains some practical recipes and patterns you can use.
+
+To learn more about how to configure alerts, see [Alert configuration and execution](../alert-configuration.md).
+

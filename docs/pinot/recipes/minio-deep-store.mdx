@@ -1,0 +1,62 @@
+import { Callout } from 'nextra/components';
+
+# Using MinIO as deep store for an offline table
+
+In this recipe we'll learn how to use [MinIO](https://docs.min.io/docs/aws-cli-with-minio) as a Pinot deep store.
+
+To understand how this recipe processes data, examine the commands executed in the Makefile. 
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.1.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/recipes/minio">startreedata/pinot-recipes/minio-deepstore</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+
+## Prerequisites
+
+To follow the code examples in this guide, do the following:
+- [Install Docker](https://docs.docker.com/get-docker/).
+- [Download recipes](/docs/pinot/recipes/#download-recipes)
+
+## Makefile
+
+Clone this repository and navigate to this recipe:
+
+```bash
+make recipe
+```
+
+## Validate
+
+Check that minio has the segment in the deep store. You can also log into the minio console and check. http://localhost:9001/browser/deepstore.
+
+```
+docker exec minio mc ls myminio/deepstore/transcript
+```
+
+## Clean up
+
+```bash
+make clean
+```
+
+## Troubleshooting
+
+To clean up old Docker installations that may be interfering with your testing of this recipe, run the following command:
+
+```bash
+docker system prune
+```
+

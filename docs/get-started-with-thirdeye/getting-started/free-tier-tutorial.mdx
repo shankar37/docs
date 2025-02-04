@@ -1,0 +1,209 @@
+import { Callout } from 'nextra/components';
+
+# Getting started with ThirdEye Free Tier
+
+Welcome to ThirdEye Free Tier! We’re excited for you to see the product for yourself and find 
+value in detecting and resolving business problems faster!  
+This tutorial is a great place to start if this is your first time using ThirdEye. We’ll be using 
+a sample PageViews dataset to explore all the different features and tools of ThirdEye.
+
+### What you will accomplish in this tutorial
+1. Adding a sample dataset to ThirdEye
+2. Creating an alert on a metric in the sample dataset
+3. Configuring anomaly notifications
+4. Viewing an anomaly
+5. Performing a root cause analysis
+
+### Prerequisites
+To start, all you’re going to need is a StarTree Free Tier trial account. Sign up for one [here](https://startree.ai/saas-signup).
+
+## Navigating to ThirdEye Free Tier
+After signing up for StarTree Free Tier and arriving on the landing page, click on 'Go To ThirdEye'.
+
+![Free tier landing page - Click on Go To ThirdEye](/img/thirdeye/free_tier_getting_started/free_tier_landing.png)
+
+## Bringing your data into ThirdEye
+When you access ThirdEye Free Tier for the first time, you’ll be taken to a welcome screen like the one you see below:
+
+![ThirdEye Welcome Page](/img/thirdeye/free_tier_getting_started/welcome_page.png)
+
+This welcome flow will walk you through the two primary steps to get you started with Thirdeye. The first 
+step is to connect your data source and onboard your datasets to ThirdEye.  
+
+On the first screen select StarTree Cloud, as we’ll onboard a dataset from the Apache Pinot database from the trial.  
+
+Next, select the ‘eCommerce Website PageViews’ dataset under the Sample Datasets section. ThirdEye will 
+add this dataset to the StarTree Cloud Apache Pinot database for you.  
+
+The dataset is a sample dataset of an ecommerce company that is recording versions and views of 
+its checkout page. This is a key metric for the ecommerce company that uses this as a marker to track sales and revenue of the business.  
+
+## Creating your alert
+
+Next after onboarding your dataset, select the second step to create your first alert. You’re taken 
+to an alert wizard that will guide you through the steps to create an alert.
+
+<Callout type="info">
+  What is an alert?  
+  Alerts are the rules you build to detect anomalies in your metrics. ThirdEye gives you a variety of
+  templates and algorithms to model your metric and its patterns. When the metric falls out of the range of the model you select, ThirdEye alerts you of the anomaly.
+</Callout>
+
+Select the dataset we onboarded ‘demo_pageviews’, then select ‘views’ as the metric. ‘views’ is one 
+of the columns in the dataset that we will monitor as a metric for anomalies.
+
+<Callout type="info">
+  What is a metric?  
+  In Startree ThirdEye, a Metric refers to a column in your dataset or a statistic derived from the data that is tracked within ThirdEye. 
+  In this context, a Metric is typically a specific measure or KPI (Key Performance Indicator) that is important for monitoring the health 
+  and performance of your business. For example, a Metric could represent things like:
+  1. Business KPIs (e.g., revenue, transaction volume)
+  2. App Behaviors (e.g. log-ins, errors)
+  3. Cloud spend
+  4. Networking traffic
+</Callout>
+
+Select `SUM` as the aggregation function, and select daily granularity. For this alert and the options 
+we set so far, ThirdEye will sum the views coming into the table every day.
+
+![ThirdEye Alert Creation Wizard](/img/thirdeye/free_tier_getting_started/alert_creation_wizard.png)
+
+## Selecting your detection algorithm
+Next, we need to select the model that will fit the views data in order to detect anomalies. Luckily we 
+have a Detection Algorithm Recommender that will search through and fit all the possible algorithms ThirdEye offers to find the best one.
+
+![ThirdEye Detection Algorithm Selection](/img/thirdeye/free_tier_getting_started/detection_algorithm_selection.png)
+
+The alert recommender looks through the historical data of the alert to see which of our 
+models best fits this pattern of data. When the dimension recommender is ready, choose the 
+StarTree-ETS option 1 from the recommended configurations. You can see how the model predicts 
+the pattern, and where it detects the anomalies where the red dots are. On the legend of the 
+graph, select the ‘Upper and Lower bound’ legend item to add the ranges of the model shown below.
+
+![ThirdEye Detection Algorithm Recommender](/img/thirdeye/free_tier_getting_started/detection_algorithm_selection_recommended.png)
+
+## Configure Notifications
+
+When an anomaly shows up in your dataset, it’s important to be notified when it happens. 
+Let’s set up a notification group – which we can use to configure ThirdEye to send notifications 
+when anomalies happen.
+
+Click on the toggle button to configure notifications, and select 
+‘Create a new notification group for this alert’. Let’s set up email notifications for 
+the anomalies that occur. Fill out the form with a subscription group name and your email 
+address that you want alerts to go to. By default, only new anomalies will be notified, but since 
+this is a sample dataset from 2020 we will enable ‘Notify Historical Anomalies’ to receive the 
+notifications for this dataset. For now let’s leave the other fields at their default values.
+
+![Recommended detection algorithm](/img/thirdeye/free_tier_getting_started/notification_configuration.png)
+
+Feel free to add more emails or configure more alerts to the other supported 
+platforms like PagerDuty, Slack or to your custom applications.
+
+## Finish creating your alert
+Click ‘Create Alert’, and on the modal, name your alert and keep the default schedule settings. 
+These schedule settings means that ThirdEye will run the detection on the previous day’s 
+data at 5 AM every day to report the anomalies that appeared. Let’s leave the default as is.
+
+![Confirmation modal for alert creation](/img/thirdeye/free_tier_getting_started/alert_finish.png)
+
+## Viewing your anomalies
+
+After creating your alert, you’re taken to the Alert page. The page will update automatically 
+with the anomalies you saw on the Alert Creation screen. When the page updates, click on the 
+latest anomaly. This is the red point lower and further right than the other.
+
+![Viewing anomalies on the alert page](/img/thirdeye/free_tier_getting_started/alert_page.png)
+
+You should be taken to a page like this:  
+![Anomaly page](/img/thirdeye/free_tier_getting_started/anomaly_page.png)
+
+On this page, we can confirm whether we have a true anomaly or not. Ultimately, ThirdEye can only 
+estimate what the monitored metric should be, so sometimes ThirdEye might miss true anomalies or 
+detect false positives.
+
+Let’s investigate this anomaly to see whether it's a true anomaly or not. 
+Select ‘Investigate Anomaly’ to see further and perform a root cause analysis (RCA).
+
+<Callout type="info">
+  What is root cause analysis?  
+  Root cause analysis in anomaly detection aims to identify the underlying factor(s) responsible for 
+  unusual patterns or behavior in data. It goes beyond simply flagging anomalies and seeks to 
+  pinpoint why those anomalies occurred, guiding future corrective actions or system improvements.
+</Callout>
+
+## Perform a root cause analysis
+After selecting to investigate the anomaly, you should be taken to an Investigation 
+page to perform a RCA on the anomaly. You should see a page like the one below:
+
+![RCA investigation page](/img/thirdeye/free_tier_getting_started/investigation_page.png)
+
+On this page we have two RCA visualizations, Top Contributors and Heatmap and Dimension Drills. 
+Top Contributors show what other fields and combinations of those fields in your dataset had 
+drastic changes. Heatmap and Dimension Drills will show the distribution of different fields and 
+their values and how those changed.
+
+You may be wondering what these two visualizations are comparing to? That’s a great question. 
+ThirdEye compares the data at the time of the anomaly to the same time one week prior. 
+If your data doesn’t have a weekly pattern, you can change the time interval to check against in the 
+dropdown at the top of the page. The dropdown is shown below, and you can choose to compare 
+the data from one day, week, month, or year ago against the data at the time of the anomaly.
+
+![RCA investigation page baseline picker](/img/thirdeye/free_tier_getting_started/rca_baseline_picker.png)
+
+For now, let’s stick with comparing the data from a week ago, and let’s take a look at the two visualizations.
+
+## RCA Visualizations
+
+![RCA top contributors](/img/thirdeye/free_tier_getting_started/rca_top_contributors.png)
+
+Looking at the Top Contributors, we can see that, compared to a week ago, there was a drop in 
+views on the chrome browser, on version 0.3, and on the mobile (phone) version. There was also a 
+smaller drop in views on the same browser and version, but on desktops. Could this version, browser 
+type and devices be the root causes of the anomaly?
+
+Take a look at the Heatmap and Dimension Drills. This takes a look of the data from a different 
+angle and shows you for each column of your data, how did the makeup of the different values in 
+that column change? Blue indicates increases in field values, red indicates decreases in field 
+values, darker colors indicate larger changes, and lighter colors indicate smaller changes.
+
+![RCA heatmap](/img/thirdeye/free_tier_getting_started/rca_heatmap.png)
+
+Looks like there was a 320,000 decrease in chrome browser views and a 40% decrease in chrome browser 
+views compared to other browser views. Seems like we’re getting a better understanding now of what 
+was causing this anomaly.
+
+## Saving the Investigation
+Next, after taking a closer look at the two RCA visualizations, let’s save our investigation. 
+
+Optionally, you can add dimensions to your Investigation Preview at the bottom. The Investigation 
+Preview at the bottom will update with graphs of the dimensions you choose.
+
+![RCA saving the investigation](/img/thirdeye/free_tier_getting_started/saving_investigation.png)
+
+Click next, and advance to the Preview Investigation page. Here you can optionally define 
+anomalous events. These are special days that lead to irregular behavior of your metrics. For an 
+eCommerce company, this could be Black Friday, Christmas Day, etc. We are going to skip this 
+feature of ThirdEye for now and keep going to the next page.
+
+You should now be on the Review Investigation Page. Here let’s name our investigation and add 
+some notes in the comments about what we found from the RCA page. Fill out something like what is 
+shown below and save your investigation!
+
+![RCA reviewing the investigation](/img/thirdeye/free_tier_getting_started/reviewing_investigation.png)
+
+## Confirming your anomaly
+After saving the investigation, confirm to ThirdEye that an anomaly has been found. 
+ThirdEye takes the feedback for true positive anomalies and false positive anomalies and tunes 
+the model accordingly to give you more accurate results.
+
+![RCA confirm anomaly](/img/thirdeye/free_tier_getting_started/confirming_anomaly.png)
+
+## Conclusion
+
+And that’s it! That concludes your ThirdEye Free Tier Tutorial. You went through setting up an 
+alert on a metric, setting up notifications, finding anomalies, and finally investigating an 
+anomaly to find out what the potential business issue is!
+
+Next, try connecting some live data and see for yourself how ThirdEye can save your business 
+time and money.

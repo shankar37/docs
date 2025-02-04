@@ -1,0 +1,104 @@
+import { Callout } from 'nextra/components';
+
+# Use Sparse Index
+
+## Introduction
+
+Apache Pinot supports different types of indexes such as forward indexes, Bloom filters, hash and sorted inverse dense
+indexes, or range inverted indexes.
+Sparse indexes are a hybrid between inverted indexes and Bloom filters designed to speed up queries that filter results
+using equality (or IN) over a column with very high cardinality, such as columns storing hundreds of thousands of random
+values, UUIDs, or public IPs.
+They are a StarTree extension that shine particularly when [tiered storage](./) is used.
+
+## Description
+Sparse indexes group rows into contiguous chunks of a predefined size and classify column values into a fixed number of
+_partitions_ using one or many _hash functions_ (also called _mappers_).
+Finally, it creates a pseudo-inverted index between each _partition_ and each _chunk_.
+
+When a filter such as where `column = constant` is used, the sparse index looks for the partition where the `constant`
+belongs.
+Then it uses the pseudo-inverted index to obtain the _chunks_ where this partition is found.
+These are the only groups of rows where the predicate may evaluate to true, so this information is used to optimize the
+IO access.
+
+This method is useful when the segment is stored locally, but it is particularly notable when using [tiered storage](./).
+In this case, instead of downloading the whole forward index, Pinot only downloads the interesting _chunks_.
+This significantly reduces the number of bytes downloaded from the cloud object storage.
+
+## Enable sparse indexes
+To enable the sparse index StarTree extension, set `pinot.server.instance.index.sparse.enabled` to `true` in the server configuration.
+One way to do so is to use the `POST /cluster/configs` API from Swagger.
+
+After adding new configurations, restart existing servers.
+<Callout type="note">
+If the`pinot.server.instance.index.sparse.enabled` property is **not** set to `true`, you can create sparse indexes, but won't be able to use them during the query phase.
+</Callout>
+
+## Create sparse indexes
+
+Sparse indexes has to be declared in the table configuration, specifically in the `fieldConfigList` section.
+For example, the json above defines a sparse index in the `deviceId` column:
+
+```json
+{
+  "tableName": "example",
+  //...
+  "fieldConfigList": [
+    //...
+    {
+      "name": "deviceId",
+      "indexes": {
+        "sparse": {
+          "chunkSize": 8192,
+          "partitions": 1000,
+          "hashFunctionCount": 10
+        }
+      }
+    }
+    //...
+  ]
+}
+```
+
+Sparse indexes support several configuration options:
+
+| Property          | Type | Default | Recommended                      | Affect size             | Description                              |
+|-------------------|------|---------|----------------------------------|-------------------------|------------------------------------------|
+| chunkSize         | int  | 8192    | 1 to 16384                       | inverse, but sub linear | The chunk size. It must be a power of 2. |
+| partitions        | int  | 1000    | Depends on numbers unique values | linearly                | The number of partitions used.           |
+| hashFunctionCount | int  | 10      | between 1 to 20                  | linearly                | How many partition mappers are used.     |
+
+### `chunkSize`
+Specifies the number of documents that form a chunk.
+This option must be a power of 2.
+The smaller the chunk, the fewer documents the engine evaluates, which may reduce the query latency.
+Very small values may also slightly increase the size of the index, which may increase the query latency, especially
+when using tiered storage.
+Empirical results recommend values between 1 and 16384.
+
+### `partitions`
+Specifies how many partitions the values are classified into.
+The recommended value depends on the expected cardinality: the more unique values, the higher it should be.
+The size of the index grows linearly with this value, so doubling the number of partitions almost doubles the size of
+the index.
+
+### `hashFunctionCount`
+Specifies the number of function mappers used.
+Empirical results recommend values between 1 and 20.
+Larger values will increase the selectivity of the index, possibly reducing the scan part, but very high values may
+slightly increase the latency.
+Also, the size of the index grows linearly with this value, so doubling the number of partitions almost doubles the size
+of the index.
+
+### Extra options
+The following configurations should only be used in extremely unique use cases. Typically, we do not recommend configuring these options:
+
+#### `seedGenerator`
+An integer used as a seed to later generate seeds used to generate each hash function.
+Any integer value is valid, and they produce similar values and do not affect the index size.
+This option should only be defined in the strange case that collisions are very frequent in one or many hash functions.
+
+#### `mapperId`
+A string that identifies the type of hash function used.
+At this moment, the only valid value is `murmur`.

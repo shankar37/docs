@@ -1,0 +1,152 @@
+---
+description: In this Apache Pinot concepts guide, we'll learn about vector search.
+---
+import { Callout } from 'nextra/components';
+
+# Vector Search
+
+## Introduction
+
+As of version 1.1.0, Apache Pinot supports storing Vector Embeddings as arrays of floating-point numbers and executing similarity search queries on them. This functionality serves as a foundation for various applications such as Generative AI agents and Retrieval-Augmented Generation (RAG) systems.
+
+## Understanding Vectors and Their Importance in Databases
+
+Vectors serve as mathematical models that represent data points within a multi-dimensional space, with each dimension representing a distinct feature or attribute of the data. In text processing, for example, vectors can encapsulate words or sentences by capturing semantic properties or contextual meanings across different dimensions. 
+
+<p>
+    <img src="/img/vector-search/vectors.png" width="600px" alt="Vectors" />
+    {/* <em>Vectors</em> */}
+</p>
+
+In contemporary data analysis, vectors are invaluable because they transform complex data types—such as images, text, and audio—into formats that reveal relationships and similarities. 
+
+Embeddings are specialized vector representations designed to encapsulate semantic meanings and interconnections among data points. 
+
+Vector support and vector-based indexing in databases like Apache Pinot has become essential for supporting advanced real-time operations involving high-dimensional data.
+
+## AI Models and Embeddings
+
+AI models in disciplines like natural language processing (NLP) and computer vision leverage embeddings to interpret complex datasets by converting them into structured representations with meaning. These embeddings are essentially vectors that express relationships and similarities among items—whether words, sentences, or images—by positioning similar items close together within a shared space. 
+
+In non-vector searches, a technique called “bag or words” is often used to find similarity between words or sentences.  While these can be useful, the semantic meaning behind the text is lacking in these searches.  For example, “King” is not semantically similar to “Queen”, however “King is similar to “Not King”.
+
+In NLP contexts, embeddings assist models in grasping word meanings and contexts; for instance, semantically related words like “King” and “Queen” appear near each other in this space, enabling the model to comprehend not only definitions but also relationships and nuances—a capability crucial for tasks such as text translation or sentiment analysis where understanding context is key.
+
+## Embeddings Integration into Databases
+Within databases like Apache Pinot embeddings can be represented using FLOAT-type multi-value columns within schemas although it should be noted that generating these embedding vectors must occur externally before** integration into Pinot itself:
+
+Example schema representation:
+
+```json
+{
+  "schemaName": "sample_schema",
+   "dimensionFieldSpecs": [
+     …
+    {
+      "notNull": false,
+      "dataType": "FLOAT",
+      "name": "embedding",
+      "singleValueField": false,
+      "fieldType": "DIMENSION"
+    },
+     …
+  ]
+}
+```
+
+**NOTE** that in the case of our example cited in the conclusion section, the embeddings were created using the `text-embedding-ada-002` from [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models).  
+
+## Similarity Search
+
+Similarity search involves evaluating how similar vectors are by employing different distance metrics, like Euclidean distance, Cosine similarity, or Jaccard similarity. The choice of metric depends on the data characteristics and the application's needs. This method is widely applied across several domains, such as natural language processing, image recognition, recommendation systems, and multimedia data analysis.
+
+Nearest Neighbor algorithms are generally used to determine similarity in vectors.  Some of the common algorithms used for this are 
+
+The Hierarchical navigable small world (HNSW) is a graph-based algorithm for approximate nearest neighbor (ANN) searches in high-dimensional vector databases. It is a popular technology that consistently produces state-of-the-art performance with fast search speeds and high recall. 
+
+Apache Pinot implements HNSW functions for vector searches.
+
+## Creating Vector Indexes
+
+A vector index facilitates fast efficient similarity searches across high-dimensional vector embeddings stored within Pinot utilizing Hierarchical Navigable Small Worlds (HNSW):
+
+Sample index configuration:
+
+```json
+{
+  "tableName": "<table-name>",
+  "tableType": "<>",
+  "fieldConfigList": [
+    {
+      "encodingType": "RAW",
+      "indexType": "VECTOR",
+      "name": "<embeddings-column-name>",
+      "properties": {
+        "vectorIndexType": "HNSW",
+        "vectorDimension": 2048,
+        "vectorDistanceFunction": "COSINE",
+        "version": 1
+      }
+    },
+    …
+  ]
+}
+```
+
+Details:
+- `vectorIndexType`: Specifies algorithm used; currently HNSW only supported
+- `vectorDimension`: Defines number dimensions used embedding
+- `vectorDistanceFunction`: Specifies function calculating distances between possible options: COSINE INNER PRODUCT EUCLIDEAN DOT PRODUCT
+
+## Executing Similarity Search Queries
+
+Similarity search is a technique used to find data items that are "similar" to a given item based on specific criteria. Rather than looking for exact matches, it measures how close items are to each other in a high-dimensional vector space. The concept relies on embeddings or vectors, where items with similar characteristics (such as words with similar meanings, images with similar features, or users with similar preferences) are represented close to each other.
+
+In practice, similarity search is used in many applications: it powers recommendations (e.g., suggesting songs or products based on user behavior), enables semantic search in text databases (finding documents with similar meanings), and supports image recognition (identifying visually similar images). By comparing the distances between vectors, similarity search efficiently identifies relevant results even when there is no exact match, making it essential for applications where nuanced, context-based retrieval is necessary.
+
+Once the Vector index is configured, we can start issuing similarity search queries in Pinot. The key function needed for doing this is `VECTOR_SIMILARITY`. Here’s the general structure:
+
+```sql
+VECTOR_SIMILARITY(v1, v2, [optional topK, default: 10])
+```
+
+Where,
+- `v1` & `v2`: Represents a floating point vector (you can reference a Pinot column here).
+- `topK` parameter: Specifies how many topK values to return. Optional, accepts positive integer values; default is 10.
+
+You can use this as a regular function as well as in the filter predicate.
+
+Example:
+
+```sql
+SELECT ProductId, UserId, l2_distance(embedding, ARRAY[-0.0013143676,-0.011042999,...]) AS l2_dist, n_tokens, combined
+FROM fineFoodReviews
+WHERE VECTOR_SIMILARITY(embedding,   ARRAY[-0.0013143676,-0.011042999,...], 5)  
+ORDER by l2_dist ASC 
+LIMIT 10
+```
+
+## Other Helpful Functions
+
+There are other helpful scalar functions defined in Apache Pinot that can often be helpful in building such use cases:
+
+- `COSINE_DISTANCE`: Returns the cosine distance between two vectors, with a default value if the norm of either vector is 0.
+- `L1_DISTANCE`: Returns the L1 distance (Manhattan distance) between two vectors.
+- `L2_DISTANCE`: Returns the L2 distance (Euclidean distance) between two vectors.
+- `INNER_PRODUCT`: Returns the inner product between two vectors.
+
+***COSINE_DISTANCE** is a measure of dissimilarity between two vectors, typically used in high-dimensional spaces. It is defined as: Cosine Distance: 1 - Cosine Similarity.*
+
+*The **L1 distance**, also known as the Manhattan distance or Taxicab geometry, is a metric used to calculate the distance between two points in a multi-dimensional space. It is defined as the sum of the absolute differences of their respective Cartesian coordinates.
+Mathematically, the L1 distance (L1) between two points P = (x1, y1) and Q = (x2, y2) is:
+L1 = |x1 - x2| + |y1 - y2|*.
+
+*The **L2 distance**, also known as the Euclidean distance, is a measure of the distance between two vectors in a vector space. It is calculated by taking the square root of the sum of the squared differences of the vector elements.
+Formula L2 distance (d) between two vectors (a, b) is defined as: 
+d = √(∑(a_i - b_i)^2)*.
+
+*The **INNER_PRODUCT**, also known as the inner product or scalar product, is a binary operation that takes two vectors as input and produces a scalar output. It is a fundamental concept in vector spaces, generalizing the dot product from Euclidean spaces to more abstract spaces.*
+
+## Conclusion
+
+Apache Pinot's vector index will facilitate the expansion of real-time and AI applications, allowing them to operate efficiently at scale.  Want to try it out for yourself?  Try out a vector recipe for Apache Pinot here:  https://github.com/startreedata/pinot-recipes/tree/main/recipes/vector

@@ -1,0 +1,82 @@
+---
+description: In this Apache Pinot concepts guide, we'll learn about the managed offline flow.
+---
+import { Callout } from 'nextra/components';
+
+# Managed Offline Flow
+
+In this guide we'll learn about Managed Offline Flow, which is Apache Pinot's way of transitioning data from real-time to offline tables.
+
+<Callout>
+The managed offline flow process is done using the Real-Time to Offline Job. 
+This guide explains how it works, but if you want to get it configured on your Pinot Cluster, see the following guides:
+
+* [Manually configure the real-time to offline job](../recipes/real-time-offline-job.md)
+* [Automatically configure the real-time to offline job](../recipes/real-time-offline-job-automatic-scheduling.md)
+</Callout>
+
+## Why do we need this?
+
+Pinot is most commonly used for providing real-time analytics based on streaming data, which can be achieved using a real-time table.
+However, after running these systems for a while, we'll want to update the data that's been ingested into this table.
+Perhaps the name of a value in a column has been updated or we want to remove some duplicate records.
+
+Segments in real-time tables can't be replaced, but we can replace those in offline tables.
+Managed offline flow is the way that Pinot handles the process of moving the data from real-time to offline tables.
+
+## How does it work?
+
+There are two parts to the process: task generation and task execution.
+Let's look at each in turn.
+
+### Task Generation
+
+Once the real-time to offline job has been scheduled, the task generator (running on the Pinot Controller) will create tasks to be run by a [Pinot Minion](https://docs.pinot.apache.org/basics/components/minion).
+
+The generator determines the window start and end time based on the provided configuration.
+It will then check to see if any of the completed segments are eligible by checking their start and end time, starting from the segment with the earliest time.
+Eligible segments must overlap with that window, as shown in the diagram below:
+
+<p>
+    <img src="/img/realtime-offline.png" alt="Real-Time to Offline Job - Selecting eligible segments" />
+    <em>Real-Time to Offline Job - Selecting eligible segments</em>
+</p>
+
+<Callout>
+There must be at least one completed/flushed segment in the real-time table, otherwise the task won't try to create any offline segments.
+</Callout> 
+
+As long as some segments match the window, a task will be created and sent to the Minion. 
+If no matching segments are found for the window, the generator will move to the next time window and repeat the process.
+
+<Callout type="info">
+When the generator is checking the most recently completed segment, it will make sure that the segment crosses over the end of the window to make sure that the consuming segment doesn't contain some portion of the window.
+</Callout>
+
+### Task Execution
+
+Once the Minion receives a task to execute, it does the following steps:
+
+1. Downloads the existing segments.
+2. Filter records based on the time window
+3. Round the time value in the records (optional)
+4. Partition the records if partitioning is enabled in the table config
+5. Merge records based on the merge type
+6. Sort records if sorting is enabled in the table config
+7. Uploads new segments to the Pinot Controller.
+
+## Querying
+
+The data written to segments in offline tables won't immediately be seen in query results.
+When a query is received by a Pinot Broker, the broker sends a time boundary annotated version of the query to the offline and real-time tables. 
+
+<Callout>
+* For more on time boundaries, including how they're computed and used by the Pinot Broker, see [Concepts: Time Boundary](time-boundary.md).  
+* If you want to know how to determine the time boundary for your table, see [How to compute time boundaries](../recipes/time-boundary-hybrid-table.md).
+</Callout>
+
+
+## Real-Time table segment retention
+
+This job does not remove any segments from the real-time table. 
+The `RetentionManager` is responsible for data retention, which it determines based on the retention time specified in the real-time table config.

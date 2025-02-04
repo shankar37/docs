@@ -1,0 +1,7 @@
+{
+    "generate-an-api-token": "Generate an API token",
+    "query-using-rest-API": "Query using the REST API",
+    "connect-via-python": "Connecting via Python",
+    "connect-via-java": "Connecting via Java",
+    "connect-via-nodejs": "Connecting via Node.js"
+}

@@ -1,0 +1,59 @@
+# What is Apache Pinot?
+
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+  In this guide you'll learn about Apache Pinot, a real-time distributed OLAP datastore, purpose-built to provide ultra
+  low-latency analytics at extremely high throughput. You will need to understand the basics of <a href="/docs/concepts/what-is-real-time-analytics" className="underline">real-time analytics</a>.
+</Callout>
+
+Apache Pinot is a real-time distributed OLAP datastore, purpose-built to provide ultra low-latency analytics at
+extremely high throughput. It helps you make very large amounts of data, query-able, very very fast, at scale.
+
+It can be used in all types of real-time applications, like BI Dashboards, user analytics, and machine learning
+analytics.
+
+<br></br>
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/_lqdfq2c9cQ"
+  allow="fullscreen; autoplay; encrypted-media"
+></iframe>
+
+### What is user facing analytics?
+
+Users expect the applications that they use to provide real-time analytics and provide them with actionable insights.
+Actionable insights gives your users the ability to take actions or make decisions as a result of having real-time
+analytics.
+
+You want to empower your end-users by giving them these capabilities.
+
+### The origins of Apache Pinot
+
+So, what makes the process of building real-time analytics systems so difficult? Chances are, you have a lot of data,
+and you need to be able to ingest it and have lots of users query it, in subsecond time.
+
+Pinot was originally built by the engineering team at LinkedIn who faced exactly this problem. With 800+ million users
+on the platform and constant engagement, they have a lot of data coming in. To provide their users with their own real
+time analytics, they needed to make this massive amount of data accessible, in real-time.
+
+The challenge they faced was 3 parts:
+
+Ingesting the data as soon as events happen. Making the data queryable as soon as it’s pulled in, and Doing it at scale.
+LinkedIn often has more than 250 thousand queries per second by their users. How can you possibly do all of this? Enter
+Apache Pinot!
+
+### So...what is Apache Pinot?
+
+Apache Pinot is a real-time distributed OLAP datastore, built to do a number of things:
+
+Ingestion Pinot is built to ingest from all kinds of different data sources, batch, ETL, and streams such as Kafka and
+Kinesis. Instant insights Pinot then indexes the ingested data, in real-time, maintaining seconds freshness SLAs.
+Interactive querying Pinot enables superfast queries, with query latency in the milliseconds. At Scale Pinot can ingest
+data with a very high velocity of ingestion, proven to ingest as high as 1M of events/s, while maintaining high
+throughput for queries, often hundreds of thousands queries per second. Query anything and everything The data ingested
+into Pinot can have extremely high dimensionality, while supporting ad hoc slicing and dicing of that data. Pinot has
+powerful indexes, smart optimizations in routing, data partitioning, and segment/server assignment, making it a
+powerhouse of analytics. Pinot will help you build a rich analytics ecosystem for your users, putting the power of
+actionable insights into their hands.

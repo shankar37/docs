@@ -1,0 +1,9 @@
+{
+    "anomaly_merger": "ANOMALY_MERGER",
+    "cold_start": "COLD_START",
+    "detector": "DETECTOR",
+    "events": "EVENTS",
+    "impact": "IMPACT",
+    "threshold": "THRESHOLD",
+    "time_of_week": "TIME_OF_WEEK"
+}

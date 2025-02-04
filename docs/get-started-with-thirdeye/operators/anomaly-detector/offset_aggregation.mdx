@@ -1,0 +1,54 @@
+import { Callout } from 'nextra/components';
+
+# OFFSET_AGGREGATION
+
+<Callout>
+Enterprise only
+</Callout>
+
+Compares current value to the value predicted by a naive model. The naive model is an average/median/percentile of historical values. The upper/lower bounds interval can be computed with an absolute or a percentage rule. 
+
+
+## Inputs
+
+`"targetProperty": "current"`: The data on which to perform detection.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.intervalsMethod`| Method to compute intervals. In `PERCENTAGE`, `ABSOLUTE`.  | |
+|`component.sensitivity`| Detection sensitivity. Eg with `PERCENTAGE`, set 50 for a 50% percentage change threshold. | |
+|`component.lookbackPeriod`| Historical period to use for training. In [ISO-8601][iso-8601] format. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). Eg: `P14D`. | |
+|`component.offsets`| A list of offsets in ISO-8601 format to use as baseline. Eg [`P7D`, `P14D`] will compare the current value to the aggregation of the values of the 2 previous weeks. | `[P7D]` |
+|`component.aggregation`| The aggregation function to use to combine historical values. In `MEDIAN`, `AVERAGE`, `MIN`, `MAX` and any of `PCTXXXXX` eg `PCT05` (5th percentile), `PCT95`, `PCT999` (99.9th percentile). | `AVERAGE` |
+
+`offsets` and `lookbackPeriod` must be compatible. Eg if `offsets` is [`P7D`, `P14D`] then `lookbackPeriod` should be at least `P14D`. 
+
+
+## Example
+
+```json
+{
+  "name": "root",
+  "type": "AnomalyDetector",
+  "params": {
+    "type": "OFFSET_AGGREGATION",
+    "component.intervalsMethod": "ABSOLUTE",
+    "component.sensitivity": "200",  # detect if abs(current-predicted)>200
+    "component.lookbackPeriod": "P28D",
+    "component.offsets": ["P7D", "P14D", "P21D", "P28D"],
+    "component.aggregation": "MEDIAN"
+  },
+  "inputs": [
+    {   # current data
+      "targetProperty": "current",
+      "sourcePlanNode": "currentData",
+      "sourceProperty": "currentOutput"
+    }
+  ]
+}
+```
+
+[iso-8601]: https://en.wikipedia.org/wiki/ISO_8601#Durations

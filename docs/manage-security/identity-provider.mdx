@@ -1,0 +1,17 @@
+# Identity Provider (IdP)
+
+An **Identity Provider (IdP)** is a trusted service that manages user identities and authentication. It allows StarTree to verify the identities of users trying to access the StarTree environment, ensuring only authorized individuals have the necessary permissions. 
+
+StarTree Cloud supports access management and single-sign on (SSO) using any [OpenID Connect (OIDC)](https://openid.net/developers/how-connect-works/) compliant IdP, which allows you to leverage your existing identity provider for seamless and secure authentication.
+
+## How does an IdP work with StarTree?
+* **User Authentication:** When a user attempts to access StarTree, they are redirected to your configured IdP (e.g., Okta, Google, GitHub).
+* **Identity Verification:** The IdP prompts the user to authenticate using their existing credentials (e.g., username/password, multi-factor authentication).
+* **Authorization:** Upon successful authentication, the IdP issues a token confirming the user's identity.
+* **Access Control:** StarTree receives this token and validates it. Based on the user's identity and the roles assigned to them within the IdP, StarTree's RBAC (Role-Based Access Control) system determines which resources and actions the user is permitted to access. This ensures that users only see and interact with the data relevant to their roles and responsibilities.
+
+## StarTree Security Manager and IdP
+[StarTree Security Manager](/docs/manage-security/manage-access.mdx) provides a centralized location for managing security policies, including roles and permissions. While the Security Manager allows you to define roles and assign permissions, the actual authentication process is handled by the IdP. This separation of concerns ensures a secure and streamlined user management experience.
+
+## Configuring your IdP
+Currently, configuring an IdP for StarTree requires assistance from our expert team. Please reach out to StarTree Support or your account team for guidance and support in setting up your IdP integration. We will work closely with you to ensure a smooth and secure implementation tailored to your specific needs.

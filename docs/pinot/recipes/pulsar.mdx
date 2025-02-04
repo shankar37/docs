@@ -1,0 +1,84 @@
+---
+title: Ingest from Apache Pulsar
+description: In this Apache Pinot Recipe, we'll learn how to ingest data from Apache Pulsar.
+---
+import { Callout } from 'nextra/components';
+
+# How to ingest data from Apache Pulsar
+
+Apache Pulsar is a cloud-native, distributed messaging and streaming platform originally created at Yahoo!. In this guide we'll learn how to ingest data from Pulsar into Pinot.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.1.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/pulsar">startreedata/pinot-recipes/pulsar</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+Clone this repository and navigate to this recipe:
+
+```bash
+git clone git@github.com:startreedata/pinot-recipes.git
+cd pinot-recipes/recipes/ingest-json-files
+```
+
+## Makefile
+
+```bash
+make recipe
+```
+
+To produce data into Pulsar, use the Python code below.
+
+```python
+import pulsar
+import json
+import time
+import random
+import uuid
+
+client = pulsar.Client('pulsar://localhost:6650')
+producer = client.create_producer('events')
+
+  message = {
+    "ts": int(time.time() * 1000.0),
+    "uuid": str(uuid.uuid4()).replace("-", ""),
+    "count": random.randint(0, 1000)
+}
+payload = json.dumps(message, ensure_ascii=False).encode('utf-8')
+producer.send(payload)
+client.close()
+
+```
+
+## See the data 
+
+Navigate to [localhost:9000/#/query](http://localhost:9000/#/query) to see the data in Apache Pinot.
+
+## Clean up
+
+```bash
+make clean
+```
+
+## Troubleshooting
+
+To clean up old Docker installations that may be interfering with your testing of this recipe, run the following command:
+
+```bash
+docker system prune
+```

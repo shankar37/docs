@@ -1,0 +1,3 @@
+{
+    "optimize_queries_with_precomputed_timebuckets": "Use pre-computed time columns"
+}

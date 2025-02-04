@@ -1,0 +1,83 @@
+# Pinot as a ThirdEye datasource
+
+This datasource plugin is used to connect to Pinot using the [pinot-java-client](https://docs.pinot.apache.org/users/clients/java). It provides multiple ways to connect to Pinot instance such as using:
+
+- [Zookeeper and controller](#zookeeper-and-controller)
+- [Broker and controller](broker-and-controller)
+- [Pinot with authorization (custom headers)](pinot-with-authorization-custom-headers)
+
+
+## Zookeeper and controller
+
+This option is preferable when Pinot components are accessible by Thirdeye using the endpoints exposed by `<pinot_controller_url>/instances/{instanceName}`.
+
+
+### Configuration
+
+```json
+{
+  "name": "pinotQuickStartLocal",
+  "type": "pinot",
+  "properties": {
+    "zookeeperUrl": "localhost:2123",
+    "clusterName": "QuickStartCluster",
+    "controllerConnectionScheme": "http",
+    "controllerHost": "localhost",
+    "controllerPort": 9000
+  }
+}
+```
+
+The benefit of using this configuration is that we don't need to worry about the brokers as the list of brokers to query is decided with the help of Zookeeper. This configuration may not work when Pinot is sitting inside a remote cluster and Zookeeper is not exposed or, even if the Zookeeper is exposed, the broker URLs that it provides will mostly be internal and inaccessible from outside.
+
+
+## Broker and Controller
+
+If you experience the problem mentioned above, then this configuration may solve
+it. This requires the Pinot brokers to be accessible by ThirdEye.
+
+
+### Configuration
+
+```json
+{
+  "name": "pinotds",
+  "type": "pinot",
+  "properties": {
+    "zookeeperUrl": "localhost:2123",
+    "clusterName": "pinot-quickstart",
+    "controllerConnectionScheme": "http",
+    "controllerHost": "localhost",
+    "controllerPort": 9000,
+    "brokerUrl": "localhost:8099"
+  }
+}
+```
+
+Here, even though we provide `zookeeperUrl` it is just a placeholder and has no impact once we
+provide `brokerUrl`. One drawback of this configuration is that we are providing a static broker URL, hence all queries will hit one broker unless all broker replicas are sitting behind a load balancer.
+
+
+## Pinot with authorization (custom headers)
+
+We can configure the datasource to pass custom headers along with the requests that are made to Pinot. The obvious use case for this is when authorization is enabled on Pinot, and we are required to pass the `Authorization` header along with the requests.
+
+```json
+{
+  "name": "pinotQuickStartLocal",
+  "type": "pinot",
+  "defaultQueryOptions": {},
+  "properties": {
+    "zookeeperUrl":"localhost:2123",
+    "clusterName": "QuickStartCluster",
+    "controllerConnectionScheme": "http",
+    "controllerHost": "localhost",
+    "controllerPort": 9000,
+    "oauth": {
+      "enabled": true,
+      "tokenFilePath": "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    }
+  }
+}
+```
+Any header can be passed as a key value pair to the `headers`.

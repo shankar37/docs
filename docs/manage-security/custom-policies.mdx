@@ -1,0 +1,229 @@
+import { Callout } from 'nextra/components';
+
+# Custom policy cofiguration
+
+A policy configuration is a collection of one or more statement objects, each containing: 
+* A description of the policy statement
+* One or more [actions](./actions.mdx) that the policy statement applies to
+* The resources that the policy statement is applied to, identified using the [SRN format](#identifying-resources-using-srns)
+* The effect of the policy statement (`allow` or `deny`)
+
+Here’s an example of a policy that allows querying a table called “myTable”:
+
+```json
+{
+  "version": "v1",
+  "statements": [
+    {
+      "description": "Sample policy - Query a given table, deny everything else",
+      "resources": [
+        "srn2:cluster#myCluster:table#myTable"
+      ],
+      "effect": "allow",
+      "actions": [
+        "query"
+      ]
+    }
+  ]
+}
+```
+
+<callout type="info">
+A few important things to note:<br/>
+* Within a policy, **deny statements take precedence** regardless of their location in the policy.<br/>
+* If actions aren’t explicitly specified, then all actions are implicitly included in the statement (the equivalent of writing `“actions”: “*”`).<br/>
+* If the effect isn’t explicitly specified, then `deny` is implicitly applied (the equivalent of writing `“effect”: “deny”`).<br/>
+</callout>
+
+You can find additional examples of policy configurations below.
+
+## Identifying resources using SRNs
+A StarTree Resource Name (SRN) is a unique identifier for any resource within your StarTree environment. It follows a standardized format that makes it easy to understand and use.
+
+### SRNv2 format
+The basic format of an SRNv2 is: `srn2:<resource-type>#<resource-id>`.
+For example: srn2:cluster#myCluster identifies the cluster called “myCluster”.
+Some resources may have a more complex format to represent hierarchical relationships.
+
+### Constructing an SRNv2 string
+Each SRNv2 string starts with the prefix `srn2:`, followed by the resource type and then the resource identifier. A simple SRNv2 would follow this format: `srn2:resource-type#resource-id`
+
+Since resources in StarTree are hierarchical, the SRNv2 string can include any number of levels of hierarchy. An SRNv2 with two levels of hierarchy would look like this: `srn2:resource-type#resource-id:sub-resource-type#sub-resource-id`
+
+Commonly used resource types include: environment, cluster, workspace, and table.
+
+<callout>Hierarchy levels can be omitted. For example, you can write a policy that applies to all tables called “myTable” across the entire environment by omitting the cluster resource type. Alternatively, you can explicitly include all clusters by adding `cluster#*` in the SRN.</callout>
+
+## Examples of policy configurations
+
+### System Administrator
+A System Administrator can perform all actions on any resource in the environment.<br/>
+(The `system-admin` policy is predefined in StarTree, so you won't need to define it yourself. We're just showing it here as an example.)
+
+```json
+{
+  "Version": "v1",
+  "PolicyName": "SystemAdministrator",
+  "Statements": [
+    {
+      "Description": "Can do everything in an environment",
+      "Resources": [
+        "*"
+      ],
+      "Effect": "Allow",
+      "Actions": [
+        "*"
+      ]
+    }
+  ]
+}
+```
+
+### Pinot Administrator
+A Pinot administrator can perform all actions in a Pinot cluster
+
+```json
+{
+  "Version": "v1",
+  "PolicyName": "PinotAdministrator",
+  "Statements": [
+    {
+      "Description": "Allow all actions on 'myCluster' Pinot cluster, and all tables in the cluster",
+      "Resources": [
+        "srn2:cluster#myCluster",
+        "srn2:cluster#myCluster:table#*"
+      ],
+      "Effect": "Allow",
+      "Actions": [
+        "*"
+      ]
+    }
+  ]
+}
+```
+
+The same policy can also be written like this:
+```json
+{
+  "Version": "v1",
+  "PolicyName": "PinotAdministrator",
+  "Statements": [
+    {
+      "Description": "Allow all actions on 'myCluster' Pinot cluster, including all resources in the hierarchy under myCluster.",
+      "Resources": [
+        "srn2:cluster#myCluster:*#*"
+      ],
+      "Effect": "Allow",
+      "Actions": [
+        "*"
+      ]
+    }
+  ]
+}
+```
+
+### Pinot Table Admin
+A Pinot table admin can perform any actions on a table
+```json
+{
+  "Version": "v1",
+  "PolicyName": "PinotTableAdmin",
+  "Statements": [
+    {
+      "Description": "Allow all actions on 'myTable' table",
+      "Resource": "srn2:cluster#my-cluster:table#myTable",
+      "Effect": "Allow",
+      "Actions": [
+        "*"
+      ]
+    }
+  ]
+}
+```
+
+### Pinot Table Reader
+A Pinot table reader can perform any read-only operation on a given table.
+```json
+{
+  "Version": "v1",
+  "PolicyName": "PinotTableReader",
+  "Statements": [
+    {
+      "Description": "Allow any read-only operation on a Pinot table",
+      "Resource": "srn2:cluster#myCluster:table#myTable",
+      "Effect": "Allow",
+      "Actions": [
+        "Query",
+        "GetInstancePartitions",
+        "GetConsumingSegmentsInfo",
+        "GetStats",
+        ...,
+        ...,
+        ...
+      ]
+    }
+  ]
+}
+```
+* For a full list of available actions, see [Actions](./actions.mdx)
+
+### Pinot Table Query
+This policy allows querying a given Pinot table.
+```json
+{
+  "Version": "v1",
+  "PolicyName": "PinotTableReader",
+  "Statements": [
+    {
+      "Description": "Allow querying a Pinot table",
+      "Resource": "srn2:cluster#myCluster:table#myTable",
+      "Effect": "Allow",
+      "Actions": [
+        "Query"
+      ]
+    }
+  ]
+}
+```
+
+### Using wildcards
+Wildcards provide flexibility to leverage naming conventions used in your organization. 
+
+In this example, the policy will:
+* Allow all actions on tables with the prefix “Test”
+* Allow queries on tables with the prefix “Prod”
+* Deny deletes for all tables
+
+```json
+{
+  "Version": "v1",
+  "PolicyName": "DataScientist",
+  "Statements": [
+    {
+      "Description": "Query tables with the prefix 'Prod'",
+      "Resource": "srn2:cluster#*:table#Prod*",
+      "Effect": "Allow",
+      "Actions": [
+        "Query"
+      ]
+    },
+    {
+      "Description": "All actions on tables with the prefix 'Test'",
+      "Resource": "srn2:cluster#*:table#Test*",
+      "Effect": "Allow",
+      "Actions": [
+        "*"
+      ]
+    },
+    {
+      "Description": "Deny dropping tables and pausing consumption on all tables",
+      "Resource": "srn2:cluster#*:table#*",
+      "Effect": "Deny",
+      "Actions": [
+        "Delete*",
+        "PauseConsumption"
+      ]
+    }
+  ]
+}
+```

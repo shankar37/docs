@@ -1,0 +1,9 @@
+# Release Version 0.7.2: Dec 2023
+
+This release only impacts customers with StarTree Cloud deployments on AWS.
+
+## Upgrade Kubernetes Release Version
+
+* Kubernetes 1.24 is reaching end-of-life soon. To support StarTree Cloud customers with deployments on AWS, we've upgraded to Kubernetes 1.25. For more information about Amazon EKS Kubernetes versions, see [the AWS documentation](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html).
+
+Additionally, customers' production environments updated to 0.7.2 will use IMDSv2 by default. IMDSv2 helps protect against potential security threats and unauthorized access to sensitive information within cloud environments. This is important for securing cloud-based applications and services.

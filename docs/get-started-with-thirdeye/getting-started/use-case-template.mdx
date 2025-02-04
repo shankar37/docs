@@ -1,0 +1,69 @@
+
+# StarTree ThirdEye use case planning template
+
+This page exists to help you think through the details of your use case for anomaly detection with ThirdEye as part of the [ThirdEye getting started checklist](getting-started-checklist.md) prerequisites. This template asks you to collect your information in one place to make getting started with ThirdEye easier and more efficient.
+
+The page is split into the following sections:
+1. [Problems](#problems)
+1. [Data flow](#data-flow)
+1. [Schema](#schema)
+1. [Use case examples](#use-case-examples)
+
+Note that when you are directed to gather information, this only includes information pertinent to the data you will use for anomaly detection with ThirdEye.
+
+
+## Problems
+
+Think through the following questions:
+- What key performance indicators (KPIs) will you be monitoring?
+- Who in the company cares about eack KPI? (For example: The CEO, end users, CIO, CTO, others?)
+- Which team/vertical is responsible for these metrics, such as sales, marketing, and so on?
+- How do you detect issues today?
+- What is your current gap when trying to detect issues? What problem are you trying to solve?
+- What do you do today when you detect an issue? Who is informed? What is their plan of action?
+
+This is typically where you want to write up your use case, so that you are working toward specific goals. See the included [Use case examples](#use-case-examples) for ideas.
+
+
+## Data flow
+
+Where does your data come from? Where does it go? How is it processed? At what points are metrics being gathered and what are those metrics?
+
+What you especially want to know are all of your inputs and outputs as data flows through your system. You can draw a diagram, write it out in a list, or use whatever method is most useful and clear to you. As you do this, you may discover monitoring gaps and new opportunities for data gathering that can lead to system improvement.
+
+
+## Schema
+
+Gather the following information about your data:
+- Schema
+- Dimensions
+- Metrics
+- Data source(s)
+- Key performance indicators (KPIs) and how you build and monitor them or intend to do so
+
+
+## Use case examples
+
+Here are some samples of use case information to collect to help you make your thoughts and plans a bit more concrete as you get going. The first includes vital information while the second is more detailed and will make both the process smoother and your end result more useful.
+
+### Use case 1: High Priority&mdash;Intake volume by input channel (*must have*)
+
+Make the following decisions and record your answers:
+- What is the business use-case and impact if a specific problem is not detected in a timely manner? (For example, a drop-off in monthly sales orders could indicate an issue with a recent pricing change.)
+- What to monitor (metrics and dimensions - average/sum/% changes etc)
+- How frequently to monitor?
+- What is the monitoring granularity needed? For example, daily, weekly, monthly? Remember to configure the timestamp in Pinot accordingly, if needed.
+- What is the pattern for training data? The seasonality (weekly/daily/monthly)? The data retention period in Pinot must be configured based on this, for example, if your intent is to compare daily trends against the previous seven calendar days.
+- Are there any filters to be applied to handle missing/incomplete data, for example, to look only at weekday patterns, impact thresholds, and so on.
+- Who is to be notified if this issue is found, and by what method, such as an API call, email, Slack, or SMS?
+- What data updates (upserts/updates) you are planning to do?
+
+### Use case 2: High Priority&mdash;Intake volume by input channel (*nice to have*)
+
+Collect everything in Use case 1 and add:
+- Alert-related details
+- Alert granularity
+- Alert frequency
+- Data source
+- Data Volume to be processed
+- Collect a sample record or two (a screenshot will do)

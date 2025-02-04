@@ -1,0 +1,154 @@
+# Actions
+
+This page lists the commonly used actions that can be specified in a policy. Understanding these actions will help you effectively define and manage access control rules within your environment.<br/>
+For the full list of available actions, see <a href="https://github.com/apache/pinot/blob/master/pinot-core/src/main/java/org/apache/pinot/core/auth/Actions.java">Actions.java</a>
+
+## Cluster
+| Action name | Description |
+|-------------|-------------|
+| CancelQuery | Cancel a query that's currently running |
+| CleanupTask | Clean up finished tasks from the task queue for the given task type (COMPLETED, FAILED) |
+| CommitSegment | Commit a segment |
+| CreateInstance | Add a CONTROLLER, BROKER, SERVER, or MINION in the Pinot cluster |
+| CreateTask | Create a new task |
+| CreateTenant | Create a new tenant in your cluster |
+| CreateUser | Create a new user in Pinot |
+| DebugResourceUsage | View the resource usage of a cluster |
+| DebugTask | Fetch debug information for tasks |
+| DeleteClusterConfig | Delete cluster configuration |
+| DeleteDatabase | Delete a Database in your Pinot cluster |
+| DeleteInstance | Delete a CONTROLLER, BROKER, SERVER, or MINION in the Pinot cluster |
+| DeleteResponseStore | Delete the response store used to support cursors |
+| DeleteTask | Delete a task |
+| DeleteTenant | Delete a Pinot tenant |
+| DeleteUser | Delete a user in Pinot |
+| DeleteZnode | Delete a ZooKeeper znode |
+| EstimateUpsertMemory | Get the estimated memory usage for an upsert table |
+| ExecuteTask | Run a task |
+| GetAppConfig | Retrieve the configuration of a broker or server |
+| GetApplicationQueryQuota | Get the query per second (QPS) quota defined for broker or server |
+| GetAuth | Retrieve information about the authentication workflow |
+| GetBroker | Retrieve the configuration details of a broker |
+| GetClusterConfig | Retrieve the configuration details of a cluster |
+| GetDatabase | Retrieve the details of a database in your Pinot cluster |
+| GetDatabaseQueryQuota | Get the current database query quota |
+| GetDatabaseQuota | Get a database's quota configuration |
+| GetForceCommitStatus | Get the status of a force commit operation |
+| GetHealth | Get the health of a cluster and all related Pinot entities |
+| GetInstance | Retreive the tags for current tenant instance |
+| GetInstancePartitions | Get the instance partitions of a tenant |
+| GetLogFile | Fetch a log file |
+| GetLogger | Retrieve the configuration of a logger |
+| GetRebalanceStatus | Get a details status of a rebalance operation |
+| GetResponseStore | Get the response store used to support cursors |
+| GetRunningQuery | Get information on running queries from all brokers |
+| GetSchedulerInfo | Retrieve cron scheduler information |
+| GetSchema | Retrieve the schema of a table |
+| GetSchemasInfo | Retrieve information of schemas |
+| GetSegment | Retrieve the list of segments for a table |
+| GetSegmentReloadStatus | Retreive the reload status of a segment |
+| GetServerRoutingStats | Retireve the server routing stats |
+| GetTable | Retrieve the list of all tables in a cluster |
+| GetTableConfig | Retrieve the configuration of a table |
+| GetTask | Retrieve configurations and various stats of tasks |
+| GetTaskCount | Get the number of tasks of a specific task type |
+| GetTenant | Retrieve the configuration of a tenant |
+| GetUser | Retrieve details of Pinot users |
+| GetVersion | Fetch the version of a specific component |
+| GetZnode | Get the content of a ZooKeeper znode |
+| IngestFile | Ingest a file into an offline table |
+| RebalanceTenantTables | Rebalance the tables in a Pinot tenant |
+| RecommendConfig | Get the recommended configuration for tables [<a href="https://cwiki.apache.org/confluence/display/PINOT/Automated+Inverted+Index+Recommendation+for+Pinot">ref</a>] |
+| ResetSegment | Reset a segment by disabling it, waiting for the external view to stabilize, and then enabling it again |
+| ResumeTask | Resume a stopped task |
+| StopTask | Stop a running task |
+| UpdateApplicationQuota | Set or update the queries per second quota for an application [<a href="https://docs.pinot.apache.org/users/user-guide-query/query-quotas#application-level-query-quota">ref</a>]|
+| UpdateBrokerResource | Update the tables served by a specific broker instance |
+| UpdateClusterConfig | Update the configuration of a cluster |
+| UpdateDatabaseQuota | Update the max queries per second (QPS) quota of a database |
+| UpdateInstance | Update the properties of a CONTROLLER, BROKER, SERVER, or MINION in a Pinot cluster |
+| UpdateInstancePartitions | Update an instance partition of a server |
+| UpdateLogger | Set the log level of a logger |
+| UpdateQPS | Enable or disable the query rate limiting for a broker instance |
+| UpdateTaskQueue | Update a task queue |
+| UpdateTenant | Update the configuration of a tenant |
+| UpdateTenantMetadata | Update the metadata of a tenant |
+| UpdateTimeInterval | Update the start and end time of segments |
+| UpdateUser | Update the details of a Pinot user |
+| UpdateZnode | Update the configuration of a ZooKeeper znode |
+| UploadSegment | Upload a segment |
+
+## Table
+| Action name | Description |
+|-------------|-------------|
+| BuildRouting | Build the routing for a table |
+| CancelRebalance | Cancel a rebalance task |
+| CreateDedupSnapshot | Create a dedupe snapshot |
+| CreateSchema | Create a schema for a table |
+| CreateTable | Create a new table |
+| CreateUpsertSnapshot | Create an upsert snapshot |
+| DeleteDedupSnapshot | Delete a dedupe snapshot |
+| DeleteMinionTaskMetadata | Delete the metadata of a minion task |
+| DeleteRouting | Remove the routing for a table |
+| DeleteSchema | Delete the schema of a table |
+| DeleteSegment | Delete a segment |
+| DeleteTable | Delete a table |
+| DeleteTimeBoundary | Delete the query time boundary of a hybrid table |
+| DeleteUpsertSnapshot | Delete an upsert snapshot |
+| DisableTable | Disable a table |
+| DownloadSegment | Download a segment |
+| EnableTable | Enable a table |
+| EndDataIngest | End data ingestion for a table |
+| ForceCommit | Force commit the current segments in consuming state and restart consumption |
+| GetBroker | List brokers for a given table |
+| GetConsumingSegments | Returns the state of all consuming segments |
+| GetControllerJobs | Get the list of controller jobs for a table |
+| GetDebugInfo | Get debug information for a table |
+| GetDedupSnapshot | Retrieve dedup snapshot information |
+| GetExternalView | Get the external view of a table |
+| GetIdealState | Get the ideal state of a table |
+| GetInstance | List the instances of a table |
+| GetMetadata | Retrieve the metadata of a table |
+| GetPauseStatus | Get the pause status of a realtime table, along with a list of consuming segments |
+| GetRoutingTable | Get the routing for a table |
+| GetSchedulerJobDetails | Get the job details for table tasks |
+| GetSchema | Retrieve the schema of a table |
+| GetSegment | Retrieve segments |
+| GetSegmentLineage | List the lineage of a segment |
+| GetSegmentMap | Get the CRC of a segment |
+| GetSegmentStatus | Get the status of a segment |
+| GetServerMap | Get a list of the segments hosted by the server |
+| GetSize | Get table size information |
+| GetState | Get the state of a table (enabled or disabled) |
+| GetStorageTier | Get storage tier for segments or a table |
+| GetTableConfig | Gets a configuration for specific table |
+| GetTableConfigs | Lists the configurations of a table |
+| GetTableQueryQuota | Get the query per second quota for a table |
+| GetTaskEstimatedTime | Get the estimated run time for a task |
+| GetTimeBoundary | Get the time boundary information for a table |
+| GetUpsertSnapshot | Get upsert snapshot information |
+| IngestRecord | Insert records into a table |
+| PauseConsumption | Pause the consumption for a realtime table |
+| Query | Query a table |
+| RebalanceTable | Rebalance a table |
+| RebuildBrokerResource | Rebuild a broker |
+| RefreshRouting | Refresh the routing for a table |
+| ReloadSegment | Reload a segment |
+| ReplaceSegment | Replace a segment |
+| RestreamTable | Restream a table |
+| ResumeConsumption | Resume the consumption for a realtime table |
+| StartDataIngest | Start data ingestion |
+| UpdateConsistentPush | Update <a href="/ingest-data/atomic-sync-consistent-push">consistentPush</a> state |
+| UpdateInstancePartitions | Update the partitions of a table |
+| UpdateSchema | Update the configuration of a schema |
+| UpdateTableConfig | Update the configuration of a table |
+| UpdateTableConfigs | Update the configuration of multiple tables |
+| UploadSegment | Upload a segment |
+| ValidateSchema | Validate the configuration of a schema |
+| ValidateTableConfigs | Validate the configuration of a table |
+
+### Query
+| Action name | Description |
+|-------------|-------------|
+| DeleteQueryStore | Delete a <a href="https://docs.pinot.apache.org/users/user-guide-query/query-using-cursors#response-store">query response store</a> |
+| GetQueryStore | Retrieve information about a <a href="https://docs.pinot.apache.org/users/user-guide-query/query-using-cursors#response-store">query response store</a> |

@@ -1,0 +1,37 @@
+---
+description: Learn how to connect Superset to StarTree Cloud.
+---
+
+# Connect Superset to StarTree Cloud
+
+To connect Superset to StarTree Cloud, do the following:
+
+1. [Prerequisites](#prerequisites)
+2. [Obtain SQLAlchemy URI in clients page](#obtain-sqlalchemy-uri-in-clients-page)
+3. [Add the SQLAlchemy URI in Superset](#add-the-sqlalchemy-uri-in-superset)
+
+## Prerequisites
+
+- Have a running StarTree cluster. [Sign up for a StarTree Cloud trial (opens in a new tab)](https://www.startree.ai/saas-signup).
+- Have a running Superset instance. For more information about how install and deploy Superset, see [What is Apache Superset? (opens in a new tab)](https://superset.apache.org/docs/intro).
+- Make sure your Superset instance has the Pinot database driver installed, which is compatible with StarTree Cloud. For more information, see how to [install a database driver for Superset (opens in a new tab)](https://superset.apache.org/docs/databases/installing-database-drivers).
+
+## Obtain SQLAlchemy URI in clients page
+
+If you are running on a StarTree Free Tier Cluster:
+1. Navigate to the trial home page by going to [startree.cloud/new-user](https://startree.cloud/new-user)
+2. Click on **Configure Clients** to go to the clients page
+3. Click on **Superset in the client** options and generate an *API token* and the *SQLAlchemy URI*
+
+If you are running on a paid StarTree Cluster:
+1. Visit the apps page of your cluster
+2. Click on the **Pinot API Tokens** button
+3. On the API Tokens page, select **Clients** from the left hand sidebar
+4. Click on **Superset** in the client options and generate an *API token* and the *SQLAlchemy URI*
+
+## Add the SQLAlchemy URI in Superset
+
+1. In Superset, click **Settings** in the top, right corner and select `Database Connections` under the Data section
+2. Select **Apache Pinot**. If not in the list, check out the [instructions](https://superset.apache.org/docs/configuration/databases#apache-pinot) to download the Pinot database driver
+3. On the **Database Connection** screen, select the `+ Database` in the top right corner.
+4. In the pop-up window, select *Apache Pinot* and paste the *SQLAlchemy URI*

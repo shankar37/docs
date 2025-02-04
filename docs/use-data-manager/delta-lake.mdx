@@ -1,0 +1,102 @@
+# Delta Lake connector
+
+Delta Lake is an open-source storage framework that enables building a Lakehouse architecture with computing engines like Spark and Databricks. Delta Lake provides ACID transactions, scalable metadata handling, and unifies streaming and batch data processing on top of existing data lakes such as S3, ADLS, GCS, and HDFS.
+
+Use the [Delta Lake connector](/docs/ingest-data/connect-to-startree-cloud/delta-connector#table-configurations) to create a table in Apache Pinot, and StarTree will automatically start to ingest data from the specified delta table and keep the data in sync.
+
+To begin, from the StarTree Data Manager overview page, click **Create a dataset**. Then, on the Select Connection Type page, click **Delta Lake**.
+
+## Connect StarTree to Delta Lake
+
+While the Delta Table can be stored in many different data lakes (e.g. S3, ADLS, GCS…), Data Manager currently supports the following file system type(s):
+* Amazon S3
+
+## Connect with Amazon S3
+
+Use one of the following methods to create a connection to AWS S3:
+
+* AWS access and secret keys
+* AWS cross-account Identity and Access Management (IAM) roles
+
+## Option 1: Create a connection using access and secret keys
+
+You will need the following information to create a connection to your delta table that resides in Amazon S3 when using your AWS access key and a secret key pair.
+
+* **Region:** The AWS region where the delta table resides. you can find this information in the S3 dashboard.
+* **Table URI:** This is the URI for the delta table and will start with `s3a://` and not `s3://`, as in `s3a://my-bucket/path/to/my-delta-table`.
+* **Access & Secret Key:** You can generate AWS Account and Access Keys in the [AWS IAM console](https://console.aws.amazon.com/iam).
+
+### Create an AWS access and secret key pair
+
+If you do not have an access key and secret key pair, follow these steps to generate one.
+
+1. Open the [AWS IAM console](https://console.aws.amazon.com/iam), click **Users**, and click **Add users**.
+
+1. Enter a **User name**, such as `startree-my-deltalake-user`, and click **Next**.
+
+1. Under **Permission options**, select **Attach policies directly**.
+
+1. Use search to find the policy name you created earlier, it was `s3-my-bucket-policy` in our example. Click **Next** and click **Create user**.
+
+1. Return to the AWS IAM Dashboard, click **Users**, then select the user name that you just created, like `startree-my-user-policy` in our example.
+
+1. Select the **Security credentials** tab and click **Create access key**.
+
+1. Click **Application running on an AWS compute service**, click **Next**, and click **Create access key**.
+
+1. Copy the **Access key** and the **Secret access key** from here and enter them in the Data Manager.
+
+Continue in the **Create dataset** section.
+
+
+## Option 2: Create a connection using AWS IAM roles
+
+You will need the following information to create a connection to your delta table that resides in Amazon S3 when using AWS IAM Roles:
+
+* **Region:** The AWS region where the delta table resides. you can find this information in the S3 dashboard.
+* **Table URI:** This is the URI for the delta table and will start with `s3a://` and not `s3://`, as in `s3a://my-bucket/path/to/my-delta-table`.
+* **IAM Role ARN:** The Customer-provided IAM Role ARN that will be assumed by the StarTree Data Plane.
+
+### Create an AWS IAM role
+
+If you do not have an AWS IAM role, follow these steps to generate one.
+
+1. Find the following information. You will need it in later steps.
+    * **StarTree Account ID** and **External ID** from the Data Manager UI.
+    * **StarTree environment name** from the StarTree Cloud Portal.
+
+2. Check your Security Token Service (STS) configuration 
+    * Open the [AWS IAM console](https://console.aws.amazon.com/iam) and click **Account settings**. 
+    * If the **Security Token Service (STS)** is not currently in **Active** status for the region that you have Kinesis stream, set it to **Active**.
+
+3. In the AWS IAM console, click **Roles** in the left menu bar, click **Create role**.
+
+4. In the AWS IAM console, click **AWS account** for **Trusted entity type**.
+    * If your Kinesis stream and StarTree Data Plane run on the same account you are currently using to access the AWS IAM console, click **This Account**.
+    * If your Kinesis stream and StarTree Data Plane use a different account, from the StarTree Data Manager copy the **StarTree AWS Account** information and paste it into the **Another AWS Account** field. Then copy the **External ID** and paste it into the **External ID** field.
+
+5. Use search to find the policy name you created earlier, it was `s3-my-bucket-policy` in our example. Click **Next**.
+
+6. Fill the Role details.
+    * **Role name:** Enter a role name, such as `startree-my-deltalake-role`.
+    * **Tags:** Enter a key-value pair.
+        * **Key:** `startree-environment-name`
+        * **Value:** This is the **StarTree environment name** found in the cloud portal from an earlier step.
+
+7. Click **Create role**. Navigate to the Summary page. Copy the **ARN** field and enter it into the **IAM Role ARN** field in the Data Manager UI. Click **Create Connection**.
+![S3 connection settings for IAM auth in the Data Manager UI](/img/s3_connection_settings_IAM_auth_dialog.png)
+
+Continue in the **Create dataset** section.
+
+
+## Create Dataset
+
+1. Enter a **Name** and **Description** (optional) and click **Next**.
+
+1. (Optional) Improve query performance by adding indexes to the appropriate columns and choose encoding types for each column.
+
+1. (Optional) Configure unique details such as tenants, scheduling, data retention, and a primary key for upsert.
+
+1. Click **Next**.
+
+1. Check the details and preview data. When ready, click **Create Dataset**.

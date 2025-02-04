@@ -1,0 +1,69 @@
+# Organizations
+
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+In this guide we're going to learn how to create an organization. You will need to have already created a <a href="/docs/get-started-with-startree-cloud/startree-cloud-byoc/users" className="underline">user</a>.
+</Callout>
+
+The StarTree portal consists of multiple tenants that represent unique organizations. An organization is the root entity
+of the StarTree portal tenancy model.
+
+Users are members of organizations and may be allowed to create StarTree environments of all the cloud providers and
+regions they need. A user can exist in multiple organizations at any given time. Each organization has its own billing
+details and reports.
+
+## Managing organisations
+
+To view and manage the organizations that you are part of, click on the **Organizations** menu item in the StarTree
+portal.
+
+### Create new organization
+
+Click on the **Create Organization** button to create a new organization.
+
+Then you will asked to provide a name for the organization. That name will be used as the organization's DNS domain.
+Make sure that the name only contain alpha numeric characters.
+
+Once the name is provided, click on **Create Organization** to proceed.
+
+<p>
+  <img src="/img/org-create-new.png" width="60%" alt="Create a new organization" />
+  <em>Create a new organization</em>
+</p>
+
+### View a list of organizations
+
+Clicking on **Organizations** on the left sidebar displays a list of organizations that you are part of. Each item in
+the list displays the total number of environments that holds.
+
+<p>
+  <img src="/img/org-list-new.png" width="60%" alt="View organizations" />
+  <em>View organizations</em>
+</p>
+
+### View a particular organization
+
+To view more details of a given organization, click on its name.
+
+The organization details view contains a list of environments created in the organization. Clicking on the environment
+name will take you to the environment details page.
+
+<p>
+  <img src="/img/org-env-list-new.png" width="80%" alt="View organization" />
+  <em>View organization</em>
+</p>
+
+To create a new environment in this organization, click on the **New Environment** button.
+
+### Delete an organization
+
+To delete an organization permanently, go to organization details view and click on the **Advanced** tab and then
+**Delete Organization** button.
+
+<p>
+  <img src="/img/org-danger-zone.png" width="80%" alt="Delete organization" />
+  <em>Delete organization</em>
+</p>
+
+In order to delete an organization, you must first destroy all environments that belong to it.

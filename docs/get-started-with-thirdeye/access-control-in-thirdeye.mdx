@@ -1,0 +1,254 @@
+# Access control in ThirdEye
+
+Access to alerts, anomalies, and other resources in ThirdEye can be restricted to particular users and groups of users. This document explains how authorization works in ThirdEye and how to write your own authorization policies for ThirdEye resources.
+
+For a specific use-case, see our [RBAC recipe](/docs/get-started-with-thirdeye/how-tos/thirdeye_recipes/rbac-recipe.md).
+
+## Writing authorization policies
+
+ThirdEye talks to a separate authorization service to determine if a user can access a particular resource. The authorization service matches users and resources to authorization policies in order to make that determination.
+
+In most cases, ThirdEye resources can be organized into namespaces. Access control policies are applied to all resources in a particular namespace.
+
+![Items](/img/thirdeye/access_control/namespace_separation.png)
+
+You can create and manage authorization policies and view the authorization server's API documentation at `https://MY_ENV.MY_ORG.startree.cloud/auth/swagger-ui/index.html`.
+
+Authorization policies have 4 important fields:
+
+1. `policyType` - This can be either ALLOW or DENY.
+2. `namespaceSrn` - The namespace that this policy applies to.
+3. `priority` - Policies are sorted in ascending order by priority. Smaller numbers take priority over higher numbers.
+4. `rule` - The rule to match resources and users for this policy. This is where most of the action happens.
+
+### Example policies:
+
+```json
+{
+  "policyType": "ALLOW",
+  "namespaceSrn": "srn:zone:namespace:default:europe",
+  "priority": 1,
+  "rule": "action='read'",
+  "description": "Allow anyone to read resources in the europe namespace."
+}
+```
+
+```json
+{
+  "policyType": "ALLOW",
+  "namespaceSrn": "srn:zone:namespace:default:europe",
+  "priority": 1,
+  "rule": "action='write' and subject_user_groups CONTAIN 'Europe'",
+  "description": "Allow anyone in the Europe group to write resources in the europe namespace."
+}
+```
+
+### StarTree resource names
+
+The StarTree resource names (SRNs), are used to identify _who_ may have access to _what_.
+
+The SRNs contain three relevant fields: resource type, namespace, and resource id. Field values are colon-separated and must match the regex `^[a-z0-9-_]+$`.
+
+Example SRN for an Alert:
+
+```
+  srn:zone  :   thirdeye-alert   :    default    :    15213
+      ^               ^                  ^              ^
+  Start SRN     Resource Type        Namespace      Resource ID
+```
+
+#### Namespaces
+
+If a resource is not assigned to a namespace, then the namespace is `default`. You can set the resource's namespace by adding `"auth": {"namespace": "my-namespace"}` to the resource's configuration.
+
+Anomalies are automatically assigned to the namespace of the alert or enumeration item that created it. Investigations are automatically assigned to the namespace of the anomaly it's related to.
+
+Example Alert:
+
+```json
+{
+  "name": "Views-Threshold-DE",
+  "template": {
+    "name": "startree-threshold"
+  },
+  "auth": {
+    "namespace": "alerts-de"
+  },
+  ...additional
+  configuration
+}
+```
+
+#### SRN's for ThirdEye resources
+
+| Thirdeye Resource | SRN Resource Type          | Example SRN                                  |
+|-------------------|----------------------------|----------------------------------------------|
+| Data Source       | thirdeye-data_source       | srn:zone:thirdeye-data_source:default:105    |
+| Dataset           | thirdeye-dataset           | srn:zone:thirdeye-dataset:default:114        |
+| Alert Template    | thirdeye-alert_template    | srn:zone:thirdeye-alert_template:default:103 |
+| Alert             | thirdeye-alert             | srn:zone:thirdeye-alert:default:140          |
+| Enumeration Item  | thirdeye-enumeration_time  | srn:zone:thirdeye-enumeration_item:1776      |
+| Anomaly           | thirdeye-anomaly           | srn:zone:thirdeye-anomaly:default:1252       |
+| RCA Investigation | thirdeye-rca_investigation | srn:zone:thirdeye-rca_investigation:1343     |
+
+### Policy matching
+
+When ThirdEye checks authorization, 3 pieces of information are sent to the authorization service:
+
+1. Resource SRN
+2. User SRN
+3. Action
+
+#### Policy filtering
+
+First, the auth service searches for all policies in the resource's namespace and the default namespace. The policies are sorted by ascending priority. Policies in the `default` namespace are ordered first, followed by policies in the resource's namespace.
+
+For example, if the auth service is checking authorization for resource SRN `srn:zone:thirdeye-alert:regional_analysts_uk:140`, the policies are ordered like this:
+
+```json
+[
+  {
+    "priority": 1,
+    "namespaceSrn": "srn:zone:namespace:default:default",
+    "rule": "..."
+  },
+  {
+    "priority": 100,
+    "namespaceSrn": "srn:zone:namespace:default:default",
+    "rule": "..."
+  },
+  {
+    "priority": 1,
+    "namespaceSrn": "srn:zone:namespace:regional_analysts_uk:default",
+    "rule": "..."
+  },
+  {
+    "priority": 100,
+    "namespaceSrn": "srn:zone:namespace:regional_analysts_uk:default",
+    "rule": "..."
+  }
+]
+```
+
+#### Attribute context
+
+Next, the auth service creates a context map of attributes used in the policy rules. The auth service maps the `User` SRN to the attributes sent by the OIDC provider when the user logged
+into StarTree cloud. The auth service puts the user attributes, all the fields of the user SRN and resource SRN, and the action into the context map.
+
+Example context map:
+
+```json
+{
+  "action": "read",
+  "resource_namespace_srn": "srn:zone:namespace:default:default",
+  "resource_namespace_srn_entity": "namespace",
+  "resource_namespace_srn_identity": "default",
+  "resource_namespace_srn_namespace": "default",
+  "resource_srn": "srn:zone:dataset:default:pageviews",
+  "resource_srn_entity": "dataset",
+  "resource_srn_identity": "pageviews",
+  "resource_srn_namespace": "default",
+  "subject_namespace_srn": "srn:zone:namespace:default:default",
+  "subject_namespace_srn_entity": "namespace",
+  "subject_namespace_srn_identity": "default",
+  "subject_namespace_srn_namespace": "default",
+  "subject_srn": "srn:zone:user:default:system",
+  "subject_srn_entity": "user",
+  "subject_srn_identity": "system",
+  "subject_srn_namespace": "default",
+  "subject_user_email": "jackson@startree.ai",
+  "subject_user_groups": [
+    "my-okta-group"
+  ],
+  "subject_user_name": "jackson@startree.ai"
+}
+```
+
+#### Rule matching
+
+Finally, the policy rules are executed within the context. The policy rules use a SQL-like syntax where the columns are the context fields and the values are the context values. The first matching policy is applied.
+
+Example rule matching the above context:
+
+```
+action='read' AND subject_user_groups CONTAINS 'my-okta-group'
+```
+
+## Namespaces for ThirdEye resources
+
+Most ThirdEye resources allow you to set the namespace in the resource's configuration, but in some cases the namespace is inherited from a parent resource.
+
+Example alert:
+
+```json
+{
+  "name": "MyAlert",
+  "prop1": "val1...",
+  "auth": {
+    "namespace": "my-namespace"
+  }
+}
+```
+
+This table shows how each resource gets its namespace:
+
+| Resource          | How is the namespace configured?                                                                                                                                                                                                                  |
+|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Data source       | Namespace can only be set through the API.                                                                                                                                                                                                        |
+| Dataset           | Namespace can only be set through the API.                                                                                                                                                                                                        |
+| Alert Template    | Namespace is set in the UI by editing the config.                                                                                                                                                                                                 |
+| Alert             | Namespace is set in the UI by editing the config.                                                                                                                                                                                                 |
+| Enumeration Item  | Namespace is set in the Alert’s config block that creates the enumeration item.                                                                                                                                                                   |
+| Anomaly           | Namespace comes from the Alert or Enumeration Item that created it. If the anomaly was created by an enumeration item without an auth config, then the anomaly is assigned to the Alert’s namespace. Namespace can be overridden through the API. |
+| RCA Investigation | When created in the UI or without an auth config, the namespace is assigned to the Anomaly’s namespace. Namespace can be overridden through the API.                                                                                              |
+| Other resources   | Always in the default namespace.                                                                                                                                                                                                                  |
+
+In all cases:
+
+* If there is no namespace, then the namespace is `default`.
+* You can check the namespace of a resource by GETing the resource.
+
+```json
+{
+  "id": "12345",
+  "prop1": "val1...",
+  "auth": {
+    "namespace": "my-namespace"
+  }
+}
+```
+
+## Policy enforcement in ThirdEye
+
+### How does Thirdeye respond when someone doesn't have access?
+
+#### Unauthenticated requests
+
+If a user makes any unauthenticated request, ThirdEye responds with status 401 Unauthorized.
+
+#### Requests for a single entity
+
+If a user requests a single entity but does not have access to that entity, ThirdEye responds with status 403 Forbidden.
+
+#### How does ThirdEye respond to `get all` requests?
+
+If a user requests a list of resources, such as all alerts, ThirdEye only returns the alerts that the user can access. If the user cannot access any alert, then an empty list is returned.
+
+### Specific permissions required for each API request
+
+| Request                                      | Policy action | Notes                                                                                                   |
+|----------------------------------------------|---------------|---------------------------------------------------------------------------------------------------------|
+| **All Resources**                            |               |                                                                                                         |
+| `GET /api/{resource}`                        | read          | Only returns the resources that the user can read.                                                      |
+| `GET /api/{resource}/{id}`                   | read          |                                                                                                         |
+| `GET /api/{resource}/name/{name}`            | read          |                                                                                                         |
+| `POST /api/{resource}`                       | write         | Resource ID is always 0 when checking write permission for new resources.                               |
+| `PUT /api/{resource}`                        | write         | The user must have write access for the resource's current state _and_ the new state.                   |
+| `DELETE /api/{resource}/{id}`                | write         |                                                                                                         |
+| **Alerts**                                   |               |                                                                                                         |
+| `POST /api/alerts/evaluate` (existing alert) | read          | If the request body contains an alert id, ThirdEye evaluates the alert as it is stored in the database. |
+| `POST /api/alerts/evaluate` (new alert)      | write         | If the request body does not contain an alert id, ThirdEye evaluates the alert in the request body.     |
+| `POST /api/alerts/validate`                  | write         |                                                                                                         |
+| `POST /api/alerts/{id}/reset`                | write         |                                                                                                         |
+| **Anomalies**                                |               |                                                                                                         |
+| `POST /api/anomalies/{id}/feedback`          | write         |                                                                                                         |

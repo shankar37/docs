@@ -1,0 +1,571 @@
+---
+description: >
+  Definitions for real-time user-facing analytics, and StarTree products and platforms.
+---
+
+# Glossary
+
+
+[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [F](#f) | [G](#g) | [H](#h) | [I](#i) | [J](#j) | [K](#k) | [L](#l) | [M](#m) | [N](#n) | [O](#o) | [P](#p) | [Q](#q) | [R](#r) | [S](#s) | [T](#t) | [U](#u) | [V](#v) | [W](#w) [X](#x) |[Y](#y) |[Z](#z)
+
+## A
+
+### Apache Helix
+
+Apache Helix is an open-source, dynamic cluster management framework that manages and automatically distributes resources in a cluster. 
+Helix maintains optimal system performance and reliability and ensures orderly and efficient operations amidst changing system states. 
+In Apache Pinot, Helix manages topology changes for both brokers and servers, and optimizes query loads across the cluster.
+Helix uses Zookeeper to store cluster state and metadata.
+
+### Apache ZooKeeper
+
+Pinot uses [Apache ZooKeeper](https://zookeeper.apache.org/) for cluster management and storing cluster state information.
+ZooKeeper is an open source project that manages the connection between various servers in a distributed system, synchronizing server states.
+ZooKeeper maintains configuration information, provides distributed synchronization, and facilitates group services to ensure cluster consistency,
+reliability, and orderly execution of processes. 
+
+### Adaptive routing
+
+Adaptive routing is used in Apache Pinot to optimize query routing and improve performance and latency. It dynamically selects a subset of servers to participate in a query based on factors such as server availability, workload balancing, and segment distribution. Adaptive routing distributes the workload evenly while minimizing tail latency and maximizing parallelism.
+
+Adaptive routing is a strategy used in query routing to dynamically select the most suitable server based on various factors, such as server statistics, workload, and performance metrics. Supports efficient distribution of queries across multiple servers to optimize query response time and resource utilization.
+
+### Aggregation
+
+An aggregation combines multiple data values into a single value. Often used to derive summary statistics or metrics. Aggregations reduce the amount of data by grouping and summarizing the data based on specific criteria, such as time intervals or dimensions.
+Aggregations can be used to calculate metrics like sum, count, average, maximum, or minimum. In Apache Pinot, [ingestion aggregations](https://docs.pinot.apache.org/developers/advanced/ingestion-level-aggregations) are used to aggregate data during real-time data ingestion,
+resulting in improved query performance and reduced storage requirements.
+
+#### See also
+
+- [Supported Pinot aggregation functions](https://docs.pinot.apache.org/users/user-guide-query/query-syntax/supported-aggregations)
+- [How to write custom aggregation functions](https://docs.pinot.apache.org/developers/developers-and-contributors/extending-pinot/custom-aggregation-function)
+
+### anomaly detection
+
+Anomaly detection identifies patterns or data points that deviate significantly from the expected or normal behavior. It involves analyzing data to detect unusual or unexpected events, outliers, or patterns that may indicate potential anomalies or abnormalities. Anomaly detection techniques are commonly used in various fields such as cybersecurity, fraud detection, network monitoring, and predictive maintenance.
+
+### Apache Pinot
+
+Provides fast, scalable, and real-time analytics capabilities. Originally designed and developed at LinkedIn, and then donated to the Apache Software Foundation. [Apache Pinot](https://docs.pinot.apache.org/) is optimized for querying and aggregating large volumes of data in real-time, making it suitable for use cases such as monitoring, anomaly detection, personalization, recommendation systems, and interactive data exploration. Key features include real-time ingestion, columnar storage, distributed architecture, real-time indexing, SQL-like query language, and integration with ecosystem tools.
+
+### Apache Pulsar
+
+[Apache Pulsar](https://pulsar.apache.org/) is a real-time distributed messaging and streaming platform that provides high-performance, durable messaging, and event streaming capabilities. It's designed to handle large-scale, high-throughput, and low-latency data streaming use cases. Pulsar offers features such as pub-sub messaging, message replay, geo-replication, and built-in support for schema enforcement and data retention policies. Pulsar is highly scalable and fault-tolerant.
+
+### Apache ZooKeeper
+
+[Apache ZooKeeper](https://zookeeper.apache.org/) is a centralized service used to maintain configuration information. ZooKeeper provides distributed synchronization and group services. 
+
+Pinot uses ZooKeeper for cluster management and storing cluster state information.
+
+### Amazon Kinesis
+
+Amazon Kinesis is a fully managed service provided by Amazon Web Services (AWS) for real-time streaming data ingestion and processing. It allows you to collect, process, and analyze large amounts of data in real-time from various sources, including websites, mobile applications, IoT devices, and more. Kinesis provides capabilities for data streaming, data analytics, and data processing, enabling you to build real-time applications and gain insights from your streaming data.
+
+### analytics
+
+Analytics is a field that investigates and interprets data to better understand the domain under analysis, and effectively communicate and make decisions based on the data.
+Two main types of data analytics consist of batch analytics and real-time analytics.
+
+### array
+
+An array is a data structure that stores a collection of elements of the same type. It allows you to store multiple values in a single variable and access them using an index.
+
+### authentication
+
+Authentication access in Apache Pinot supports HTTP basic authentication, and follows the established standards for HTTP basic authentication, where credentials are provided via an HTTP Authorization header. 
+
+Pinot components, such as the Pinot controller and broker, can be configured to require authentication information (credentials) for API access. Users can provide their credentials through either dedicated username and password arguments or tokens. The Pinot Controller UI dynamically adapts to the authentication configuration and displays a login prompt when basic authentication is enabled. Restricted users are shown all available UI functions, but their operations will fail with an error message if access control lists (ACL) prohibit access.
+
+### 
+
+## B
+
+### backfill data
+
+Backfill data refers to the process of updating or filling in historical data in a system. In Apache Pinot, backfilling makes changes to the raw data and reflects these changes in a Pinot offline table. Typically, backfilling data is performed manually and requires writing custom flows to update the offline data.
+
+### Balanced segment assignment
+
+Pinot assigns each segment to the server with the least segments already assigned by default. This balanced segment assigment strategy, ensures each server in a cluster has balanced query load, and each query is routed to all the servers in a cluster.
+
+### Basic authentication
+
+A method for an HTTP user agent to provide a username and password when making an HTTP request. Contains a header field `Authorization: Basic <username:password>`, where the credentials are the Base64 encoding of the username and password joined by a colon `:`.
+
+### Batch data
+
+Batch ingestion or batch import is a data analytics method where data is collected over a period of time, and then processed all at once.
+Contrasts with streaming data which is processed continuously and immediately as it's generated. Handling data in batches 
+saves resources and manages the workload effectively. Batch jobs may be throttled to a steady rate of processing, or jobs paused and resumed
+to prevent overrunning system resources. Used when immediate processing isn't crucial and when handling large volumes of data efficiently
+is a priority. Some architectures also use “microbatching,” where data is processed in small, discrete quantities—usually less than one minute
+of accumulated data. Pinot supports uploading data from standalone file systems, Hadoop, and Spark.
+For more information, see [Batch ingestion](https://docs.pinot.apache.org/basics/data-import/batch-ingestion).
+
+### Bitmap inverted index
+
+A bitmap inverted index is a type of Pinot inverted index that maintains a mapping from each value to a bitmap of rows. This design allows for efficient value lookup operations, providing improved querying capabilities.
+
+### Bloom filter
+
+In Apache Pinot, Bloom filters use a probabilistic data structure to determine which segments do not contain specific data. 
+Makes scanning on disk more efficient by minimizing the amount of data that needs to be scanned.  
+
+### Broker
+
+The Pinot broker optimizes query processing, data retrieval, and enhances data-driven applications. The broker accepts queries from clients, forwards the queries to appropriate servers, collects results, and consolidates results into a single response to send back to the client. 
+
+The broker uses [Helix](#helix) to find the location of each segment and route requests to the appropriate server. In [hybrid tables](#hybrid-table), the broker ensures that the overlap between real-time and offline segment data is queried exactly once by performing offline and real-time federation.
+
+{/* ### Broker tentant */}
+
+### Built-in virtual columns
+
+A built-in virtual columns are automatically generated and available in the schema for debugging purposes. Built-in virtual columns include $hostName, $segmentName, and $docId.
+
+
+### Broker Query API
+
+Use the [Broker Query API](https://docs.pinot.apache.org/users/api/querying-pinot-using-standard-sql) to query data from Apache Pinot. It's typically used to retrieve data from Pinot and consolidate the results into a single response. Responsible for routing the query to the appropriate Pinot servers and merging the results before returning them to the client.
+
+{/* ### Batch Segment Fetcher plugin */}
+
+
+### Bloom filter
+
+A Bloom filter is a probabilistic data structure used to definitively determine if an element is not present in a dataset because the filter never yields false negatives. Because Bloom filters may produce false positives, a Bloom filter cannot determine with certainty whether an element is present in the dataset.
+
+## C
+
+
+### cluster
+
+An Apache Pinot cluster includes multiple nodes or servers working together to store and process data, including brokers, controllers and minions.
+The controller node coordinates data distribution, load balancing, and query routing across the cluster.
+Each node in the cluster is responsible for storing a portion of the data and executing query operations.
+Clusters are horizontally scalable, so you can add or remove nodes depending on your workload and data growth. 
+Pinot cluster data is partitioned and distributed across the nodes to ensure high availability and parallel processing capabilities.
+
+### column
+
+Pinot data is stored in tables within rows and columns.
+
+### compaction
+
+Compressing data to optimize disk usage.
+
+### controller
+
+Certain computer nodes in a cluster are set aside for cluster metadata, and cluster configuration and orchestration tasks.
+Pinot controller nodes use [Apache Helix](#apache-helix) and [Apache Zookeeper].
+
+
+## D
+
+### dashboard
+
+Visualize real-time analytics data. Dashboards let you query and graph data.
+
+### Data Manager
+
+The Data Manager is a StarTree application used to ingest data into StarTree Cloud.
+
+### data model
+
+A Pinot data model refers to the way data is organized and structured in Pinot, which includes concepts such as segments, tables, schemas, and tenants. Data is stored in a columnar format and adds additional indexes to enable fast filtering, aggregation, and group by operations. Raw data is divided into small data shards called segments, and one or more segments together form a table. Tables are associated with a schema that defines the columns and their data types. Tenants in Pinot prevent sharing ownership of database tables across microservice teams.
+
+### data service
+
+Stores time series data and handles writes and queries.
+
+### data source
+
+A source where data is collected from. Examples include Kafka, Hadoop Distributed File System (HDFS), Amazon S3, Google Cloud Storage (GCS), Azure Blob Storage, local file system, and other sources via custom connectors or integrations.
+
+### data type
+
+A data type is defined by the values it can take, the programming language used, or the operations that can be performed on it.
+
+StarTree supports the following data types:
+
+| Data type        | Alias/annotation   |
+| :--------------- | :----------------- |
+| string           |                    |
+| boolean          |                    |
+| float            | double             |
+| integer          | int, long          |
+| unsigned integer | uint, unsignedLong |
+| time             | dateTime           |
+
+## E
+
+### event
+
+Metrics gathered at irregular time intervals.
+
+#### Exponential Time Smoothing (ETS)
+
+An enhanced form of the [Holt Winters](#holt-winters) exponential smoothing algorithm.
+
+### expression
+
+A combination of one or more constants, variables, operators, and functions.
+
+## F
+
+### float
+
+A real number written with a decimal point dividing the integer and fractional parts (`1.0`, `3.14`, `-20.1`).
+
+## G
+
+
+{/* ### gauge
+
+A type of visualization that displays the single most recent value for a time series.
+A gauge typically displays one or more measures from a single row, and is not designed to display multiple rows of data.
+Elements include a range, major and minor tick marks (within the range), and a pointer (needle) indicating the single most recent value. */}
+
+
+### geometrycollection
+
+A spatial data type that represents a collection of different geometries, such as points, lines, polygons, or other geometry collections. Used to store and manipulate complex spatial structures in geospatial databases.
+
+Pinot supports geospatial data types including POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN.
+
+### geospatial data types
+
+Geospatial data types abstract and encapsulate spatial structures such as boundary and dimension that represent shapes. 
+
+Pinot supports geospatial data types such as POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION using Well-Known Text (WKT) and Well-Known Binary (WKB) forms of geospatial objects. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN. 
+
+{/* ### graph
+
+A diagram that visually depicts the relation between variable quantities measured along specified axes.
+*/}
+
+## H
+
+### Helix
+
+Helix is a generic cluster management framework used to manage partitions and replicas in a distributed system. Helix is embedded in Apache Pinot components, such as the controller, broker, and server. Helix drives the state of a Pinot cluster and ensures cluster stability by coordinating state transitions and maintaining consistency. Helix uses Zookeeper to store cluster state and metadata.
+
+### Helix partition
+
+A Helix partition represents a subset of data in a Pinot table. Used to divide data into smaller segments for efficient processing and distribution across Pinot servers. Each partition can have multiple replicas, which are copies of the same data, to ensure fault tolerance and high availability.
+
+### histogram
+
+A visual representation of statistical information that uses rectangles to show the frequency of data items in successive, equal intervals or bins.
+
+### Holt Winters
+
+A forecasting method that uses the following three components to predict future values based on historical data:
+- Average value of time series
+- Trend (historical upward or downward movement of data)
+- Seasonality (fluctuations or patterns that occur at fixed intervals) 
+
+A visual representation of statistical information that uses rectangles to show the frequency of data items in successive, equal intervals or bins.
+
+### hybrid table
+
+A hybrid table comprises one offline table and one real-time table that share the same name. An offline table is used to store data that is pushed periodically. A real-time table is used to store data consumed as it arrives. The offline table can have a high retention period than a real-time table. When an offline segment is pushed to cover a recent time period, the Pinot broker automatically switches to use the offline table for segments for that time period.
+
+## I
+
+### int
+
+A numeric data type that represents integers (whole numbers). 
+
+Pinot supports various data types, including STRING, LONG, INT, and geospatial data types such as POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION.
+
+### instance
+
+An entity comprising data on a server (or virtual server in cloud computing).
+
+{/* An instance of a StarTree cluster may scale across multiple servers or nodes in a network.
+*/}
+
+
+### instance owner
+
+A type of admin role for a user.
+Instance owners have read/write permissions for all resources within the instance.
+
+## J
+
+### Jaeger
+
+Open source tracing used in distributed systems to monitor and troubleshoot transactions.
+
+### JSON
+
+JavaScript Object Notation (JSON) is an open-standard file format that uses human-readable text to transmit data objects consisting of attribute–value pairs and array data types.
+
+## K
+
+### keyword
+
+A keyword is reserved by a program because it has special meaning.
+Every programming language has a set of keywords (reserved names) that cannot be used as an identifier.
+
+## L
+
+### linestring
+
+Represents a sequence of connected line segments in geospatial data. A type of geospatial object used to represent paths or lines on a map.
+
+Pinot supports geospatial data types including POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN.
+
+### literal
+
+A literal is value in an expression, a number, character, string, function, record, or array.
+Literal values are interpreted as defined.
+
+### long
+
+A numeric data type that can store whole numbers ranging from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807. It’s typically used to represent large integers.
+
+Pinot supports various data types, including STRING, LONG, INT, and geospatial data types such as POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION.
+
+### load balancing
+
+Improves workload distribution across multiple computing resources in a network. Load balancing optimizes resource use, maximizes throughput, minimizes response time, and avoids overloading a single resource. Using multiple components with load balancing instead of a single component may increase reliability and availability. If requests to any server in a network increase, requests are forwarded to another server with more capacity. Load balancing can also refer to the communications channels themselves.
+
+## M
+
+### metastore
+
+Contains internal information about the system and status of the system.
+
+### multilinestring
+
+A geospatial data type that represents a collection of linestrings. Stores multiple linestrings as a single entity. Each linestring in a multilinestring is defined by a sequence of coordinates.
+
+Pinot supports geospatial data types including POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN.
+
+### multipolygon
+
+A geospatial data type that represents a collection of polygons. Can consist of multiple polygons that are not connected to each other. Each polygon within a multipolygon can have its own set of coordinates and can represent a separate area or shape.
+Pinot supports geospatial data types including POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN.
+
+## N
+
+### node
+
+A server that is part of a cluster.
+
+Related entries: [server](#server)
+
+### null
+
+A data type that represents a missing or unknown value.
+
+## O
+
+
+## P
+
+### parameter
+
+A key-value pair used to pass information to functions.
+
+### Pinot components
+
+A Pinot cluster consists of multiple distributed system components, linearly scalable across an unbounded number of nodes. 
+
+Pinot includes the following components:
+- **Controller**: Manages, allocates, and schedules Pinot cluster resources. Drives consistency and routing in a Pinot cluster. Controllers are horizontally scaled as an independent component (container) and have visibility of the state of all other components in a cluster. The controller reacts and responds to state changes in the system and schedules the allocation of resources for tables, segments, or nodes. Also serves as the HTTP gateway for the REST API administration of a Pinot deployment. Includes a web-based query console to quickly and easily run queries.  
+- **Broker**: Receives queries from a client and routes its execution to one or more Pinot servers before returning a consolidated response.
+- **Server**: Servers host segments that are allocated across multiple nodes and routed on an assignment to a tenant (single-tenant by default). Containers that scale horizontally are notified by Helix through state changes driven by the controller.
+A server can either be a real-time server or an offline server. 
+A real-time and offline server have very different resource usage requirements. Because of this, resource isolation can be used to prioritize high-throughput real-time data streams that are ingested and made available for query through a broker.
+- **Minion** (optional): Used to run background tasks such as purging data. Having a separate minion task lessens the overall degradation of query latency as segments are impacted by mutable writes.
+
+### Pinot storage model
+
+The Pinot storage model and infrastructure components include segments, tables, tenants, and clusters.
+
+Pinot has a distributed systems architecture that scales horizontally across multiple nodes as the size of a table grows over time. Pinot breaks data into segments (similar to shards/partitions in high-availability (HA) relational databases).
+
+Pinot tables are a logical abstraction that refers to a collection of related data in columns and rows (documents). Schemas associated with tables define the columns in a table and their data types. Multiple Pinot tables can share a single schema. Tables are independently configured for concerns such as indexing strategies, partitioning, tenants, data sources, or replication.
+
+Pinot supports multi-tenancy. Every Pinot table is associated with a tenant, so tables may belong to a particular logical namespace, grouped under a single tenant name, and isolated from other tenants. The isolation between tenants provides different namespaces for applications and teams to prevent sharing tables or schemas. Development teams building applications don't need to operate an independent deployment of Pinot. 
+
+An Pinot organization can operate a single cluster and scale it out as new tenants increase the overall volume of queries. Manage your own schemas and tables without being impacted by other tenants on a cluster. By default, all tables belong to a default tenant named "default". Tenants satisfy the architectural principle of a "database per service/application" without having to operate many independent data stores. Tenants schedule resources so that segments are able to restrict a table's data to reside only on a specified set of nodes. Similar to the kind of isolation that is ubiquitously used in Linux containers, compute resources in Pinot can be scheduled to prevent resource contention between tenants.
+
+A Pinot cluster is a group of tenants, and a set of compute nodes. Typically, there is only one cluster per environment or data center. Multiple clusters aren't necessary givens Pinot supports multiple tenants. Pinot cluster may consist of 1000+ nodes distributed across a data center. Cluster nodes can be added to linearly increase performance and availability of queries. The number of nodes and the compute resources per node reliably predicts the query per second (QPS) for a Pinot cluster. Capacity planning is easily achieved using service-level agreements (SLAs) that assert performance expectations for end-user applications. 
+
+### point
+
+A point data type is a geospatial data type that represents a single point in space. Used to store and manipulate coordinates in a two-dimensional space. In Pinot, a point data type can be represented using the Well-Known Text (WKT) or Well-Known Binary (WKB) formats.
+
+Pinot supports geospatial data types including POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN
+
+### polygon
+
+A geospatial data type that represents a closed shape with straight sides. 
+
+In Pinot, a polygon can be defined using the Well-Known Text (WKT) or Well-Known Binary (WKB) format, and consists of a series of coordinates that define the vertices of the polygon. A polygon can have any number of sides and can be used to represent various geographic features such as land boundaries or building footprints. 
+
+Pinot supports geospatial data types including POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION. Pinot also supports various data types, including STRING, LONG, INT, and BOOLEAN.
+
+### predicate expression
+
+A predicate expression compares two values and returns `true` or `false` based on
+the relationship between the two values.
+A predicate expression is comprised of a left operand, a comparison operator, and a right operand.
+
+### process
+
+A set of predetermined rules.
+A process can refer to instructions being executed by the computer processor or refer to the act of manipulating data.
+
+## Q
+
+### query
+
+A request that returns real-time analytics data.
+
+## R
+
+### Real-time analytics
+Real-time analytics includes collecting, analyzing, and interpreting data in real-time or almost real-time. Helps organizations make data-driven decisions in time-sensitive situations. Useful in multiple areas, including fraud detection, discovering anomalies, optimizing operational efficiency, personalizing customer experiences, and enabling proactive response to changing conditions.
+
+### REPL
+
+A Read-Eval-Print Loop (REPL) is an interactive programming environment where you type a command and immediately see the result.
+
+### record
+
+A tuple of named values represented using a record type.
+
+### regular expressions
+
+Regular expressions (regex or regexp) are patterns used to match character combinations in strings.
+
+### replication factor
+
+An attribute that determines how many copies of the data are stored in the cluster. 
+
+### RFC3339 timestamp
+A timestamp that uses the human-readable DateTime format proposed in
+[RFC 3339](https://tools.ietf.org/html/rfc3339) (for example: `2020-01-01T00:00:00.00Z`).
+
+### RFC3339Nano timestamp
+A [Golang representation of the RFC 3339 DateTime format](https://go.dev/src/time/format.go) that uses nanosecond resolution--for example:
+`2006-01-02T15:04:05.999999999Z07:00`.
+
+## S
+
+### schema
+
+Defines the structure, names, and data types used in the columns in a Pinot table. A schema also defines  the type of column, including dimension columns, metric columns, and time columns. The Pinot schema is stored in Zookeeper along with the table configuration, and is used for efficient data processing and analysis in Pinot.
+
+### secret
+
+A secret is a key-value pairs that contains information you want to control access to, such as API keys, passwords, or certificates.
+
+### segment
+
+A segment is a time-based partition used for efficient data storage and querying in Pinot clusters. A horizontal shard that represents a chunk of table data with some number of rows. A segment stores data for all table columns in the table and has a columnar format for efficient memory mapping and query serving.  
+
+### shard
+
+Shards are referred to as segments in Pinot. A shared represents a chunk of table data. Stores data for all columns of the table in a columnar format, and can be directly mapped into memory for serving queries. 
+
+### stream
+
+A stream is a continuous flow of data that is generated and consumed in real-time. Streams let you process and analyze data as it's produced, giving you real-time insights and actions. Streams are commonly used in systems like Apache Kafka to handle high volumes of data and enable real-time data ingestion and processing.
+
+### stream ingestion
+
+Stream ingestion is the process of ingesting data from streaming services, such as Kafka, into a database, such as Apache Pinot. Stream ingestion lets you query data in real-time as soon as it's ingested into the database. Ingesting a stream of data provides support for checkpoints to prevent data loss. Stream ingestion can be configured to throttle the consumption rate for better performance management. Custom stream ingestion plugins can also be developed to support other streaming platforms.
+
+### string
+
+A data type used to represent text.
+Pinot supports various data types, including STRING, LONG, INT, and geospatial data types such as POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, and GEOMETRYCOLLECTION.
+
+## T
+
+### TCP
+
+StarTree uses Transmission Control Protocol (TCP) port 8086 for client-server communication over the StarTree HTTP API.?
+
+### table
+
+Tables store real-time analytics data.
+
+### technical preview
+
+A new feature released to gather feedback from customers and the community. Send feedback to our [StarTree Community Slack](https://startreecommunity.slack.com/).
+
+### tenant
+
+Pinot supports multiple tenants. Because each Pinot table is associated with a tenant, tables may belong to a particular logical namespace, grouped under a single tenant name, and isolated from other tenants. The isolation between tenants provides different namespaces for applications and teams to prevent sharing tables or schemas. Development teams building applications don't need an independent deployment of Pinot. 
+
+### time series data
+
+Sequence of data points typically consisting of successive measurements made from the same source over a time interval.
+Time series data shows how data evolves over time.
+On a time series data graph, one of the axes is always time.
+Time series data may be regular or irregular.
+Regular time series data changes in constant intervals.
+Irregular time series data changes at non-constant intervals.
+
+### token
+
+Tokens (or API tokens) verify user and organization permissions.
+
+{/* There are different types of API tokens:
+
+- **All-Access token:** grants full read and write access to all resources in an organization.
+- **Read/Write token:** grants read or write access to specific resources in an organization.
+*/}
+
+
+### transformation
+
+A function that returns a value or a set of values calculated from specified points.
+
+## U
+
+### UDP
+
+User Datagram Protocol is a packet of information.
+When a request is made, a UDP packet is sent to the recipient.
+The sender doesn't verify the packet is received.
+The sender continues to send the next packets.
+This means computers can communicate more quickly.
+This protocol is used when speed is desirable and error correction is not necessary.
+
+### User-facing real-time analytics
+
+Analytical tools exposed to the end users of your product. In a user-facing analytics application, users receive personalized analytics on their devices, resulting in hundreds of thousands of queries per second. Queries triggered by apps may grow quickly in proportion to the number of active users on the app, as many as millions of events per second. Data generated in Pinot is immediately available for analytics in latencies under one second.
+
+User-facing real-time analytics requires ingesting data in real time, support for high-velocity, high-dimensional event data from multiple sources, low latency query results for hundreds of thousands of queries per second. Also requires reliability and high availability, scalability, and low cose to serve.
+
+## V
+
+### variable
+
+A storage location (identified by a memory address) paired with an associated symbolic name (an identifier). A variable contains some known or unknown quantity of information referred to as a value.
+
+## W
+
+### windowing
+
+Grouping data based on specified time intervals.
+
+{/* For information about how to window, see [Window and aggregate data]. */}
+
+## Z
+
+### ZooKeeper
+
+[Apache ZooKeeper](https://zookeeper.apache.org/) is a centralized service used to maintain configuration information. ZooKeeper provides distributed synchronization and group services. 
+
+Pinot uses ZooKeeper for cluster management and storing cluster state information.

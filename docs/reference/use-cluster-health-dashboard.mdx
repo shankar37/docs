@@ -1,0 +1,64 @@
+# StarTree Cloud cluster health dashboard
+
+The StarTree Cloud cluster health dashboard provides an overview of Pinot checks, which lets you observe pass/fail statuses and filter checks based on instances or tables. This dashboard offers a holistic view of the overall health of the cluster.
+
+The `ClusterHealthCheckTask` task runs every 20 minutes by default. Dashboard checks are cached and kept in memory, and then overwritten with every run.
+
+To use checks ad-hoc, use these controller API calls:
+* `GET - /periodictask/run?taskName=ClusterHealthCheckTask` (to run the checks now)
+* `GET - /clusterHealth` (to fetch cluster health)
+* `GET - /clusterHealth/list` (to list all available cluster health checks)
+
+
+## To view the cluster health dashboard
+
+Log into StarTree Cloud and do the following:
+
+1. Click the organization, then select the workspace you want to view monitoring metrics for.
+1. Click the **Services** tab.
+1. Click the link next to **My Apps**.
+1. Click the **Pinot Control Panel** tile.
+
+A dashboard containing a list of checks appears, and indicates whether the check passes or fails, and additional details about the check.
+
+
+## List of health checks
+
+Current health checks are listed here.
+
+| Check                                        | Description                                                                                                                                                                                                                         |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IDEAL_STATE_EV_MISMATCH_CHECK                | Checks if a table has any segments whose ExternalView state does not match with IdealState                                                                                                                                          |
+| TABLE_SEGMENTS_RELOAD_CHECK                  | Checks if a table has any segments to be reloaded                                                                                                                                                                                   |
+| SEGMENT_COUNT_CHECK                          | Checks if a table has more than 50000 segments                                                                                                                                                                                      |
+| SEGMENT_SIZE_CHECK                           | Checks if a table has more than quarter of it's segments of size less than 5MB                                                                                                                                                      |
+| SEGMENT_RETENTION_CHECK                      | Checks if a table does not have segment retention configured
+| REPLICATION_CHECK                            | Checks if a table has replication factor less than the configured threshold in controller config (controller.replication.threshold) which is by default 3 if unspecified                                                                                                                                                        |
+| TABLE_COLUMN_COUNT_CHECK                     | Check if the number of columns in a schema exceeds 500                                                                                                                                                                              |
+| TIME_COLUMN_GRANULARITY_CHECK                | Checks if a table has any time columns with granularity set to MILLISECONDS / MICROSECONDS / NANOSECONDS                                                                                                                                       |
+| UPSERT_TABLE_SEGMENT_ASSIGNMENT_CHECK        | For an upsert table, checks if segments of a partition for a single replica group are assigned to more than one server                                                                                                              |
+| INSTANCE_HEALTH_API_CHECK                    | Checks if any of the instance /health API is not live                                                                                                                                                                               |
+| SEGMENT_SKEW_HEALTH_CHECK                    | Checks whether any server associated with a specific table that has more than 50 segments has a segment count exceeding 50% of the average segment count across all servers for that table                                         |
+| CONSUMING_PARTITION_SKEW_HEALTH_CHECK        | Checks whether any server associated with a specific table having more than 10 consuming segments has a consuming segment count that exceeds 50% of the average consuming segment count across all servers for that table       |
+| TABLE_SKEW_CHECK                             | Checks whether the number of tables hosted by a server exceeds 50% of the average number of tables hosted across all servers                                                                                                        |
+| CLUSTER_LEVEL_SEGMENT_SKEW_CHECK             | Checks whether the number of segments on any server exceeds 50% of the average segment count across all servers |
+| CLUSTER_LEVEL_CONSUMING_PARTITION_SKEW_CHECK | Checks whether the number of consuming segments on any server exceeds 50% of the average consuming segment count across all servers|
+| HIGH_NUMBER_OF_SEGMENTS_CHECK                | Checks whether the number of segments hosted on the server exceeds 10000 |
+| HIGH_NUMBER_OF_CONSUMING_PARTITIONS_CHECK    | Checks whether the number of consuming segments hosted on the server exceeds 50 |
+| HIGH_NUMBER_OF_DOCUMENTS_CHECK               | Checks whether the number of documents hosted by the server is greater than 1 Billion |
+| HIGH_NUMBER_OF_TABLES_CHECK                  | Checks whether the number of tables hosted by the server is greater than 10 |
+| DATA_SIZE_SKEW_CHECK                         | Checks whether the skew in the size of data hosted by instances is asymmetric, specifically if the skew is not in the range [-2, 2] 
+|
+| CONTROLLER_TABLES_SKEW_CHECK                 | Checks whether the skew of table count hosted by lead controllers is asymmetric, specifically if the skew is not in the range [-2, 2] |
+| HIGH_UPSERT_PK_PER_PARTITION_CHECK           | Checks if a partition hosted by an instance has a primary key count exceeding 500 million |
+| UPSERT_PRIMARY_KEY_SKEW_CHECK                | Checks whether the skew in the distribution of primary keys among servers is asymmetric, specifically if skew is not in the range [-2, 2] |
+| UPSERT_PREBUILT_SNAPSHOT_CHECK               | Checks for any upsert table in a cluster if the prebuilt snapshot feature is disabled for preloading |
+| UPSERT_PK_SKEW_PER_PARTITION_CHECK           | Checks whether the skew for primary keys in table partitions is asymmetric, specifically if the skew is not in the range [-2, 2] |
+| HIGH_UPSERT_PRIMARY_KEYS_CHECK               | Checks if the primary key count for all tables hosted by the instance exceeds 800 Million |
+| INSTANCE_POOLS_CHECK                         | Checks if any server is not part of instance pools or any pool is not disjoint if the cluster has more than 8 servers |
+| INSTANCE_POOLS_N_REPLICA_GROUPS_CHECK        | Checks if any table is not using instance pools and replica groups configurations |
+| HELIX_HOST_NAME_INSTANCE_NAME_MISMATCH_CHECK | Checks if the Instance ID/Name does not match with the expected value derived from Instance Config |
+| TABLE_SEGMENT_ASSIGNMENT_CHECK               | Checks if re balance of segments is needed on the table |
+| BROKER_RESOURCE_CHECK                        | Checks if broker resource for a table does not contain any of the brokers in the tenant |
+| QUERY_HEALTH_CHECK                           | Checks if "select $docId from TABLE_NAME limit 1" executes unsuccessfully for any table in a cluster |
+| SEGMENTS_TIME_PARTITION_CHECK                | Checks if any segments of a table are not partitioned by time i.e if the current segment end time is less than prev segment end time given that segments are sorted by their start times and end times |

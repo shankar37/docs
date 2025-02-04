@@ -1,0 +1,95 @@
+import { Callout } from 'nextra/components';
+
+
+# Managed Offline Flow
+
+Pinot is most commonly used to provide real-time analytics based on streaming data, which can be achieved using a real-time table. However, after running these systems for a while, we'll want to update the data ingested into this table. Perhaps the name of a value in a column has been updated, or we want to remove some duplicate records.
+
+Segments in real-time tables can't be replaced, but we can replace those in offline tables. Managed offline flow is the way that Pinot handles the process of moving the data from real-time to offline tables.
+
+In this recipe we'll learn how to use Pinot offline managed flow.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.9.3</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a  style={{textDecoration: 'underline'}}  href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/managed-offline-flow" target="_blank">startreedata/pinot-recipes/managed-offline-flow</a>       
+       </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+
+This is the code for the following recipe: https://github.com/startreedata/pinot-recipes/tree/main/recipes/managed-offline-flow
+
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+Clone this repository and navigate to this recipe:
+
+```bash
+git clone git@github.com:startreedata/pinot-recipes.git
+cd pinot-recipes/recipes/ingest-json-files
+```
+
+
+## Makefile
+
+```bash
+make recipe
+```
+
+Running this recipe will build the foundation and start producing data into Kafka.
+
+Run the next Make task:
+
+## Managed Offline Flow
+
+```bash
+make manage_offline_flow
+```
+
+The Make command above will perform these tasks:
+
+- Sets the necessary properties in the Pinot Controller to enable the managed offline flow task: `RealtimeToOfflineSegmentsTask`.`timeoutMs` and `.numConcurrentTasksPerInstance`.
+- Schedules the task to run.
+- Prints logs related to the task.
+- Updates the hybrid table's time boundary so that you can see records that have been move to offline.
+
+
+## View realtime and offline segments
+
+Navigate to http://localhost:9000/#/query and run the following query:
+
+```sql
+select $segmentName, count(*) cnt
+from events
+group by $segmentName
+order by cnt desc
+```
+
+Run the statement above to see records migrate from REALTIME to OFFLINE by running `make realtime` to generate more data and `make manage_offline_flow` to migrate older data to OFFLINE. See the [README on GitHub for this recipe](https://github.com/startreedata/pinot-recipes/blob/main/recipes/managed-offline-flow/README.md) for sample output.
+
+
+## Clean up
+
+```bash
+make clean
+```
+
+## Troubleshooting
+
+To clean up old Docker installations that may be interfering with your testing of this recipe, run the following command:
+
+```bash
+docker system prune
+```

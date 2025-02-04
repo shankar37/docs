@@ -1,0 +1,22 @@
+{
+    "index": "Documentation Home",
+    "concepts": "Concepts",
+    "get-started-with-startree-cloud": "StarTree Cloud",
+    "pinot": "Apache Pinot",
+    "use-data-manager": "StarTree Data Manager",
+    "get-started-with-thirdeye": "StarTree ThirdEye",
+    "ingest-data": "Ingest data",
+    "query-data": "Query data",
+    "visualize-data": "Visualize data",
+    "manage-data": "Manage data",
+    "manage-security": { 
+        "display": "hidden"
+    },
+    "check-startree-health": "Check StarTree Cloud health",
+    "community": "Community",
+    "reference": "Reference",
+    "example":  {
+      "display": "hidden"
+    }
+  }
+  

@@ -1,0 +1,5 @@
+{
+    "query-using-console": "Query using the query console",
+    "query-using-admin-scripts": "Query using pinot-admin scripts",
+    "use-apis-and-build-apps": "Use data plane APIs" 
+}

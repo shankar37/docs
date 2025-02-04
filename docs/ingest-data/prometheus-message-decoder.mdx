@@ -1,0 +1,105 @@
+---
+description: In this developer guide, you'll learn how to ingest Prometheus formatted messages into Pinot
+---
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+
+**Release Note:** The Prometheus Message Decoder feature is available in StarTree Platform releases after 0.9.0.
+
+</Callout>
+
+# Prometheus Message Decoder
+Prometheus is a widely-used open-source monitoring and alerting toolkit that collects and stores time series data from various sources. 
+
+The Prometheus Message Decoder in Pinot provides native support for ingesting Prometheus-formatted metrics data into pinot tables. 
+
+## Prometheus Message Format
+```
+<metric_name>{<label1>=<value1>,<label2>=<value2>,...} <metric_value> <timestamp>
+```
+
+This format encapsulates the four main components of our schema:
+* `<metric_name>` corresponds to the metric field (STRING)
+* `{<label1>=<value1>,<label2>=<value2>,...}` represents the labels field (JSON)
+* `<metric_value>` maps to the value field (DOUBLE)
+* `<timestamp>` corresponds to the ts field (TIMESTAMP)
+
+
+## Table schema
+
+| Column | Type    | Field type | Description                                                        |
+|--------|---------|------------|--------------------------------------------------------------------|
+| metric | STRING  | Dimension  | The name of the Prometheus metric                                   |
+| labels | JSON    | Dimension  | A JSON object containing key-value pairs of Prometheus labels      |
+| value  | DOUBLE  | Metric     | The numeric value of the metric                                     |
+| ts     | TIMESTAMP | Date-Time | The timestamp when the metric was recorded, in milliseconds since the Unix epoch |
+
+* The schema created for ingesting Prometheus metrics MUST adhere to the format specified above, particularly with respect to the field names and data types.
+* If you require different field names in your Pinot table, you can add transform functions to alias the names.
+  * However, the incoming data must match this specified schema for the Prometheus Message Decoder to function correctly.
+	
+## Schema Configuration
+```json
+{
+  "schemaName": "events",
+  "dimensionFieldSpecs": [
+    {
+      "name": "metric",
+      "dataType": "STRING"
+    },
+    {
+      "name": "labels",
+      "dataType": "JSON"
+    }
+  ],
+  "metricFieldSpecs": [
+    {
+      "name": "value",
+      "dataType": "DOUBLE"
+    }
+  ],
+"dateTimeFieldSpecs": [{
+    "name": "ts",
+    "dataType": "TIMESTAMP",
+    "format" : "1:MILLISECONDS:EPOCH",
+    "granularity": "1:MILLISECONDS"
+  }]
+}
+```
+
+## Sample Table Stream Configuration 
+When ingesting a Prometheus Message formatted payload from a stream, the decoder used for the stream must be ai.startree.pinot.plugin.inputformat.prometheus.PrometheusMessageDecoder
+
+
+```json
+{
+  "tableName": "events",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "ts",
+    "schemaName": "events",
+    "replicasPerPartition": "1"
+  },
+  "tenants": {},
+  "tableIndexConfig": {
+    "loadMode": "MMAP",
+    "streamConfigs": {
+      "streamType": "kafka",
+      "stream.kafka.consumer.type": "lowlevel",
+      "stream.kafka.topic.name": "events",
+      "stream.kafka.decoder.class.name": "ai.startree.pinot.plugin.inputformat.prometheus.PrometheusMessageDecoder",
+      "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+      "stream.kafka.broker.list": "localhost:9092",
+      "realtime.segment.flush.threshold.rows": "0",
+      "realtime.segment.flush.threshold.time": "24h",
+      "realtime.segment.flush.threshold.segment.size": "50M",
+      "stream.kafka.consumer.prop.auto.offset.reset": "smallest"
+    }
+  }
+}
+```
+
+In the above sample, the Kafka consumer factory used is `org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory` and 
+the decoder associated with this stream is `ai.startree.pinot.plugin.inputformat.prometheus.PrometheusMessageDecoder"`.
+

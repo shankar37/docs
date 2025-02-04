@@ -1,0 +1,229 @@
+# Release Version 0.6.0: Feb 2023
+
+## Apache Pinot
+
+### Multi stage enhancements
+
+The multi stage query engine now supports the `HAVING`, `ORDER BY`, `IN`, and `NOT IN` clauses.
+It also supports left joins, semi joins, and inequality joins.
+All functions have now been registered with the Calcite catalog reader.
+
+### V1 query engine enhancements
+
+Added support for isDistinctFrom and isNotDistinctFrom. 
+More details in the [pull request](https://github.com/apache/pinot/pull/9312)
+
+### Multi volume
+
+Added capability to tiering storage locally by attaching multiple disks (eg: SSD + HDD). 
+More details in [the Pinot documentation](https://docs.pinot.apache.org/operators/operating-pinot/separating-data-storage-by-age/using-multiple-directories).
+
+### Segment level debug 
+
+Added segment level Debug API and UI. 
+More details in the [pull request](https://github.com/apache/pinot/pull/9609)
+
+### Consumer record lag 
+Added a new API for exposing record based lag during real-time consumption. Currently this is only supported for Kafka data source. 
+More details in the [pull request](https://github.com/apache/pinot/pull/9515)
+
+
+### Custom time boundary for hybrid tables
+Added new APIs for configuring a custom time boundary for hybrid Pinot tables as well as a validation API to ensure all segments have finished uploading during offline push (check against ideal state). 
+More details in the [pull request](https://github.com/apache/pinot/pull/9356)
+
+### Upserts enhancements
+Added enableSnapshot flag in upsertConfig to use snapshot for upsert metadata recovery. This will help achieve TTL (Time To Live) support for primary keys. 
+More details in the [Pinot documentation](https://docs.pinot.apache.org/basics/data-import/pinot-stream-ingestion/import-from-apache-kafka#extract-record-headers-as-pinot-table-columns) and [pull request](https://github.com/apache/pinot/pull/9224)
+
+
+### Extract metadata from stream event header
+
+Added support for using fields within the message envelope as columns in the Pinot schema (eg: key within a Kafka message envelope). 
+More details in the [pull request](https://github.com/apache/pinot/pull/9062)
+
+### Segment Reload enhancements
+Added ability to change compression type during segment reload. More details in this [PR](https://github.com/apache/pinot/pull/9454).
+In addition, added capability within the Pinot UI to track reload progress. 
+More details in [PR-9521](https://github.com/apache/pinot/pull/9521) and [PR-9700](https://github.com/apache/pinot/pull/9700).
+
+### Adaptive Server Selection
+**Warning**: This feature is experimental, under development, and turned off by default. We recommend using this feature for **testing purposes only**.
+
+When a query is received, we could use one of the implemented Adaptive Selectors (NumInFlightRequests, Latency, Hybrid) to efficiently route queries to the best server instead of using a naive round robin approach. More details can be found in the [Pinot documentation](https://docs.pinot.apache.org/operators/operating-pinot/tuning/query-routing-using-adaptive-server-selection).
+
+### Frictionless Ingestion
+
+* Automatically infer parquet reader type based on file metadata in case of offline ingestion. More details in this [PR](https://github.com/apache/pinot/pull/9294)
+* Added Spark Job Launcher utility for offline table ingestion within the Pinot admin tool for ease of use. More details in this [PR ](https://github.com/apache/pinot/pull/9288)
+* Added continueOnError flag within the Pinot table config. If set to true, any errors from data type or expression transformations are ignored and null / default values are used instead. This is useful when users don’t want the ingestion to stop because of a few bad records. More details in  [PR-9320](https://github.com/apache/pinot/pull/9320) and [PR-9376 ](https://github.com/apache/pinot/pull/9376)
+
+### MergeRollup task on real-time tables
+Added support for merging / rolling up segments of a real-time Pinot table. More details in this [PR](https://github.com/apache/pinot/pull/9890)
+
+### Force commit
+Added a new resetConsumption API in the controller to force the current consuming segment in a real-time Pinot table to be committed. More details in this [PR](https://github.com/apache/pinot/pull/9197)
+
+
+### Seamless stream change
+Added the capability to modify stream properties (for eg: start consuming from a different Kafka topic) without disabling the table. More details in this [PR](https://github.com/apache/pinot/pull/9289).
+
+### Logging enhancements
+
+* Added a /loggers API endpoint to change logging level at runtime. More details in this [PR](https://github.com/apache/pinot/pull/9180)
+* Added a new API to allow downloading logs from individual components (broker/server) as well as a new controller API to download any remote log. More details in this [PR](https://github.com/apache/pinot/pull/9259)
+
+## StarTree Extensions for Apache Pinot: Available only in StarTree Cloud
+
+### RocksDB backed Upsert <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span> 
+
+Added the capability of configuring RocksDB backend for managing upsert metadata in a Pinot server. This enables the server to handle a lot more primary keys than before (previously this was done in memory).  
+
+### Databricks Delta Ingestion <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Added support for ingesting data from a Databricks Delta table into an offline Pinot table.
+
+### SegmentRefresh for RT tables  <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Added support for performing a segment refresh operations for all completed segments within a real-time Pinot table. This enables users to ensure real-time table segments adhere to the latest Pinot table config.
+
+### Debezium connector for MySQL  <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Added support for ingesting MySQL Debezium CDC format messages from a real-time stream
+
+### Tiered storage <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span> 
+
+* Improved server restart time when cloud tiered storage is enabled by persistently caching certain portions of all column indexes needed during restart.
+* Query performance improvements using selective columnar fetch based on query pattern and block level reads
+
+### File size based task planner in ingestion <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Added capability to configure minion tasks to ingest in a size based manner in addition to count based. This allows the user to ingest all files from a data source in a single round of tasks based on the total size.
+
+
+## StarTree Cloud - includes BYOC (Bring Your Own Cloud) and SaaS
+
+### Disaster Recovery for data plane  <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+StarTree Admin is able to recover a given workspace from a region failure by recovering the StarTree cluster state (RTO: 24 hours)
+
+### Release decoupling  <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+StarTree admins can now release individual components like Pinot or Data Manager without requiring a full release
+
+### Authentication service <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Authentication service for secure access to Startree environments is now GA
+
+### Token generation for Try environments <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Token generation for secure access to Pinot cluster in trial environments is now GA.
+
+
+## Data Manager: Self-Service Ingestion tool 
+
+### Improved AWS IAM Role based onboarding experience <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span> 
+
+Users now can check the AWS account id directly on DM instead of asking the StarTree customer support team. More enhancements to come in the next release.
+
+### Dimension Table support <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now create dimension tables from DM.
+
+### Enhanced Datetime inference logic  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+More accurate datetime column inference during data modeling in DM
+
+### Support enhanced security mechanisms for Kafka SASL authentication  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Support added in DM for the following SASL mechanisms:
+
+- PLAINTEXT
+- SCRAM-SHA-256
+- SRAM-SHA-512
+
+### Support for GZ file ingestion  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Gzipped files can be ingested via DM directly..
+
+Other supported formats: Avro, Json, CSV, Parquet, ORC
+
+### Enhanced Data ingestion  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Couple of improvements for robust data ingestion experience:
+
+1. Improved dictionary inference logic 
+2. Data size configuration for Minion
+
+### Support for schema registry in Kafka connector  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users will only see the topics that are registered in the schema registry and the data format is no longer needed to be selected.
+
+### Record reader config support  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now pass the record reader specific configs via DM. (e.g. split delimiter for csv reader)
+
+### BigQuery connector  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now self-serve data ingestion from BigQuery using Data Manager no-code experience with a few clicks.
+
+For more information, see https://dev.startree.ai/docs/startree-extensions/sql-connector.
+
+### Dataset ingestion status  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now monitor the data ingestion status and view ingestion logs after submitting the ingestion jobs. This will help users to debug issues and fix them as needed. 
+
+For more information, see https://dev.startree.ai/docs/startree-enterprise-edition/startree-dataset-manager/ingestion-status.
+
+### Kinesis connector  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now self-serve data ingestion from AWS Kinesis using Data Manager no-code experience with few clicks. 
+
+For more information, see https://dev.startree.ai/docs/startree-enterprise-edition/startree-dataset-manager/kinesis.
+
+## ThirdEye: Anomaly Detection and Root Cause Analysis Tool
+
+### Cohort recommender  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Cohort recommender) will help users identify the cohorts of top contributors (single or a group of dimensions) contributing to a spike in a given metric of a dataset. Using this feature user can now monitor single or multiple time series data for a given time range for the in-scope dataset and metrics. 
+
+For more information, see https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/reference/cohort-recommender.
+
+### Guided onboarding and alert creation flow  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users of ThirdEye can now use guided ThirdEye onboarding and sample alerts to quickly try, evaluate and get started with ThirdEye in a few clicks.
+
+### Integrated flow for cohort recommender and multi-dimension alert creation  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users of ThirdEye can now use cohort recommender to identify top contributors (single or group of dimensions) for a given metric and monitor single or multiple time series in two to three clicks. Using these features users need not manually configure alerts which can be time-consuming and prone to error.
+
+### Bulk delete support for Alerts, anomalies and related entities  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now bulk delete alerts, anomalies, and related entities to clean up all experiment data or static data which are no longer in use.
+
+### Anomaly filters  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Now users can apply “Anomaly filters” (such as Threshold-based, Weekend, Holiday, and Cold_Start filters) as part of the low-code alert configuration to fine-tune the alerts and improve accuracy by eliminating noise.
+
+### Root-cause analysis (Dimension filter (include/exclude)  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now perform root-cause analysis for a selected set of  dimensions instead of entire list of dimensions. 
+
+For more information, see https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/concepts/alert-configuration#rcaexcludeddimensions.
+
+### Launched Dimension Exploration  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now monitor multiple time series for single or group dimensions for a dataset and metric by configuring a single one-time (low-code/no-code) alert.
+
+For more information, see https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/concepts/dimension-exploration.
+
+### Load default alert templates  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Now users can load default alert templates from the Alert Templates Configuration screen instead of using API to load default alert templates.
+
+### Alert creation (Derived/transformed metrics support)  <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span> 
+
+Users can now create “derived or transformed metrics” during alert creation. 
+
+For more information, see https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/how-tos/alert/derived-metric-alert.
+

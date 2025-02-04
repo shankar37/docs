@@ -1,0 +1,457 @@
+# Subscription groups and notification systems
+
+The following routes for notifications are currently supported:
+- Email
+- Slack
+- PagerDuty
+- Webhooks
+
+To create alert notifications, you first create a subscription group. Alerts are assigned to subscription groups, which can be reused across multiple alerts. The subscription group is assigned  one or more notification routes, such as email or Slack.
+
+Subscription groups can be created from the [ThirdEye UI](#create-subscription-groups-using-the-thirdeye-ui) and from the [ThirdEye API](#create-subscription-groups-using-the-thirdeye-api).
+
+
+## Create subscription groups using the ThirdEye UI
+
+Configure a subscription group to receive email notifications as follows:
+1. Click **Create**.
+1. Create **Subscription Group**.
+1. Type in the **Name of the Subscription Group**. It's a good idea to name it something memorable and appropriately descriptive.
+1. Enter schedule in cron job style (`cron -n|-p|-s|-m` mailcommand). The cron schedule defines when and at what frequency the subscription notifications will be sent. The format used is the 6-7 fields Quartz cron format. See the [Quartz documentation](https://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html#introduction) for details. A cron expression builder [is available here](https://www.freeformatter.com/cron-expression-generator-quartz.html).
+1. Enter Email ID in **Subscribe Emails** section then click **Add**.
+1. Select and add alerts (one by one) to be subscribed by clicking **->** next to the alert name in the **All alerts** section. (This is an optional step, but unless you perform it, the group won't be subscribed to receive any alert notifications. However, you can create subscription groups and then assign alerts later.) 
+1. Click **Next** and **Finish**.
+
+ <p>
+    <img width="1640" alt="Select Notification Type" src="/img/thirdeye/thirdeye-notification-subscription.png" />
+    <img width="1626" alt="Email" src="https://user-images.githubusercontent.com/98617940/183694715-3d4ea15e-9071-4b9b-9601-c82d9d8c0ece.png" />
+    <img width="1593" alt="Slack" src="https://user-images.githubusercontent.com/98617940/183694866-b669651c-1663-4d52-8a25-b6a8d6b98e3e.png" />
+    <img width="1597" alt="Webhook" src="https://user-images.githubusercontent.com/98617940/183694986-baa73d77-a552-4ec6-9e3d-aad59be68b55.png" />
+    <img width="1593" alt="PagerDuty" src="/img/thirdeye/PagerDutyConfiguration.png" />
+    <em>Configure Subscription Groups to subscribe to alerts and receive notifications</em>
+</p>
+
+
+## Create subscription groups using the ThirdEye API
+
+Use `/api/subscription-groups` to perform CRUD operations on subscription groups.
+
+### Create a subscription group
+
+Use `POST /api/subscription-groups` to create a subscription group. The payload is a list of 
+subscription groups. 
+
+Here is a sample creating a subscription group with a single email notification channel. It is 
+associated with a single alert. The alert is identified by its ID.
+
+```json
+[
+  {
+    "name": "sg-with-alert",
+    "alerts": [],
+    "alertAssociations": [
+      {
+        "alert": {
+          "id": 247243
+        }
+      }
+    ],
+    "cron": "0 */5 * * * ?",
+    "specs": [
+      {
+        "type": "email-smtp",
+        "params": {
+          "from": "no-reply@startree.ai",
+          "smtp": {
+            "host": "${SMTP_HOST}",
+            "port": "${SMTP_PORT}",
+            "user": "${SMTP_USER}",
+            "password": "${SMTP_PASSWORD}"
+          },
+          "to": [
+            "your.email@gmail.com"
+          ]
+        }
+      }
+    ]
+  }
+]
+```
+
+Here is the same example with a subscription group that is associated with an alert and an
+enumeration item. Here, in addition to the alert ID we also specify the enumeration item ID.
+
+```json
+  {
+    "id": 250958,
+    "name": "sg-alert-and-enumeration-item",
+    "alertAssociations": [
+      {
+        "alert": {
+          "id": 247243
+        },
+        "enumerationItem": {
+          "id": 247397
+        }
+      }
+    ],
+    "cron": "0 */5 * * * ?",
+    "specs": [
+      {
+        "type": "email-smtp",
+        "params": {
+          "emailRecipients": {
+            "from": "no-reply@startree.ai",
+            "to": [
+              "your.email@gmail.com"
+            ]
+          },
+          "smtp": {
+            "host": "${SMTP_HOST}",
+            "port": "${SMTP_PORT}",
+            "user": "${SMTP_USER}",
+            "password": "${SMTP_PASSWORD}"
+          }
+        }
+      }
+    ]
+  }
+```
+
+## Slack [API Support]
+
+All notification channels are hosted within subscription groups. CRUD operations can be performed as usual on subscription group entities using the `/api/subscription-groups` endpoint.
+
+### Step 1. Create a Slack app
+
+Create a Slack app for your workspace and add an incoming webhook. The webhook is tied to a specific channel and would look something like this.
+
+```http
+https://hooks.slack.com/services/T1234567/AAAAAAAA/ZZZZZZ
+```
+
+Note that one app can support multiple incoming webhooks.
+
+### Optional: Subscription groups values can be populated via environment variables
+
+To prevent the incoming webhook from being visible in plain text to any user, you can create an environment variable (in Kubernetes, you can also leverage secrets to do this).
+
+```shell
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/T1234567/AAAAAAAA/ZZZZZZ"
+```
+
+### Step 2. Create a subscription group
+
+Here is a sample payload for creating the subscription group. You can submit this to `POST /api/subscription-groups`.
+
+```json
+ [
+  {
+    "name": "slack-webhook",
+    "cron": "0 */5 * * * ?",
+    "specs": [
+      {
+        "type": "slack",
+        "params": {
+          "webhookUrl": "${SLACK_WEBHOOK_URL}",
+          "sendOneMessagePerAnomaly": false,
+          "oneMessagePerAnomalyBurstLimit": 20,
+          "textConfiguration": { 
+             "owner": "Acccounting team",
+             "mentionMemberIds": ["U03LORTRY9H"]
+          }
+        }
+      }
+    ]
+  }
+]
+```
+- `webhookUrl`: the slack webhook url
+- `sendOneMessagePerAnomaly`: if false: anomalies notified at the same time are sent in a single message. If true, one message is sent for each anomaly.
+- `oneMessagePerAnomalyBurstLimit`: if `sendOneMessagePerAnomaly` is true and there are a lot of anomalies at the same time, sending many messages could be blocked by Slack API quotas. Limit number of messages to send by a single notification task. 
+- `textConfiguration`:
+  - `owner`: free text to add an owner to the alert
+  - `mentionMemberIds`: A list of Slack member ids to mention (tag) in the message. 
+
+### Step 3: Use your subscription group with any Alert
+
+The subscription group can be tied to any alert as usual.
+
+Also note that one subscription group supports multiple specs. Therefore, it can route to the same or different notification channels in the same subscription group.
+
+
+## Set Up PagerDuty integration
+
+To integrate PagerDuty notifications for ThirdEye alert notifications, do this:
+
+1. **Create a PagerDuty Service**: If you don't already have one, create a new service in your PagerDuty account. This service will be the destination for the alerts from your system.
+
+2. **Obtain an Events Integration Key**: [See the PagerDuty documentation for details](https://support.pagerduty.com/docs/services-and-integrations#create-a-generic-events-api-integration).
+    - In your PagerDuty service, add an integration. [See the PagerDuty documentation for details](https://support.pagerduty.com/docs/service-directory).
+    - Choose the **Events API v2** integration type.
+    - Once the integration is added, you will receive an **Integration Key**. This key is unique to the service and is used to authenticate events sent from your system to PagerDuty.
+
+3. **Secure the Integration Key**:
+    - To ensure security, it's advisable not to expose the Integration Key directly in your application code.
+    - In a Kubernetes environment, consider using Kubernetes secrets to store this key.
+    - For other environments, use appropriate methods to secure the key, like environment variables.
+    - Example of setting an environment variable:
+      ```shell
+      export PAGERDUTY_INTEGRATION_KEY="your-integration-key-here"
+      ```
+
+### Create a subscription group with PagerDuty specs
+
+1. **Prepare the payload**: Construct a JSON payload to create a new subscription group that will use the PagerDuty integration. Here is a sample payload:
+
+    ```json
+    [
+      {
+        "name": "pagerduty-servicename",
+        "cron": "0 */5 * * * ?",
+        "specs": [
+          {
+            "type": "pagerduty",
+            "params": {
+              "eventsIntegrationKey": "${PAGERDUTY_INTEGRATION_KEY}"
+            }
+          }
+        ]
+      }
+    ]
+    ```
+
+    - This cron job example runs every 5 minutes. Adjust as needed.
+    - The `"eventsIntegrationKey"` parameter is where you use the environment variable you created to store your PagerDuty Integration Key. It is strongly discouraged to directly use the Integration Key in the payload, for security reasons.
+
+2. **Send the request**: Use the above payload to make a `POST` request to the `/api/subscription-groups` endpoint of your system. This request will create a new subscription group configured to send alerts to PagerDuty.
+
+### Connect the subscription group to alerts
+
+- Once the subscription group is created, you can associate it with any alert in your system.
+- The alerts tied to this group will trigger notifications to the configured PagerDuty service based on the rules and schedules defined in the subscription group.
+
+
+## Webhook [API Support]
+
+The webhook notification allows you to input a URL which ThirdEye can use to POST a payload.
+
+Here is a sample JSON payload to build a webhook notification.
+
+```json
+ [
+  {
+    "name": "webhook",
+    "cron": "0 */5 * * * ?",
+    "specs": [
+      {
+        "type": "webhook",
+        "params": {
+          "url": "http://localhost:8080/internal/webhook"
+        }
+      }
+    ]
+  }
+]
+```
+
+The POSTed payload contains all the anomaly reports relevant for the notification service. Here's an example payload. It contains:
+
+- The subscription group itself
+- Array of anomaly reports
+- A report object around all the anomalies
+
+```json
+{
+  "subscriptionGroup": {
+    "id": 188059,
+    "name": "webhook",
+    "alertAssociations": [
+      {
+        "alert": {
+          "id": 136062
+        }
+      }
+    ],
+    "cron": "0 */5 * * * ?",
+    "specs": [
+      {
+        "type": "webhook",
+        "params": {
+          "url": "http://localhost:8080/internal/webhook"
+        }
+      }
+    ]
+  },
+  "anomalyReports": [
+    {
+      "anomaly": {
+        "id": 188180,
+        "startTime": 1583020800000,
+        "endTime": 1588291200000,
+        "avgCurrentVal": 2.3475211E7,
+        "avgBaselineVal": 6.1570800760419734E7,
+        "score": 0.0,
+        "weight": 0.0,
+        "impactToGlobal": 0.0,
+        "sourceType": "ANOMALY_REPLAY",
+        "created": 1653463092111,
+        "notified": true,
+        "alert": {
+          "id": 188172
+        },
+        "metric": {
+          "name": "passenger_count"
+        },
+        "metadata": {
+          "dataset": {
+            "name": "us_monthly_air_passengers_simplified"
+          },
+          "metric": {
+            "name": "passenger_count"
+          }
+        }
+      },
+      "url": "http://localhost:7004/anomalies/188180",
+      "data": {
+        "metric": "passenger_count",
+        "startDateTime": "Mar 01, 2020 00:00",
+        "lift": "-61.87 %",
+        "feedback": "Not Resolved",
+        "anomalyId": "188180",
+        "anomalyURL": "http://localhost:7004/anomalies/",
+        "currentVal": "23,475,211",
+        "baselineVal": "61,570,800.76",
+        "dimensions": [],
+        "swi": "0.00 %",
+        "function": "us_monthly_passengers_simplified-holtwinters",
+        "funcDescription": "Sample description payload for testing",
+        "duration": "1,464 hours",
+        "endTime": "May 01, 2020 00:00",
+        "timezone": "UTC",
+        "anomalyType": "Deviation",
+        "properties": ""
+      }
+    }
+  ],
+  "report": {
+    "startTime": "Sep 01, 2001 00:00",
+    "endTime": "May 01, 2020 00:00",
+    "reportGenerationTimeMillis": 1653464950589,
+    "dashboardHost": "http://localhost:7004",
+    "relatedEvents": [
+      {
+        "id": 3,
+        "name": "Related Holiday",
+        "type": "HOLIDAY",
+        "startTime": 1546310140005,
+        "endTime": 1546396540005,
+        "targetDimensionMap": {}
+      }
+    ]
+  }
+}
+```
+
+### Integration with notification endpoint to any other custom service using a webhook
+
+Refer to this [github link](https://github.com/rahulbsw/webhook-proxy) to get access to the code.
+
+Here is the code snippet:
+
+```
+def arrow(cur,base)
+  if ($base < $cur)
+    "⇑"
+  else if ($base > $cur)
+    "⇓"
+  else
+    "⇝"
+
+[
+    for (.anomalyReports) 
+    { 
+        "markdown" : "---"+"\n "+                 
+                     "### **"+ .data.function +"** \n "+
+                     "### Metric : **"+ .data.metric+"** \n "+
+                     "### Change         : " + .data.lift + " " + arrow(.data.currentVal,.data.baselineVal)  +"\n "+
+                     "#### Start Time     : " + fallback(.data.startTime,.data.startDateTime) + " " + .data.timezone + " Duration " + .data.duration +"\n "+
+                     "#### Current Value  : " + .data.currentVal +"\n "+
+                     "#### Baseline Value : " + .data.baselineVal +"\n "+
+                     "#### dimensions    : " + string(.data.dimensions) +"\n "+
+                     "**"+ .data.funcDescription +"** \n "+
+                     "**[Anomaly URL](http://<hostname>/anomalies/" + .data.anomalyId +")** \n "+
+                     "---"+"\n "
+    }
+    
+] 
+```
+
+## Alert and notify on anomaly resolution
+
+Alert and notify on anomaly resolution aims to create a more complete monitoring experience by informing users not only about problems but also their resolution, leading to better awareness, improved efficiency, and a more proactive approach to metrics health.
+
+Currently this feature is supported for Slack and Webhook notifications.
+
+### How to configure alert and notify on anomaly resolution for Slack notifcations?
+<p>
+<img src="/img/thirdeye/NotificationPeriodEnds.png" width="80%" />
+</p>
+
+### How to configure alert and notify on anomaly resolution for webhook notifcations?
+
+Example of a payload
+
+```json
+[{
+  "name": "webhook test 3",
+  "alerts": [],
+  "alertAssociations": [
+    {
+      "alert": {
+        "id": 8267190
+      },
+      "created": 1712588538303
+    }
+  ],
+  "cron": "0 */5 * * * ?",
+  "specs": [
+    {
+      "type": "slack",
+      "params": {
+        "webhookUrl": "https://hooks.slack.com/services/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",
+        "notifyResolvedAnomalies": true
+      }
+    },
+    {
+      "type": "webhook",
+      "params": {
+        "url": "https://feline-open-robin.ngrok-free.app/thirdeye/srm"
+      }
+    }
+  ],
+  "notifyHistoricalAnomalies": true
+}]
+```
+
+To edit an entity, get the full entity with GET: `GET /api/subscription-groups/{id}/`.
+
+To push the update with the PUT method: `PUT /api/subscription-groups`.
+
+payload:
+
+```json
+[
+ { <YOUR_CONFIG>
+  }
+]
+```
+## Slack notifications with tags and owners
+
+Organize slack notifications with tags and quickly see who's responsible for each anomaly with memberid.
+
+### How to configure Slack notifcations for tags and owners?
+<p>
+<img src="/img/thirdeye/SlackAlertOwner.png" width="80%" />
+</p>
+[Read slack docs for more details](https://api.slack.com/methods/users.identity)

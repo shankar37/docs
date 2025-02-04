@@ -1,0 +1,42 @@
+# ThirdEye entities
+
+This page discuss key topics and concepts at a high level and provide useful background information and explanation to help you understand how ThirdEye works, and make it easier for you to use the platform.
+
+The diagram below shows how a new user would interact with ThirdEye:
+
+<img src="/img/thirdeye/_workflow_high_level.png" width="70%" />
+
+Let's review the entities and terminology used in this workflow.    
+
+In ThirdEye, there are 3 main families of entities: _data_, _alerts_, and _notifications_.
+
+## Data entities
+- **Datasource**  
+  A connection to a data system. This is where ThirdEye gets the data you want to monitor.  
+  Example: an Apache Pinot instance.
+- **Dataset**  
+  A mapping to a table in a **datasource**.   
+  Example: the `orders` table.
+- **Metric**  
+  A column in a **dataset**, and an associated aggregation function.    
+  Example: the `revenue` column with the function `SUM`
+
+## Alert entities
+- **Alert** - also called **detection pipeline**  
+  A complete anomaly detection rule configuration.   
+  Example: create an **anomaly** if `revenue` is bigger than `20000`. Check every hour.
+- **Alert template**  
+  A detection logic boilerplate that can be used to create *Alert*.  
+  Example: create an **anomaly** if `${metric}` is bigger than `{max_value}`.
+- **Anomaly**  
+  A problem detected by a **detection pipeline**  
+  This is what you look at when there is a problem.  An anomaly has a start time and an end time.  
+  Example: `revenue` was `30000`, above the threshold of `20000`, on Thursday 3, between 9pm and 10pm. 
+
+## Notification entities
+- **Notification system**  
+  A system where to send alerts.  
+  Example: email, Slack.
+- **Subscription Group**   
+  A list of notification recipients and a list of alerts. Anomalies raised by the alerts are sent to the recipients.  
+  Example: email John and Jenny if revenueAlert or userAlert detect an anomaly.

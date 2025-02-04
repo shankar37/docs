@@ -1,0 +1,53 @@
+---
+description: How to extract columns from JSON Object.
+---
+
+# Unnesting JSON
+
+StarTree’s Data Manager offer built-in capabilities to flatten JSON using ingestion-time transformations with mapper functions and ingestion configurations. Let's try to extract fields from a JSON Object to create columns in the Pinot Table.
+
+**Sample JSON**
+
+```json
+{
+  "userId": 8385,
+  "userAddress": {
+    "streetAddress": "211 Quinton Burgs",
+    "city": "North Rosalee",
+    "state": "Alaska",
+    "country": "Tajikistan",
+    "zipcode": "79349"
+  },
+  "firstName": "Enrique",
+  "lastName": "Sporer",
+  "email": "fred.murazik@example.com",
+  "eventTime": "2024-09-04T06:10:34",
+  "productId": 313,
+  "eventType": "view"
+}
+```
+
+## Extract fields from JSON to create columns
+
+As you can see the above record has a JSON field `userAddress`, which contains fields `streetAddress`, `city`, `state`, `country`, `zipcode`. Let’s go through the steps to extract these columns. Pinot applies a default transform function to JSON fields and renames it to add a suffix `_json_str`. For this example, you’ll find the field `userAddress` renamed to `userAddress_json_str` in the Pinot Schema.
+
+***Step 1:*** In the third step of configuring Data Modeling, create a new column by clicking on **`Add New Columns`**.
+
+![Add New Columns](/img/dataset-manager/recipes/unnesting-json/column-settings.png)
+
+***Step 2:*** Configure Column Name, Data type, and Transform Function. For example, for the new column `city`, use the transform function: `JSONPATHSTRING(userAddress_json_str, '$.city')`.
+
+***Step 3***: Click Test Transformation and Create Column.
+
+***Step 4***: Repeat above steps 1 to 3 for all such columns.
+
+
+### In case the original JSON Object is not needed
+
+In this example, let's remove the original JSON Object column and extract the field. Unlike the earlier case, here the transform function will take in the original field as input.
+
+***Step 1***: Delete the original column, `userAddress_json_str` on the Data Modeling screen.
+
+***Step 2***: Change the Transform function to `JSONPATHSTRING(userAddress, '$.city')` as shown in below screenshot.
+
+![Add New Columns](/img/dataset-manager/recipes/unnesting-json/alternative-column-settings.png)

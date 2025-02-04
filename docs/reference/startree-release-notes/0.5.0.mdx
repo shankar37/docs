@@ -1,0 +1,271 @@
+import { Callout } from 'nextra/components';
+
+# Release Version 0.5.0: Jun-Aug 2022
+
+## Apache Pinot
+
+### Enhanced null value support
+
+Added proper null value support in all Pinot layers for raw and dictionary encoded single value columns, for all data types. 
+For more information, see the [Github issue](https://github.com/apache/pinot/issues/8697) documentation.
+
+### Deduplication support in real-time Pinot table
+
+Users can now push segments to a real-time table, thus simplifying onboarding when ingesting from a hybrid source (real-time and offline). This makes it very easy to bootstrap or backfill a real-time table. For more details, see [the GitHub issue](https://github.com/apache/pinot/issues/8283).
+
+### Upsert Improvements
+
+Added the following enhancements:
+
+* Prevent data corruption when getting out-of-order messages. See [PR #9159](https://github.com/apache/pinot/pull/9159)
+* Improve performance when offloading segments. See [PR #8674](https://github.com/apache/pinot/pull/8674) and [PR #9132](https://github.com/apache/pinot/pull/9132) 
+
+### Multi-stage query engine enhancements
+
+Made further progress in implementing full JOIN support as well as supporting existing query constructs with multi-stage engine, including:
+
+* Distributed shuffle joins
+* Group by
+* Sub-query
+* Complex queries using a mix of the above
+
+See [GitHub issue #8260](https://github.com/apache/pinot/issues/8260)
+
+For more details, see [V2 Multi-Stage Query Engine documentation](https://docs.pinot.apache.org/developers/advanced/v2-multi-stage-query-engine).
+
+
+<Callout>
+Requires [separate configuration](https://docs.pinot.apache.org/developers/advanced/v2-multi-stage-query-engine) to enable and is in beta release
+Feature support is limited to those listed above
+No concurrent multi-stage query support
+</Callout>
+
+### API for segment reload status
+
+Added a new controller API for checking status of segment reload operation. 
+More details in [this PR](https://github.com/apache/pinot/pull/8828) and [docs](https://docs.pinot.apache.org/users/tutorials/schema-evolution).
+
+### Helix version upgrade to 1.0.4
+
+Upgraded Helix version to 1.0.4 in Pinot.
+
+### Query cancellation support
+
+Added support for cancelling a submitted query by its ID. This is useful to cancel long running queries in order to conserve resources on the Pinot cluster. 
+This is controlled by the following config:
+
+* pinot.server.enable.query.cancellation, false by default
+* pinot.broker.enable.query.cancellation, false by default
+
+More details [in this PR](https://github.com/apache/pinot/pull/9171) or read about it in the [docs](https://docs.pinot.apache.org/basics/getting-started/frequent-questions/query-faq#how-do-i-cancel-a-query).
+
+### Declarative support for query options
+
+Added support for declaratively specifying query options in the SQL query string. Example:
+
+```sql
+SET skipUpsert = 'false';
+SELECT count(*) FROM tbl
+```
+
+More details in [this PR](https://github.com/apache/pinot/pull/9017) and [docs](https://docs.pinot.apache.org/users/user-guide-query/query-options#after-release-0.11.0).
+
+### Pause support for real-time tables
+
+Added support to pause / resume ingestion for a real-time Pinot table. 
+
+More details in [this PR](https://github.com/apache/pinot/pull/8986). 
+
+### Bloom filter for no dictionary columns
+
+Added support for configuring bloom filter for no dictionary single valued columns in Pinot table config.
+
+### Protobuf decoder
+
+Added Protobuf decoder for realtime ingestion with file or schema registry based descriptor support. 
+
+More details in [this wiki](https://docs.pinot.apache.org/v/release-0.11.0/basics/data-import/pinot-input-formats#protocol-buffers).
+
+### Kafka ingestion from specific period/timestamp
+
+Ability to begin consumption from a specific period (2d ago, 12h ago) or timestamp (in format 2022-08-09T12:31:38.222Z) string.
+
+More details in [PR](https://github.com/apache/pinot/pull/9193) and [docs](https://docs.pinot.apache.org/basics/data-import/pinot-stream-ingestion/import-from-apache-kafka).
+
+
+### Minion UI in the Pinot Admin UI
+
+Added Minion tab in Pinot UI, to show more details about task queues, tasks and sub tasks, along with exceptions.
+
+More details in [PR](https://github.com/apache/pinot/pull/8978).
+
+
+### Hide Query Console from Pinot UI
+
+Added a cluster config to hide Query Console from Pinot UI. 
+Cluster config to disable can be found [here](https://docs.pinot.apache.org/configuration-reference/cluster).
+
+## StarTree Extensions for Apache Pinot
+
+<Callout type="info">
+Available only in StarTree Cloud
+</Callout>
+
+### Tier storage enhancements <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Following enhancements were made to StarTree’s cloud tiered storage feature:
+
+Performance
+1. Async S3 client for supporting higher fetch volume and parallelism
+
+Observability
+
+1. API to check tier status and metrics
+
+Ease of use
+
+1. Ability to use same bucket as deepstore with custom path
+2. Ability to use same tenant for local and tier
+
+### Pubsub Correctness and operational improvements <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Following enhancements were made to the PubSub connector
+
+1. Auto delete old snapshots to reduce cost
+2. Handling message re-delivery for better correctness
+
+## StarTree Cloud - includes BYOC (Bring Your Own Cloud) and SaaS
+
+### Self serve Portal <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Launched a self serve portal for creating a StarTree workspace (BYOC and SaaS) without any involvement from StarTree personnel. You can find the portal here: https://startree.cloud/. 
+
+The corresponding documentation can be found here: https://dev.startree.ai/docs/startree-enterprise-edition/startree-cloud/getting-started/
+
+### Authentication Service <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Created a new unified authentication mechanism across platform and services within a StarTree workspace. This new model makes it safer and easier for all components to implement authentication.
+
+
+### Improved Pinot Token generation workflow <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Created a new, simpler workflow for generating tokens required for securely accessing a Pinot cluster. The earlier workflow required a cluster restart (transparent to user). 
+
+
+### Support for custom storage profile <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Added support for overriding the pre-configured storage spec (based on cluster size) with a custom spec. This is useful to customize Persistent Volume spec for different components like Pinot server, minion, Zookeeper and so on.
+
+### Improved monitoring and alerting for StarTree Cloud components <span className="bg-yellow px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">ALPHA</span>
+
+Added new metrics and corresponding alerts for monitoring critical things such as Zookeeper health and I/O profile.
+
+### SSL/TLS <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Announcing GA for encrypted network access to StarTree workspace via SSL/TLS
+
+## Data Manager: Self-Service Ingestion tool 
+
+### BigQuery connector <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Users can now self-serve data ingestion from BigQuery using Data Manager no-code experience with few clicks.
+See [documentation](https://dev.startree.ai/docs/startree-extensions/sql-connector).
+
+### Dataset ingestion status <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Users can now monitor the data ingestion status and view ingestion logs after submitting the ingestion jobs. This will help users to debug issues and fix them as needed. 
+
+See [documentation](https://dev.startree.ai/docs/startree-enterprise-edition/startree-dataset-manager/ingestion-status).
+
+### Kinesis connector <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Users can now self-serve data ingestion from AWS Kinesis using Data Manager no-code experience with few clicks.
+
+See [this doc](https://docs.pinot.apache.org/basics/data-import/pinot-stream-ingestion/amazon-kinesis) for more details on the connector itself.
+
+### Automated segment name generator support for  time columns with simple date format <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now self-serve data ingestion from AWS Kinesis using Data Manager no-code experience with few clicks.
+
+See [this doc](https://docs.pinot.apache.org/basics/data-import/pinot-stream-ingestion/amazon-kinesis) for more details on the connector itself.
+
+
+### Automated segment name generator support for  time columns with simple date format <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+The segment name generator type is automatically updated for time columns in simple date format. Users no longer need to configure this manually.
+
+
+### Support enableSync for offline batch ingestion <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Now Data Manager supports enableSync for offline batch ingestion to refresh the data in Pinot whenever needed or at certain schedule.
+
+## ThirdEye: Anomaly Detection and Root Cause Analysis Tool
+
+### StarTree ThirdEye Community Edition <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now explore and learn or evaluate before purchasing for free using StarTree Community Edition. 
+Useful links:
+
+* [Blog to learn more](https://www.startree.ai/blog/introducing-startree-thirdeye-anomaly-detection-and-insights-with-apache-pinot)
+* [Quick start guide](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/getting-started/QuickTrialStarTreeCommEdition)
+* [StarTree Community Channel](https://communityinviter.com/apps/startreedata/startree-community)
+* [StarTree ThirdEye Community vs Enterprise edition features](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/ThirdEyeCommEdVsEntEdition)
+
+### Alert creation (Derived/transformed metrics support) <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now create “derived or transformed metrics” during alert creation.
+See [documentation](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/how-tos/alert/derived-metric-alert).
+
+### Alert creation (Improvements to Timeout and Timezone support) <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+During alert creation:
+
+* Users no longer need to update the time column format and the time column name during alert creation. It will be automatically derived based on Pinot configurations. Users can always overwrite it if needed.
+* Users of StarTree ThirdEye now have an increased timeout window and can use long-running aggregations during anomaly detection.
+
+### Holiday pattern recognization <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now identify holiday patterns during anomaly detection to improve detection accuracy. (See [Event fetcher](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/reference/operators/event-fetcher) and [StarTree ThirdEye template](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/reference/operators/anomaly-detector/ets))
+
+
+### Slack notification and subscription to slack channels <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now subscribe to slack channels using StarTree ThirdEye subscription user interface to send anomaly notifications to the slack channels. 
+See [documentation](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/how-tos/notification/#step-1-create-a-slack-app)
+
+### Authentication on StarTree ThirdEye APIs <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now use a generated token to get secure access to StarTree ThirdEye APIs. These tokens have an extended life so users can use these tokens for automation such as bulk creation of alerts or ingestion of “Events” to StarTree ThirdEye using external scripts. 
+See [documentation](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/how-tos/use-the-api#obtaining-a-basic-token---without-expiration).
+
+### Auto onboard datasets <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now auto onboard all datasets from “Pinot” to ThirdEye with one click during data source creation. 
+See [documentation](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/how-tos/database/#steps-to-register-a-new-datasource).
+
+### Bulk delete anomalies <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now bulk delete anomalies from the anomalies list view.
+
+### Duplicate and reset alerts <span className="bg-[#f3f9ff] px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">GA</span>
+
+Users can now create “Duplicate and Reset Alerts” using StarTree ThirdEye from the Alerts detail page or Alerts list view page.
+
+### Create alert (No Code) <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Users can now create alerts and detect anomalies in a few seconds without writing a single line of code. 
+See [documentation](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/getting-started/create-your-first-alert).
+
+### RCA events <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Now users can perform root-cause analysis in ThirdEye  using a self-serve events UI. Using this users can identify events that caused the anomalous events. Users can upload any type of event (ex: Holidays, Jira events etc using ThirdEye APIs (link))
+
+Example of events that helps with “Root-cause analysis” of an anomalous event in a KPI are:
+
+* Custom events (Ex: A/B test-related specific events)
+* Public events (Ex: holiday or political event or competition etc)
+* Internal events (Ex: Feature ramp, software deployment, metric definition changes etc)
+
+### Anomaly filtering <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full inline-block text-[16px] font-normal">BETA</span>
+
+Now users can filter anomalies by alerts/dataset/metrics, etc. in the anomaly list/report view

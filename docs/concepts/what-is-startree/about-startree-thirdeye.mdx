@@ -1,0 +1,169 @@
+# StarTree ThirdEye
+
+StarTree ThirdEye is an anomaly detection, monitoring, and interactive root-cause analysis "all-in-one" platform. It
+comes with a self-serve UI experience. It empowers insights producers and consumers to unleash the power of actionable
+insights from anomalous events in a self-serve interactive way to act on it in real-time.
+
+<img
+  width="642"
+  alt="image"
+  src="https://user-images.githubusercontent.com/98617940/210278529-7f5bca4d-b797-4c1d-8073-cb29e178996e.png"
+/>
+
+StarTree ThirdEye has unique advantages to fast-track problem solving with applied Anomaly Detection on time series data
+at scale.
+
+- **Reduced Time for Detection**
+  - StarTree ThirdEye can easily connect to real-time and historical data sources at scale and detect anomalies with a
+    point-and-click experience. Allows monitoring of multiple time series in a given dataset in real time.
+  - Allows to run aggregated queries such as Sum/Avg/Count and simple/advanced statistical methods to detect outliers at
+    scale in sub-second response time.
+- **Applied Science**
+  - It runs outlier detection with applied science (out-of-the-box Anomaly Detection models) on time series data. Allows
+    users to fine-tune these detection models for reduced false alarms with easy-to-use configurations based on the
+    business context. Users need not write algorithms and maintain models and data pipelines to detect outliers.
+- **Reduced Time to Resolution**
+  - An interactive UI performs root cause analysis in case of an incident and unlocks actionable insights such as top
+    contributors and heatmap of dimensions contributing to the spike or drop in the critical metrics in an easy-to-use
+    interface.
+  - It allows performing dimension drills at scale in sub-second response time helping with faster time to unlock
+    actionable insights.
+- **Intuitive User Interface, Customization, and Flexibility**
+  - It has a user-friendly interface that makes it easy to set up and use with a point-and-click-low code/no-code
+    experience.
+  - Users can customize the algorithms and parameters and build custom apps using APIs to solve custom business use
+    cases.
+- **Support and Documentation**
+  - StarTree ThirdEye comes with comprehensive documentation and support from StarTree in our community Slack.
+
+**It has the following key features:**
+
+- **Self-serve point-and-click UI (low-code/no-code) UX**
+  - Monitor, detect, and resolve outliers in massive real-time data at ease
+  - Interactive root-cause analysis helps to fast-track problem-solving
+- **Statistical detection techniques helps in detecting**
+  - Predict trends and identify potential anomalies from past data
+  - Use simple and advanced algorithms to detect anomalies in live data
+  - Monitor across multiple dimensions to achieve granular insights from time series data
+  - Global outliers (outliers far outside)
+  - Contextual outliers (ex: seasonal data patterns)
+  - Collective outliers (significant deviation from other data points)
+- **Advanced anomaly detection configurations and intelligent alerts**
+  - Metrics and dimension level anomaly monitoring (single/multiple timeseries): Identify anomalies in massive and
+    rapidly changing data by configuring one-time intelligent alerts for critical metrics
+  - Anomaly filters: More control in the hands of the user to catch true anomalies and minimize false alarms
+  - Create (no code) aggregated metrics (ex: sum/count) in ThirdEye for outlier identification
+    - Generate metrics at different granularities
+    - Generate different metrics (count,sum,distinct count, percentile etc)
+    - Group metrics by different sets of dimensions
+  - Generate customizable alerts and notifications
+    - Adjust triggers
+    - Set your desired notification channel(s) and routing
+- **ThirdEye Genie - Cohort recommender**
+  - Recommends top contributors of cohorts (group of dimensions/metrics in a dataset) having significant deviation on a
+    given KPI/metrics in a massive scale of data which is hard to find manually. Using point and click experience one
+    can easily start monitoring these cohorts in no time.
+- **Fast track problem solving (using root cause analysis)**
+  - Self-serve interactive UI
+  - Identify key dimensions contributing to the outlier
+  - Find the correlation with related metrics contributing to the outlier
+  - Find the events contributing to the outlier
+- **Modular architecture**
+  - Flexible architecture enables easy plug-in of time series data stores such as Apache Pinot and allows plug-ins with
+    anomaly detection models/libraries
+  - API support with RBAC/ABAC
+
+## Key use-cases
+
+**Automated monitoring and root-cause analysis of User facing KPIs**
+
+- Monitor, detect, and resolve outliers in user-facing insights/KPIs such as detecting outliers in product catalogs so
+  that merchants can ensure the product catalog is stocked, priced, and marketed well for their products.
+
+**Automated monitoring and root-cause analysis of Business KPIs**
+
+- Monitor, detect and resolve outliers in business-critical KPIs and identify key drivers impacting the business KPIs  
+  Example: a new successful marketing campaign that increased leads or a promotional discount that drove up sales, or a
+  price glitch impacting revenue
+
+**Automated monitoring and root-cause analysis of Product KPIs**
+
+- Monitor, detect, and resolve outliers related to KPIs used for improving Product experience or driving growth for the
+  product Example: A new feature release or launch or software bugs or increase in # of active users that caused a
+  sudden drop/increase in the user engagement KPIs (ex: # of views or # of monthly active users or paid users)
+- Monitor, detect, and resolve outliers in KPIs used to monitor overall data health and quality, such as the drop in
+  data completeness, accuracy, freshness, and compliance stats
+
+**Automated monitoring and root-cause analysis of Systems KPIs**
+
+- Monitor, detect, and resolve outliers related to KPIs used for ensuring system health of a platform or product, such
+  as the spike in Cloud Costs, Cloud Failure, Infra performance
+- Monitor, detect, and resolve outliers related to KPIs for ensuring IoT system health, such as the spike in
+  performance, data volumes, and uptime
+
+<div className="flex justify-center items-center">
+  <a
+    href="/docs/get-started-with-thirdeye/getting-started/install-thirdeye"
+    className="font-semibold text-xl px-6 py-2 rounded-md text-white bg-[#0b263e]"
+  >
+    Get Started
+  </a>
+</div>
+
+## Why ThirdEye?
+
+Unexpected deviations in critical metrics result in a materialistic impact on business, such as exponential growth in
+user activity on user facing applcications, revenue loss, drop in user engagement, and increased operational cost. In
+addition, with rapid growth, change of data, and the measurement of millions of metrics, monitoring and problem-solving
+are becoming extremely challenging and expensive.
+
+StarTree ThirdEye is built on top of the Open-source Thirdeye, developed at LinkedIn in [2015]. StarTree ThirdEye is an
+anomaly detection platform that allows organizations to monitor Business KPIs in a real-time fashion, and detect any
+anomalies automatically. This allows key stakeholders to take corrective action in a timely manner.
+
+It is uniquely positioned to solve these challenges with "all-in-one" detection, monitoring and root-cause analysis
+solution for monitoring critical business and user facing metrics and KPIs.
+
+Some of the **examples** are:
+
+- Monitoring business KPIs such as # of booked orders help to ensure you correctly handle order fulfillment and
+  logistics.
+- Monitoring business KPIs such as order sales helps experiment with different food prices to ensure the pricing is
+  correct and well adopted.
+- Monitoring user-facing KPIs such as popular food items, delivery time, and delivery distance will help you understand
+  customer behavior so that you can take the necessary measures to drive engagement and retention.
+- Monitoring business KPIs such as booked orders and advertising campaigns will help to decide the correct advertising
+  plan to define marketing strategies, suitable social media platforms, and their target audience.
+
+## What ThirdEye is not used for?
+
+ThirdEye maintains a dedicated meta-data store to capture data sources, anomalies, and relationships between entities
+but does not store raw time series data. It relies on systems such as Pinot to obtain both real-time and historic time
+series data. You can use
+[Data Manager](/docs/use-data-manager/) to ingest data from
+various data sources to Pinot (Such as batch, real-time, CSV etc) ThirdEye does not replace your issue tracker - it
+integrates with it. ThirdEye supports collaboration but focuses on the data-integration aspect of anomaly detection and
+root-cause analysis. After all, your organization probably already has a well-oiled issue resolution process that we
+don't want to disrupt.  
+ThirdEye is not a generic dashboard builder toolkit. ThirdEye attempts to bring overview data from different sources
+into one single place on-demand. In-depth data about events, such as A/B experiments and deployments, should be kept in
+their respective systems. ThirdEye can link to these directly.
+
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/XhaLcpiPUS0"
+  title="YouTube video player"
+  allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+></iframe>
+
+_[Tim Berglund](https://twitter.com/tlberglund) explains ThirdEye_
+
+<div className="flex justify-center items-center">
+  <a
+    href="/docs/get-started-with-thirdeye/getting-started/install-thirdeye"
+    className="font-semibold text-xl px-6 py-2 rounded-md text-white bg-[#0b263e]"
+  >
+    Get Started
+  </a>
+</div>

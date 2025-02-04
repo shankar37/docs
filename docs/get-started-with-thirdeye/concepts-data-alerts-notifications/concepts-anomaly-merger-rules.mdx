@@ -1,0 +1,28 @@
+# Anomaly merger rules
+
+Consider an alert that runs with hourly granularity and an incident that last 3 hours.
+The alert will detect an anomaly 3 times, but it is actually the same incident.
+ThirdEye merges the anomalies in a single one.
+
+By default, the following rules are applied:
+1. consecutive anomalies are merged
+2. if an anomaly lasts for more than 7 days, a new anomaly is created
+
+## Examples
+### Anomaly merge
+1. Default behavior
+  ![merging anomalies](/img/thirdeye/_merge_anomalies_default.png)
+
+2. Custom behavior   
+  You can configure ThirdEye to merge anomalies that have a small gap between them using [mergeMaxGap](../templates/startree-threshold#anomaly-merger).  
+  For instance, with `mergeMaxGap=PT2H`, anomalies that have less than 2 hours between them are merged together.
+  ![custom merging anomalies](/img/thirdeye/_merge_anomalies_custom.png)
+
+3. Disable anomaly merger  
+  You can disable anomaly merger by setting `mergeMaxGap=PT0S`.
+  ![anomaly merger disabled](/img/thirdeye/_merge_anomalies_disabled.png)
+
+
+### Anomaly max length
+A new anomaly is created when the maximum length is reached. You can customize this maximum length with [mergeMaxDuration](../templates/startree-threshold#anomaly-merger).
+![merging maximum](/img/thirdeye/_merge_max_length.png)

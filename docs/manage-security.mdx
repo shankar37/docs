@@ -1,0 +1,34 @@
+# Security overview
+This page provides an overview of various security controls and mechanisms to safeguard your StarTree deployment and data.
+
+## Role-Based Access Control (RBAC)
+The StarTree Security Manager provides a centralized location for managing access control within your StarTree environment.
+
+StarTree's Security Manager allows you to:
+* [Manage access for users and groups](./manage-security/manage-access.mdx)
+* [Generate and manage API tokens](./manage-security/manage-api-tokens.mdx)
+
+**Users & groups**
+* **Authentication:** User identities are verified through an external [Identity Provider (IDP)](/docs/get-started-with-startree-cloud/byoc/identity-provider) like Okta or Auth0.
+* **Authorization:** The RBAC system determines which actions individual users and user groups are permitted to perform within the system. This includes access to resources, data, and operations.
+
+**Service tokens**<br/>
+Authentication & authorization: Service tokens are used by automated services. Both authentication and authorization for these tokens are managed by the RBAC system.
+
+**Scope of control:**<br/>
+The RBAC system governs access to:
+  * Cluster-level operations: This includes actions like modifying cluster configuration, managing resources, and controlling overall system settings.
+  * Table-level operations: This encompasses actions such as creating, deleting, querying, and modifying tables within the system.
+
+## Other security controls
+* **Data encryption:** Data is encrypted both in transit and at rest to protect its confidentiality and integrity.
+* **Least privilege:** The principle of least privilege is applied throughout the system, granting users only the minimum necessary access to perform their duties.
+* **Regular security audits and reviews:** Regular security audits and reviews are conducted to identify and address potential vulnerabilities.
+* **Network security:** Robust network security measures are in place, including firewalls, intrusion detection systems, and secure network segmentation.
+* **Incident response:** We have well-defined incident response plans to handle security breaches effectively and minimize impact.
+
+<a href="./startree-security-data">StarTree data security</a> covers authentication, encryption, networking, access control, and more.
+
+## Compliance and certifications
+StarTree is committed to maintaining the highest security standards, providing an external audit to ensure StarTree's security program meets industry standards. This includes planning for disaster recovery, business continuity, and regular policy reviews. 
+StarTree also maintains <a href="https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services">SOC 2 Type II</a> certification, demonstrating our adherence to industry best practices for data security and privacy.

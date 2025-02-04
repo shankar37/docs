@@ -1,0 +1,201 @@
+---
+description: In this guide we'll learn how to configure Apache Pinot to work with Kafka using SASL authentication.
+---
+import { Callout } from 'nextra/components';
+
+# Connecting to Kafka with SASL authentication
+
+In this guide we'll learn how to ingest data into Apache Pinot from an [Apache Kafka cluster configured with SASL authentication](https://docs.confluent.io/platform/current/kafka/authentication_sasl/index.html).
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.10.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/kafka-sasl">startreedata/pinot-recipes/kafka-sasl</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/kafka-sasl
+  ```
+
+### Launch Pinot and Kafka Clusters
+
+You can spin up Pinot and Kafka clusters by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, Kafka, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/kafka-sasl/docker-compose.yml) file on GitHub.
+
+The Kafka cluster is launched with the following JAAS (Java Authentication and Authorization Service) for SASL configuration
+
+```text
+KafkaServer {
+  org.apache.kafka.common.security.plain.PlainLoginModule required
+  username="admin"
+  password="admin-secret"
+  user_admin="admin-secret"
+  user_alice="alice-secret";
+};
+Client{};
+```
+
+We have two users:
+
+* `admin` with the password `admin-secret`
+* `alice` with the password `alice-secret`
+
+### Pinot Schema and Table
+
+Let's create a Pinot Schema and Table.
+
+The schema is defined below:
+
+```json
+{
+  "schemaName":"events",
+  "dimensionFieldSpecs":[
+    {
+      "name":"uuid",
+      "dataType":"STRING"
+    }
+  ],
+  "metricFieldSpecs":[
+    {
+      "name":"count",
+      "dataType":"INT"
+    }
+  ],
+  "dateTimeFieldSpecs":[
+    {
+      "name":"ts",
+      "dataType":"TIMESTAMP",
+      "format":"1:MILLISECONDS:EPOCH",
+      "granularity":"1:MILLISECONDS"
+    }
+  ]
+}
+```
+*config/schema.json*
+
+And the table config below:
+
+```json {16-18}
+{
+  "tableName": "events",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "ts",
+    "schemaName": "events",
+    "replication": "1",
+    "replicasPerPartition": "1"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP",
+    "streamConfigs": {
+      "streamType": "kafka",
+      "stream.kafka.topic.name": "events",
+      "stream.kafka.broker.list": "kafka-sasl:9093",
+      "security.protocol": "SASL_PLAINTEXT",
+      "sasl.jaas.config": "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin-secret\";",
+      "sasl.mechanism": "PLAIN",
+      "stream.kafka.consumer.type": "lowlevel",
+      "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+      "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+      "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder"
+    }
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "tenants": {},
+  "metadata": {}
+}
+```
+*config/table.json*
+
+The part of this configuration that we're interested in is highlighted.
+The credentials that we want to use are specified in the `sasl.jaas.config` property.
+
+<Callout>
+If our Kafka cluster has SSL enabled, we would need to specify `security_protocol` as `SASL_SSL` instead of `SASL_PLAINTEXT`.
+For an example of using SSL and SASL, see [Connecting to Kafka with SSL and SASL authentication](kafka-ssl-sasl.md)
+</Callout>
+
+Create the table and schema by running the following command:
+
+```bash
+docker exec -it pinot-controller-sasl bin/pinot-admin.sh AddTable   \
+  -tableConfigFile /config/table.json   \
+  -schemaFile /config/schema.json \
+  -exec
+```
+
+### Ingesting Data
+
+Next, we're going to ingest some data into Kafka:
+
+
+```bash
+while true; do
+  ts=`date +%s%N | cut -b1-13`;
+  uuid=`cat /proc/sys/kernel/random/uuid | sed 's/[-]//g'`
+  count=$[ $RANDOM % 1000 + 0 ]
+  echo "{\"ts\": \"${ts}\", \"uuid\": \"${uuid}\", \"count\": $count}"
+done | docker exec -i kafka-sasl /opt/kafka/bin/kafka-console-producer.sh \
+    --bootstrap-server localhost:9092 \
+    --producer.config /etc/kafka/kafka_client.conf \
+    --topic events;
+```
+
+We need to pass in a configuration file with SASL credentials when producing events as well.
+The contents of the configuration file are shown below:
+
+```conf
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=PLAIN
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="alice" \
+        password="alice-secret";
+```
+*/etc/kafka/kafka_client.conf*
+
+## Querying 
+
+Now let's navigate to [localhost:9000/#/query](http://localhost:9000/#/query?query=select+count%28*%29%2C+sum%28count%29+%0Afrom+events&tracing=false&pqlSyntax=false) and copy/paste the following query:
+
+```sql
+select count(*), sum(count) 
+from events 
+```
+
+You will see the following output:
+
+|count(*)|	sum(count)|
+|----------|-------------|
+|64209	|31917036|
+
+*Query Results*

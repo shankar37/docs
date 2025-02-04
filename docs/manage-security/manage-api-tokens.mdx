@@ -1,0 +1,67 @@
+# API token management
+This page describes how to create and manage API tokens within the StarTree environment. API tokens provide programmatic access to StarTree resources through role-based permissions.
+
+## Generating an API token
+1. Navigate to the Security Manager by browsing to [https://dp.your_environment_id.startree.cloud/security-manager](https://dp.your_environment_id.startree.cloud/security-manager).
+1. Click **API Tokens** in the left navigation menu.
+1. Click **Generate API token**.
+1. Select the desired role for the token. This will determine the permissions that will be granted to the token.
+   * For more information on roles and how they are defined, refer to the [Manage Access](./manage-access.mdx) page.
+1. Provide a description for the token. This will help you identify the token going forward.
+1. Click **Generate API token** to generate the new token. 
+1. Copy the token and store it someplace safe.
+
+<callout type="info">**Important:** Copy the generated token immediately. This token will only be displayed once.</callout>
+
+## Managing API tokens
+
+* **View Existing Tokens:** The API Tokens screen displays a list of all existing tokens, including their description, creation date, and their assigned role.
+* **Delete a Token:** To delete an API token, locate the token in the API Tokens list, click the actions menu (three vertical dots to the right of the token description) and click **Delete**.
+
+## Security considerations
+
+* **Treat API tokens like passwords:** Store API tokens securely and never share them with unauthorized individuals.
+* **Use strong security practices:** Implement appropriate security measures to protect your API tokens, such as:
+    * **Assign least privilege:** Grant only the minimal necessary permissions to API tokens.
+    * **Ensure regular rotation:** Regularly rotate API tokens to minimize the risk of unauthorized access.
+    * **Use secure storage:** Store API tokens securely and avoid hardcoding them directly into applications.
+
+## Important notes
+* API tokens provide programmatic access to StarTree resources. Exercise caution when granting permissions to API tokens.
+* Revoking an API token will immediately disable its access to StarTree resources.
+
+
+## Test the API token
+You can test the token using one of the following methods:
+
+### Using CURL
+To test the API token usinc CURL, include the token in the `--header` (`-H`) authorization parameter. 
+
+```
+curl --location --request GET 'https://pinot.<your url>.cloud/appconfigs' \
+--header 'Authorization: Bearer st-XkQBXKr652MV1VF9-5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg'
+```
+
+### Using the Swagger API  
+1. In Pinot UI, click on **Swagger REST API**.
+2. Click **Authorize**.
+3. In the "Available authorizations" dialog, scroll up to see the `oauth` authorization option.
+4. Enter `Bearer ` (including the space), followed by the token in the **Value** textbox.<br/>
+   <img width="610" alt="image" src="/img/swagger_ui_authorize_dialog.png" />
+5. Click **Authorize**.
+6. Find the API call you want to try and click the related **Try it out** button.<br/>
+     <img width="610" alt="image" src="https://user-images.githubusercontent.com/98617940/175752839-f9e90975-972c-4713-bfda-3955d701285b.png" />
+
+## Using the API token with Superset and Trino
+To connect to Superset and Trino, convert your API token to a username and password:
+1. Obtain the username and password from your [bearer token](#obtain-the-username-and-password-for-a-bearer-token).
+2. Connect to StarTree Cloud:
+    * [Connect Superset to StarTree Cloud](/docs/get-started-with-startree-cloud/connect-to-startree-cloud/connect-superset-to-startree-cloud) 
+    * [Connect Trino to StarTree Cloud](/docs/get-started-with-startree-cloud/connect-to-startree-cloud/connect-to-trino)
+
+### Obtain the username and password for a bearer token
+To convert your bearer token, drop the `st-` prefix, and then use the 16 alphanumeric string before the hyphen as your `username` and the following 32 alphanumeric string as your `password`.
+
+For example, if your bearer token is `st-XkQBXKr652MV1VF9-5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg`, then:
+* Your username would be `XkQBXKr652MV1VF9`.
+* Your password would be `5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg`.

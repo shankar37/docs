@@ -1,0 +1,115 @@
+---
+description: In this developer guide, you'll learn how to set up SegmentRefreshTask to keep segments consistent with the table config.
+---
+
+# Segment refresh
+
+The SegmentRefreshTask reads the latest table config, refreshes the segments if they are not consistent with the table config.
+When inconsistency between segments and table config is detected, it will download the segments from the deep store, process and regenerate the segments and then push them back to replace the old segments atomically.
+
+## Supported operations
+
+The following operations can be applied to the segments to match the table config:
+- Time partitioning: Re-partition the segments to be time partitioned (all the records within a segment are in the same time bucket)
+- Value partitioning: Re-partition the segments per the partitioning config
+- Merge/Split: Merge small segments or split large segments (with rollup support) to ensure segments are properly sized
+- Other table config changes that cannot be applied on the server side with segment reload
+  - Change time column
+  - Change sorted column
+  - Change column data type
+  - Change column encoding
+
+## How to config SegmentRefreshTask
+
+Configure the SegmentRefreshTask under the `taskConfig` in the table config.
+
+| Property Name           | Required           | Description                                                                                                                                                                                                  |
+|-------------------------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| bucketTimePeriod        | Yes                | Time bucket for segments (e.g. 1d).
+| maxNumRecordsPerSegment | No (default 5M)    | Max (desired) number of records in each segment. The task will try to resize all segments to this size after applying the partitioning constraints.                                                          |
+| skipSegmentIndexCheck   | No (default false) | If set to true, the index check (see the next section) will be skipped. This check requires pulling all segments' metadata from the servers, which can be costly for large table.                            |
+| tableMaxNumTasks        | No (default 10)    | Max number of parallel tasks a table can run at each schedule. This value can be tuned based on the Minion instances in the cluster. It has to be positive.                                                  |
+| maxNumRecordsPerTask    | No (default 50M)   | Max number of records processed in a single task. Each task is executed by a single Minion instance, so we want to limit the records processed to prevent Minion run out of resource. It has to be positive. |
+| maxDataSizePerTask    | No (default 5 GB)   | Max size of data provided to a single task. |
+| desiredSegmentSize   | No (default 500 MB)   | User specified size for a segment. |
+| batchSegmentUpload   | No                 | Boolean field for which the default value is `false`. When the value is set to `true` segments are uploaded in batch mode which is faster than uploading segments one after the other.                          |
+| mergeType               | No                 | Same definition as in the [MergeRollupTask](https://docs.pinot.apache.org/operators/operating-pinot/minion-merge-rollup-task#config).                                                                        |
+| roundBucketTimePeriod   | No                 | Same definition as in the [MergeRollupTask](https://docs.pinot.apache.org/operators/operating-pinot/minion-merge-rollup-task#config).                                                                        |
+| *.aggregationType       | No                 | Same definition as in the [MergeRollupTask](https://docs.pinot.apache.org/operators/operating-pinot/minion-merge-rollup-task#config).                                                                        |
+
+## Segment index check
+
+When segment index check is enabled, the task generator will pull the segment metadata for each segment from the servers, and compare it with the table config. If the segment metadata is not consistent with the table config, the segment will be refreshed.
+The following properties are compared between the segment metadata and the table config:
+- Whether the time column is the same
+- Whether the partitioning info matches:
+  - Same partition column
+  - Same partition function
+  - Same partition count
+  - Segment belong to a single partition
+- Sorted column in the table config is sorted in the segment
+- Checks for all columns:
+  - Column is added (while this can be handled via server reload, we have extended support to handle addition to this task, so that we can do it in one shot and via Minions)
+  - Column is deleted
+  - Column field type change
+  - Column data type change
+  - Column SV/MV change
+  - Column encoding change
+
+## Example Configuration
+
+```json
+    "task": {
+      "taskTypeConfigsMap": {
+        "SegmentRefreshTask": {
+          "bucketTimePeriod": "1d",
+          "maxNumRecordsPerSegment": "2000000",
+          "maxNumRecordsPerTask": "10000000"
+          "schedule": "0 */30 * * * ?"
+        }
+      }
+    }
+```
+
+## Real-time tables
+
+For real-time tables, the SegmentRefreshTask considers segments which are in COMPLETED state. The consuming segments
+are left untouched.
+
+### Upsert table
+This task is made to work with real-time table enabled Upsert as well. The task can compact segments, i.e. removing
+invalid docs; and then merge segments into bigger one. There are some limitations when this task is enabled for upsert
+tables, mainly due to the complexity from managing the upsert metadata consistently for upsert to work.
+
+Firstly, the records can't be rolled up because we need to keep the primary keys intact before/after refreshing.
+
+Secondly, the task does M:1 merging, i.e. combining multiple input segments into one new segment, to simplify the failure
+handling for tracking the upsert metadata consistently. With M:1 mapping, data repartitioning and bucketizing are not supported.
+
+Most task configs said above are ignored, but this one `"maxNumRecordsPerSegment": "2000000",` to configure how large
+the output segment should be, and the input segments are automatically decided for each task, based on how many valid
+records they have.
+
+In addition to adding the task configs of SegmentRefreshTask to enable the minion task for the upsert table,
+this config `"segmentmerge.enable"` is also needed to be set in tableConfig's upsertConfig section like below.
+A server restart is required for this change to take effect. This config is set to false by default for now to
+enable this feature incrementally. We will set it true by default in future releases.
+
+```json
+  "upsertConfig" : {
+        ...
+        "metadataManagerConfigs": {
+            "rocksdb.segmentmerge.enable": "true"
+            ...
+        }
+    }
+```
+
+Following would be the order of operations when enabling SegmentRefreshTask on an upsert enabled table.
+1. Set the feature flag
+2. Restart the servers
+3. Enable the SegmentRefreshTask
+
+
+## Limitation
+It's to be validated if this task can work with real-time table enabled Dedup.

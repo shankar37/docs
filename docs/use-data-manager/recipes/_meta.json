@@ -1,0 +1,8 @@
+{
+    "mapping-functions": "Mapping Functions",
+    "importing-date-time-time-zones": "Working with timezones",
+    "column-encoding": "Column Encoding",
+    "indexes": "Indexes",
+    "edit-schema-table-config": "Edit Schema and Table Configuration",
+    "record-reader": "Record Reader Configuration"
+}

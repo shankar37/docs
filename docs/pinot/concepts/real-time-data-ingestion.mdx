@@ -1,0 +1,57 @@
+---
+description: In this Apache Pinot concepts guide, we'll learn a little about the mechanics behind real-time data ingestion.
+---
+
+# Real-Time Data Ingestion
+
+When ingesting data from data streaming platforms like Apache Kafka, Pinot needs to monitor the offset that has been read from topic partitions and store it somewhere that's accessible to other servers.
+Pinot uses [Apache Helix](https://helix.apache.org/) to manage this process and the data is stored in Apache Zookeeper.
+
+If you're interested in learning more about the way that the data consumed from these partitions is stored in Pinot, watch the video below in which Neha Pawar gives a detailed explanation.
+
+ <iframe width="560" height="315" src="https://www.youtube.com/embed/WoruCQgPhSA?rel=0&origin=https://dev.startree.ai" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+
+*Neha Pawar explains segment assignment in real-time tables*
+
+## Why does Pinot not use Kafka consumer groups?
+
+Many applications that consume data from Kafka use Kafka consumer groups to manage this process and it's reasonable to ask why Pinot doesn't do this as well.
+
+In [a talk given at Kafka Summit 2020](https://www.confluent.io/resources/kafka-summit-2020/apache-pinot-case-study-building-distributed-analytics-systems-using-apache-kafka/), Neha Pawar explains why Kafka consumer groups aren't used.
+
+In an initial implementation of the real-time ingestion feature, Pinot did in fact use consumer groups to manage offsets and checkpoints across multiple Kafka consumers.
+We started with one consumer group per server, but this led to storage overhead and didn't have fault tolerance or scalability.
+
+<p>
+    <img src="/img/realtime-data-ingestion/single-consumer.png" width="80%" alt="Limitations of one consumer group per server" />
+    <em>Limitations of one consumer group per server</em>
+</p>
+
+Version 2 therefore ran multiple consumer groups for the same topic.
+This solved the issues with fault tolerance and scalability, but it had its own difficulties.
+Since Kafka maintains offset per consumer group, achieving data consistency across multiple consumer groups was not possible.
+
+<p>
+    <img src="/img/realtime-data-ingestion/multi-consumer.png" width="80%" alt="Limitations of multiple consumer groups" />
+    <em>Limitations of multiple consumer groups - data consistency</em>
+</p>
+
+In addition, a failure of a single node in a consumer group meant that the entire consumer group would be unavailable for query processing.
+Restarting that failed node required delicate manual operations to make sure that data was only consumed once, which resulted in management overhead and inefficient hardware utilization.
+
+<p>
+    <img src="/img/realtime-data-ingestion/multi-consumer-operational.png" width="80%" alt="Limitations of multiple consumer groups" />
+    <em>Limitations of multiple consumer groups - servers unavailable for queries</em>
+</p>
+
+
+The Pinot team therefore redesigned the real-time consumption in Pinot to maintain consistent offset across multiple consumer groups.
+The solution takes inspiration from the Kafka consumer group implementation, but also guarantees consistent data across all replicas. 
+The design also enabled us to copy data from another consumer group during node addition, node failure, or increasing the replication group.
+
+<p>
+    <img src="/img/realtime-data-ingestion/final-solution.png" width="80%" alt="The solution: single node in a consumer group" />
+    <em>The solution: single node in a consumer group</em>
+</p>
+
+If you want to learn about this in more detail, you can watch [Neha's talk](https://www.confluent.io/resources/kafka-summit-2020/apache-pinot-case-study-building-distributed-analytics-systems-using-apache-kafka/).

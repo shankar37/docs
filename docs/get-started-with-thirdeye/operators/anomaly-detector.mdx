@@ -1,0 +1,48 @@
+# AnomalyDetector
+
+`AnomalyDetector` operators take one or more inputs, and detect anomalies.
+
+There are many types of anomaly detectors. The type is given in the node parameters.
+
+```json
+ {
+  "name": "root",              # name of the operator
+  "type": "AnomalyDetector",   # type of operator
+  "params": {
+    "type": "THRESHOLD",       # type of anomaly detector,
+    # other parameters ...
+    "component.timestamp": "ts",
+    "component.metric": "metric",
+    ...
+  },
+  "inputs" : [...],
+  "outputs" : [...]
+}
+```
+
+
+## Shared parameters
+
+Anomaly detectors share a set of parameters. Detector-type specific parameters are described in the sub-sections.
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.timestamp`| The name of the time index column.| `timestamp`|
+|`component.metric`| The name of the metric column to analyse.| `metric`|
+|`component.monitoringGranularity`| The granularity of the data used for detection. Mandatory. <br/>Used to compute the end time of an anomaly if it is the last data point of the input data.| |
+
+
+## Commonly-used parameters
+
+These parameters are used by many detectors.
+
+
+### `component.pattern`
+
+Detect as an anomaly if the metric drop, rise or both directions. `UP`, `DOWN`, `UP_OR_DOWN`.
+
+| name| description|
+|---|---|
+|`UP`|Detect an anomaly only if the current time series is above the baseline.|
+|`DOWN`|Detect an anomaly only if the current time series is below the baseline.|
+|`UP_OR_DOWN`| Detect an anomaly in both directions.|

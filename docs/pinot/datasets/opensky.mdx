@@ -1,0 +1,201 @@
+---
+description: This dataset contains cleaned data from the OpenSky dataset.
+---
+
+# OpenSky
+
+This dataset contains cleaned data from the OpenSky dataset, which was compiled to illustrate how air traffic was affected by the COVID-19 pandemic.
+It spans a variety of flights from 2019 until 2022.
+You can learn more about the dataset at [Crowdsourced air traffic data from The OpenSky Network 2020](https://zenodo.org/record/7923702).
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/opensky-dataset
+  ```
+
+## Download flight data
+
+The dataset contains `.csv.gz` files with flight data from the start of 2019 until the end of 2022.
+You will need to download at least one of these files from https://zenodo.org/record/7923702, unpack it, and then put the resulting CSV file(s) into the `data` directory.
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+
+docker compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper. 
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/opensky-dataset/docker-compose.yml) file on GitHub.
+
+## Pinot Schema and Table
+
+Now let's create a Pinot Schema and Table.
+
+First, the schema:
+
+```json
+{
+    "schemaName": "flights",
+    "dimensionFieldSpecs": [
+      {
+        "name": "callsign",
+        "dataType": "STRING"
+      },
+      {
+        "name": "number",
+        "dataType": "STRING"
+      },
+      {
+        "name": "icao24",
+        "dataType": "STRING"
+      },
+      {
+        "name": "registration",
+        "dataType": "STRING"
+      },
+      {
+        "name": "typecode",
+        "dataType": "STRING"
+      },
+      {
+        "name": "origin",
+        "dataType": "STRING"
+      },
+      {
+        "name": "destination",
+        "dataType": "STRING"
+      },
+      {
+        "name": "latitude_1",
+        "dataType": "FLOAT"
+      },
+      {
+        "name": "longitude_1",
+        "dataType": "FLOAT"
+      },
+      {
+        "name": "altitude_1",
+        "dataType": "FLOAT"
+      },
+      {
+        "name": "latitude_2",
+        "dataType": "FLOAT"
+      },
+      {
+        "name": "longitude_2",
+        "dataType": "FLOAT"
+      },
+      {
+        "name": "altitude_2",
+        "dataType": "FLOAT"
+      }
+    ],
+    "dateTimeFieldSpecs": [
+      {
+        "name": "firstSeen",
+        "dataType": "TIMESTAMP",
+        "format": "1:MILLISECONDS:EPOCH",
+        "granularity": "1:MILLISECONDS"
+      },
+      {
+        "name": "lastSeen",
+        "dataType": "TIMESTAMP",
+        "format": "1:MILLISECONDS:EPOCH",
+        "granularity": "1:MILLISECONDS"
+      },
+      {
+        "name": "daySeen",
+        "dataType": "TIMESTAMP",
+        "format": "1:MILLISECONDS:EPOCH",
+        "granularity": "1:MILLISECONDS"
+      }
+    ],
+    "metricFieldSpecs": [
+
+    ]
+  }
+  
+```
+*config/schema.json*
+
+We'll also have the following table config:
+
+```json
+{
+    "tableName": "flights",
+    "tableType": "OFFLINE",
+    "segmentsConfig": {
+      "replication": 1,
+      "schemaName": "flights",
+      "timeColumnName": "firstSeen"
+    },
+    "tenants": {},
+    "tableIndexConfig": {},
+    "ingestionConfig": {
+        "transformConfigs": [
+          {"columnName": "firstSeen", "transformFunction": "FromDateTime(firstseen, 'YYYY-MM-dd HH:mm:ssZ')" },
+          {"columnName": "lastSeen", "transformFunction": "FromDateTime(lastseen, 'YYYY-MM-dd HH:mm:ssZ')" },
+          {"columnName": "daySeen", "transformFunction": "FromDateTime(day, 'YYYY-MM-dd HH:mm:ssZ')" }
+        ],
+        "filterConfig": {
+            "filterFunction": "strcmp(coalesce(origin, ''), '') = 0 OR strcmp(coalesce(destination, ''), '') = 0"
+          }
+      },
+    
+    "metadata": {}
+  }
+```
+*config/table.json*
+
+
+You can create the table and schema by running the following command:`
+
+```bash
+docker run \
+   --network opensky \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table.json \
+     -controllerHost "pinot-controller-opensky" \
+    -exec
+```
+
+
+## Ingesting CSV files
+
+We're going to use Pinot's SQL insert syntax to import the CSV files. 
+Navigate to the [Pinot UI](http://localhost:9000) and click on `Query Console`
+You can then run the following query to run the ingestion job:
+
+```sql
+SET taskName = 'flights-dataload';
+SET input.fs.className = 'org.apache.pinot.spi.filesystem.LocalPinotFS';
+SET includeFileNamePattern='glob:**/*.csv';
+INSERT INTO flights 
+FROM FILE 'file:///data/';
+```
+
+Wait a few minutes for the job to complete. You can check on the status by navigating to the [Minion Task Manager](http://localhost:9000/#/minion-task-manager) page.
+
+## Querying the dataset
+
+Once the data is loaded, we can run some queries:
+
+```sql
+select origin as airport, count(*)
+from flights
+group by airport
+order by count(*) DESC
+limit 10
+```

@@ -1,0 +1,98 @@
+# Lookback Drift Operator
+
+Given dimension and population metrics, computes a timeseries of drift metrics that measures the dimensional drift of the current data compared to a lookback baseline.
+
+This operator requires a single input timeseries and derives the baseline dataset for each timestamp according to the lookback and seasonality parameters. For example, the baseline dataset for timestamp `2023-01-29` with a 28 day lookback period and 7 day seasonality will contain the all the data points at the timestamps `2023-01-01`, `2023-01-08`, `2023-01-15`, and `2023-01-22`.
+
+The dimension values can be encoded in two ways: enumeration or linear buckets.
+
+* The enumeration encoder should be used for string values or low-cardinality numeric values. New values encountered in the current data are always mapped the same integer, which corresponds to the _other_ category.
+
+* The linear buckets encoder should be used for numerical values that have high cardinality. The linear buckets encoder maps each dimension value to a bucket index. All values less than the smallest bucket are mapped to the smallest bucket. All values larger than the largest bucket are mapped to the largest bucket.
+
+At each timestamp, the operator computes a normalized EMD of the distribution of dimension values of the current data and compared to the baseline data.
+
+The EMD distance function depends on the encoding:
+
+* For enumeration, the distance used is always 1 / number of unique values.
+
+* For bucketing, the distance used is the normalized distance between the buckets.
+
+
+## Inputs
+
+| targetProperty | description                                                                                                                                                                                                                                                                                 |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| currentData    | A data frame with columns `ts`, `dim`, and `met`. Missing data is ok, and the time index filler is not recommended. Column `ts` is the timestamp. Column `dim` is the dimension to used to measure drift. Column `met` is the metric or population of the dimension value at the timestamp. |
+
+
+## Outputs
+
+| outputName     | description                                                                                                                                                                    |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| driftScoreData | The resulting data frame of drift metrics. The data frame has columns `ts` and `met`. Column `ts` is the timestamp. Column `met` is the drift score computed at the timestamp. |
+
+
+## Parameters
+
+### Operator parameters
+
+| name                  | description                                                     |
+|-----------------------|-----------------------------------------------------------------|
+| monitoringGranularity | The time granularity of the output timeseries.                  |
+| seasonalityPeriod     | The step-size used when building the baseline dataset           |
+| lookback              | The period of time to consider points for the baseline dataset. |
+| encoder               | The encoder parameters json object.                             |
+
+
+### Encoder parameters
+
+| name         | description                                                    |
+|--------------|----------------------------------------------------------------|
+| type         | The type of encoder. One of `ENUMERATION` or `LINEAR_BUCKETS`. |
+| linearBucket | The linear bucket parameters json object.                      |
+
+
+### Linear bucket parameters
+
+| name        | description                                  |
+|-------------|----------------------------------------------|
+| bucketStart | The value corresponding to the first bucket. |
+| bucketSize  | The size of each bucket.                     |
+| bucketCount | The number of buckets to use.                |
+
+
+## Example
+
+```json
+{
+  "name": "driftScore",
+  "type": "LookbackBaselineDrift",
+  "params": {
+    "lookback": "P28D",
+    "monitoringGranularity": "P1D",
+    "seasonalityPeriod": "P7D",
+    "encoder": {
+      "type": "LINEAR_BUCKETS",
+      "linearBucket": {
+        "bucketStart": "0",
+        "bucketSize": "1",
+        "bucketCount": "100"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "targetProperty": "currentData",
+      "sourcePlanNode": "currentDataFetcher",
+      "sourceProperty": "currentData"
+    }
+  ],
+  "outputs": [
+    {
+      "outputName": "driftScoreData"
+    }
+  ]
+}
+```
+

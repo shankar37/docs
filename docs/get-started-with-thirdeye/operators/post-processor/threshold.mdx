@@ -1,0 +1,88 @@
+# THRESHOLD
+
+Adds a `THRESHOLD` label to an anomaly if the metric is above a maximum threshold or below a minimum threshold. By default, the threshold is applied to the metric that was used for the detection. A different metric can be provided by passing an input `current`. The threshold rule will run on this metric. 
+
+
+## Inputs
+
+The info source is the output of the detector. Labels are applied to the anomalies of this input.
+
+```json
+{
+  "sourcePlanNode": "anomalyDetector"
+}
+```
+
+*Optional*: a different side data input to perform threshold on:
+
+```json
+{
+  "targetProperty": "current",
+  "sourcePlanNode": "controlDataFetcher",
+  "sourceProperty": "controlDataOutput"
+}
+```
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.min`| If `metric <= min`, label the anomaly. | `-1` (special value - no minimum)|
+|`component.max`| If `metric >= max`, label the anomaly.| `-1` (special value - no maximum)|
+|`component.valueName`| Optional. The name of the metric. Used in the label: `"{ValueName} bigger than {max}"` | `Value`|
+|`component.timestamp`| Optional. If a side data input is used, name of the time index column.| `timestamp`|
+|`component.metric`| Optional. If a side data input is used, name of the column to use for thresholding.| `value`|
+
+
+## Example
+
+Without side input:
+
+```json
+{
+  "name": "root",
+  "type": "PostProcessor",
+  "params": {
+    "type": "THRESHOLD",
+    "component.ignore": "true",  # filter anomaly in notifications an ui by default
+    "component.min": "100",
+    "component.max": "10000000"
+  },
+  "inputs": [
+    {
+      "sourcePlanNode": "anomalyDetector"
+    }
+  ]
+}
+```
+
+
+With side input:
+
+```json
+{
+  "name": "root",
+  "type": "PostProcessor",
+  "params": {
+    "type": "THRESHOLD",
+    "component.ignore": "true",
+    "component.min": "100",
+    "component.max": "10000000",
+    "component.valueName": "controlMetric", # customize label
+    "component.timestamp": "ts",            # time column of the side input
+    "component.metric": "sideMetric"        # column to threshold on in the side input
+  },
+  "inputs": [
+    {
+      "sourcePlanNode": "anomalyDetector"
+    },
+    {
+      "targetProperty": "current",
+      "sourcePlanNode": "controlDataFetcher",
+      "sourceProperty": "controlDataOutput"
+    }
+  ]
+}
+```
+

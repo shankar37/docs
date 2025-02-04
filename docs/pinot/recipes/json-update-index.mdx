@@ -1,0 +1,462 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to update a JSON index.
+sidebar_label: Updating JSON index
+---
+import { Callout } from 'nextra/components';
+
+# How to update a JSON index
+
+In this recipe we'll learn how to update the configuration of a [JSON index](json-index.md).
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.0.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/update-json-index">startreedata/pinot-recipes/update-json-index</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/update-json-index
+  ```
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, Kafka, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/query-by-segment/docker-compose.yml) file on GitHub.
+
+## Data generator
+
+This recipe contains a data generator that creates events with data about people.
+
+It uses the [Faker library](https://faker.readthedocs.io/en/master/), so you'll first need to install that:
+
+```bash
+pip install faker
+```
+
+You can generate data by running the following command:
+
+```bash
+python datagen.py 2>/dev/null  | head -n1 | jq
+```
+
+Output is shown below:
+
+```json
+{
+  "ts": 1680172162791,
+  "person": {
+    "id": "ead572cb-c8bc-457a-b331-4f380c5ebe18",
+    "name": "Melissa Howard",
+    "email": "daniel75@example.com",
+    "age": 33,
+    "address": {
+      "street_address": "974 Michael Hollow",
+      "city": "Johnstonport",
+      "state": "South Dakota",
+      "country": "Latvia"
+    },
+    "phone_number": "+1-697-077-6893x6562",
+    "job": {
+      "company": "Ramirez-Hunt",
+      "position": "Communications engineer",
+      "department": "iterate efficient e-markets"
+    },
+    "interests": [
+      "Swimming"
+    ],
+    "friend_ids": [
+      "88a696de-34d1-4300-ac3c-3084a6bdceeb"
+    ]
+  }
+}
+```
+
+## Kafka ingestion
+
+We're going to ingest this data into an Apache Kafka topic using the [kcat](https://github.com/edenhill/kcat) command line tool.
+We'll also use `jq` to structure the data in the `key:payload` structure that Kafka expects:
+
+```bash
+python datagen.py --sleep 0.0001 2>/dev/null |
+jq -cr --arg sep ø '[.uuid, tostring] | join($sep)' |
+kcat -P -b localhost:9092 -t people -Kø
+```
+
+We can check that Kafka has some data by running the following command:
+
+
+```bash
+docker exec -it kafka-querysegment kafka-run-class.sh \
+  kafka.tools.GetOffsetShell \
+  --broker-list localhost:9092 \
+  --topic events
+```
+
+We'll see something like the following:
+
+```bash
+events:0:19960902
+```
+
+## Pinot Schema and Table
+
+Now let's create a Pinot Schema and Table.
+
+First, the schema:
+
+```json
+{
+    "schemaName": "people",
+    "dimensionFieldSpecs": [
+      {
+        "name": "person",
+        "dataType": "JSON"
+      }
+    ],
+    "metricFieldSpecs": [],
+    "dateTimeFieldSpecs": [
+        {
+            "name": "ts",
+            "dataType": "TIMESTAMP",
+            "format": "1:MILLISECONDS:EPOCH",
+            "granularity": "1:MILLISECONDS"
+          }
+    ]
+  }
+```
+*schema.json*
+
+Our schema has only two columns - one for the timestamp and another one that stores the person.
+
+Now for the table config:
+
+```json {12-21}
+{
+    "tableName": "people",
+    "tableType": "REALTIME",
+    "segmentsConfig": {
+      "timeColumnName": "ts",
+      "schemaName": "people",
+      "replication": "1",
+      "replicasPerPartition": "1"
+    },
+    "tableIndexConfig": {
+      "loadMode": "MMAP",
+      "jsonIndexConfigs": {
+        "person": {
+          "maxLevels": 2,
+          "excludeArray": false,
+          "disableCrossArrayUnnest": true,
+          "includePaths": null,
+          "excludePaths": null,
+          "excludeFields": null
+        }
+      },
+      "streamConfigs": {
+        "streamType": "kafka",
+        "stream.kafka.topic.name": "people",
+        "stream.kafka.broker.list": "kafka-jsonindex:9093",
+        "stream.kafka.consumer.type": "lowlevel",
+        "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+        "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+        "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+        "realtime.segment.flush.threshold.rows":"100000",
+        "realtime.segment.flush.threshold.time":"1h"
+      }
+    },
+    "ingestionConfig": {
+       
+      },
+    "tenants": {},
+    "metadata": {}
+  }
+```
+*table.json*
+
+This highlighted section contains the config for the JSON index.
+An explanation of each of the config parameters is shown below:
+
+| Config Key                  | Description                                                                                                                                                                                                                            | Type         | Default                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------- |
+| **maxLevels**               | Max levels to flatten the json object (array is also counted as one level)                                                                                                                                                             | `int`          | -1 (unlimited)                                       |
+| **excludeArray**            | Whether to exclude array when flattening the object                                                                                                                                                                                    | `boolean`      | false (include array)                                |
+| **disableCrossArrayUnnest** | Whether to not unnest multiple arrays (unique combination of all elements)                                                                                                                                                             | `boolean`      | false (calculate unique combination of all elements) |
+| **includePaths**            | Only include the given paths, e.g. "_$.a.b_", "_$.a.c\[\*]_" (mutual exclusive with **excludePaths**). Paths under the included paths will be included, e.g. "_$.a.b.c_" will be included when "_$.a.b_" is configured to be included. | `Set<String\>` | null (include all paths)                             |
+| **excludePaths**            | Exclude the given paths, e.g. "_$.a.b_", "_$.a.c\[\*]_" (mutual exclusive with **includePaths**). Paths under the excluded paths will also be excluded, e.g. "_$.a.b.c_" will be excluded when "_$.a.b_" is configured to be excluded. | `Set<String\>` | null (include all paths)                             |
+| **excludeFields**           | Exclude the given fields, e.g. "_b_", "_c_", even if it is under the included paths.                                                                                                                                                   | `Set<String\>` | null (include all fields)                            |
+
+
+So we are including all fields in the JSON index.
+
+<Callout>
+Fields included in the JSON index can be filtered using the `JSON_MATCH` function.
+If you use this function with a field that isn't included in the index, it won't return any records.
+</Callout>
+
+
+We'll create the table by running the following:
+
+```bash
+docker run \
+   --network jsonindex \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table.json \
+     -controllerHost "pinot-controller-jsonindex" \
+    -exec
+```
+
+## Querying by JSON index
+
+Let's now try to query this table using the JSON index.
+JSON indexes support the following predicates: `=`, `<>`, `IN`, and `NOT IN`
+
+```sql
+select json_extract_scalar(person, '$.address.state', 'STRING') AS state, count(*)
+from people 
+WHERE JSON_MATCH(person, '"$.age" = 59')
+GROUP BY state
+ORDER BY count(*) DESC
+```
+
+| state             | count(*) |
+| ----------------- | -------- |
+| New Hampshire     | 34       |
+| Pennsylvania      | 32       |
+| Kansas            | 32       |
+| New Jersey        | 32       |
+| Maryland          | 31       |
+| Vermont           | 30       |
+| Rhode Island      | 30       |
+| Virginia          | 30       |
+| Ohio              | 30       |
+| Washington        | 29       |
+
+*Query Results*
+
+And one more:
+
+```sql
+select count(*)
+from people 
+WHERE JSON_MATCH(person, '"$.interests[0]" = ''Swimming''')
+```
+
+| count(*) |
+| ----------------- |
+| 3319 |
+
+*Query Results*
+
+## Updating JSON index
+
+Now let's say we want to update the config of the JSON index so that not all fields are indexed.
+At the moment this must be done in the following steps:
+
+1. Update the table config to remove the index completely.
+2. Refresh all segments.
+3. Update the table config with the new config.
+4. Refresh all segments.
+
+Let's first remove the index by calling the `AddTable` command with the following table config:
+
+```json
+{
+    "tableName": "people",
+    "tableType": "REALTIME",
+    "segmentsConfig": {
+      "timeColumnName": "ts",
+      "schemaName": "people",
+      "replication": "1",
+      "replicasPerPartition": "1"
+    },
+    "tableIndexConfig": {
+      "loadMode": "MMAP",
+      "streamConfigs": {
+        "streamType": "kafka",
+        "stream.kafka.topic.name": "people",
+        "stream.kafka.broker.list": "kafka-jsonindex:9093",
+        "stream.kafka.consumer.type": "lowlevel",
+        "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+        "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+        "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+        "realtime.segment.flush.threshold.rows":"100000",
+        "realtime.segment.flush.threshold.time":"1h"
+      }
+    },
+    "ingestionConfig": {
+       
+      },
+    "tenants": {},
+    "metadata": {}
+  }
+```
+*table-no-index.json*
+
+Next, let's run the command
+
+```bash
+docker run \
+   --network jsonindex \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table-no-index.json \
+     -controllerHost "pinot-controller-jsonindex" \
+    -exec -update
+```
+
+And let's refresh all segments:
+
+```bash
+curl -X 'POST' 'http://localhost:9000/segments/people_REALTIME/reload?type=REALTIME' 
+```
+
+If we now re-run our last query, we'll get the following output:
+
+```text
+[
+  {
+    "message": "QueryExecutionError:\njava.lang.IllegalStateException: Cannot apply JSON_MATCH on column: person without json index\n\tat org.apache.pinot.shaded.com.google.common.base.Preconditions.checkState(Preconditions.java:518)\n\tat org.apache.pinot.core.plan.FilterPlanNode.constructPhysicalOperator(FilterPlanNode.java:285)\n\tat org.apache.pinot.core.plan.FilterPlanNode.run(FilterPlanNode.java:92)\n\tat org.apache.pinot.core.plan.AggregationPlanNode.buildNonFilteredAggOperator(AggregationPlanNode.java:178)",
+    "errorCode": 200
+  }
+]
+```
+
+Let's now add the updated index, based on the table config below:
+
+```json {12-21}
+{
+    "tableName": "people",
+    "tableType": "REALTIME",
+    "segmentsConfig": {
+      "timeColumnName": "ts",
+      "schemaName": "people",
+      "replication": "1",
+      "replicasPerPartition": "1"
+    },
+    "tableIndexConfig": {
+      "loadMode": "MMAP",
+      "jsonIndexConfigs": {
+        "person": {
+          "maxLevels": 2,
+          "excludeArray": true,
+          "disableCrossArrayUnnest": true,
+          "includePaths": null,
+          "excludePaths": ["$.address.street_address"],
+          "excludeFields": ["age"]
+        }
+      },
+      "streamConfigs": {
+        "streamType": "kafka",
+        "stream.kafka.topic.name": "people",
+        "stream.kafka.broker.list": "kafka-jsonindex:9093",
+        "stream.kafka.consumer.type": "lowlevel",
+        "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+        "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+        "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+        "realtime.segment.flush.threshold.rows":"100000",
+        "realtime.segment.flush.threshold.time":"1h"
+      }
+    },
+    "ingestionConfig": {
+       
+      },
+    "tenants": {},
+    "metadata": {}
+  }
+```
+*table-updated-index.json*
+
+This time we're not going to index `age`, any array fields (i.e `interests` or `friend_ids`), or `address.street_address`.
+
+Let's apply that config
+
+```bash
+docker run \
+   --network jsonindex \
+   -v $PWD/config:/config \
+   apachepinot/pinot:1.0.0 AddTable \
+     -schemaFile /config/schema.json \
+     -tableConfigFile /config/table-updated-index.json \
+     -controllerHost "pinot-controller-jsonindex" \
+    -exec -update
+```
+
+Refresh all segments again:
+
+```bash
+curl -X 'POST' 'http://localhost:9000/segments/people_REALTIME/reload?type=REALTIME' 
+```
+
+It's query time!
+Let's start with the swimming query:
+
+```sql
+select count(*)
+from people 
+WHERE JSON_MATCH(person, '"$.interests[0]" = ''Swimming''')
+```
+
+| count(*) |
+| ----------------- |
+| 0 |
+
+*Query Results*
+
+This field isn't indexed anymore, so we don't get any results.
+
+Same thing if we search by street address:
+
+```sql
+select count(*)
+from people 
+WHERE JSON_MATCH(person, '"$.address.street_address" = ''862 Mercado Mountain Suite 529''')
+```
+
+| count(*) |
+| ----------------- |
+| 0 |
+
+*Query Results*
+
+But we can still search by country:
+
+```sql
+select count(*)
+from people 
+WHERE JSON_MATCH(person, '"$.address.country" = ''Croatia''')
+```
+
+
+| count(*) |
+| ----------------- |
+| 308 |
+
+*Query Results*

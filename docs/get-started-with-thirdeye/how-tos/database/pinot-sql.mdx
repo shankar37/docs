@@ -1,0 +1,23 @@
+import { Callout } from 'nextra/components';
+
+# Pinot SQL as a ThirdEye datasource
+
+This datasource plugin is used to connect to Pinot using the [pinot-jdbc-client](https://docs.pinot.apache.org/users/clients/jdbc).
+
+<Callout>
+This datasource type is still work in progress and may not work for Pinot with ssl/tls and auth, and may also fail with some alert features.
+</Callout>
+
+## Configuration
+
+```json
+{
+  "name": "pinotDatasourceSql",
+  "type": "pinot-sql",
+  "properties": {
+    "controllerHost": "localhost",
+    "controllerPort": 9000,
+    "controllerConnectionScheme": "http"
+  }
+}
+```

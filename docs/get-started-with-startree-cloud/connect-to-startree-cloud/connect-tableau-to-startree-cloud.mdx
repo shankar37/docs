@@ -1,0 +1,55 @@
+# Connect Tableau to StarTree Cloud
+
+To connect either Tableau Desktop or Tableau Server to your StarTree Cloud instance of Apache Pinot, you need the following:
+
+ * **JDBC driver (JAR file)**
+ * **Tableau connector (TACO file)**
+
+## How to install and launch Tableau
+
+1. Build or download the JDBC driver.
+	You can build this from the [source code](https://github.com/apache/pinot/tree/master/pinot-clients/pinot-jdbc-client) or you can [download](https://repo1.maven.org/maven2/org/apache/pinot/pinot-jdbc-client/) one that is already built. In either case, you must use the shaded jar, which will have a filename that includes `shaded`, as in `pinot-jdbc-client-1.0.0-shaded.jar`.
+
+1. Copy the JDBC driver JAR to the Tableau drivers directory.
+    - On Mac: `~/Library/Tableau/Drivers/`
+    - On Windows: `C:\Program Files\Tableau\Drivers`
+
+1. Download the [TACO file](../../../assets/files/ai.startree.pinot-0.13.0-SNAPSHOT.taco).
+
+1. Copy the TACO file to the connectors directory.
+    - On Mac: `~/Library/Tableau/Connectors/` 
+    - On Windows: `C:\Users\[user]\Documents\My Tableau Repository\Connectors`
+
+1. Launch Tableau.
+	You may need to launch Tableau Desktop with connector signature verification disabled using one of these methods. See **Signing the TACO file** for information about how to successfully launch with signature verification.
+		- On Mac: `/Applications/Tableau\ Desktop\ <version>.app/Contents/MacOS/Tableau -DDisableVerifyConnectorPluginSignature=true` 
+		- On Windows: `tableau.exe -DConnectPluginsPath=C:\tableau_connector`
+
+## Use the Tableau connector
+
+1. Select the connector from the list of installed connectors.
+	![Tableau Connectors](/img/tableau_tables_ui.png "Installed Connectors")
+2. Configure the connection to Pinot and connect.
+	![Apache Pinot Connection Dialog](/img/tableau_connector_dialog.png "Apache Pinot Connection Dialog")
+3. Once you are connected, you will be able to see the data from your data source and can begin to query.
+	![Fetch data from Pinot](/img/tableau_tables_ui.png "Fetch data from Pinot")
+
+## Signing the TACO file
+
+Maven is configured to sign the `.taco` file during the package stage.
+
+Signing requires the following maven properties:
+* taco.signing.keystore - The path to the `.jks` file containing the code-signing certificate (defaults to `taco.jks`)
+    * NOTE: the `taco.jks` in this directory is just a placeholder. It DOES NOT contain a valid certificate and must be replaced with a valid `.jks` file when actually signing the `.taco` for distribution
+* taco.signing.alias - The alias for the keystore entry that contains the private key needed to generate the signature (defaults to `alias`)
+* taco.signing.storepass - The password for the keystore (defaults to `storepass`)
+* taco.signing.keypass - The password for the keystore entry (defaults to empty)
+
+For example, to build a signed `.taco` file, use:
+* `mvn package -Dtaco.signing.keystore=taco.jks -Dtaco.signing.alias=pinotkeyalias -Dtaco.signing.storepass=tacostorepass -Dtaco.signing.keypass=tacokeypass`
+
+To automate the building and signing of the `.taco`, use secrets in a GitHub action to run the build with the properties configured from values stored in the secrets.
+
+### References
+
+[Package and Sign Your Connector for Distribution](https://help.tableau.com/current/api/webdataconnector/en-us/docs/wdc_packaging.html)

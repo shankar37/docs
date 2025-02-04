@@ -1,0 +1,61 @@
+import { Callout } from 'nextra/components';
+
+# Ingest CDC data using PostgreSQL, Kafka, and Debezium
+
+This recipe downloads Postgres change data capture (CDC) about `dvdrentals` and connects Kafka to Debezium. CDC data is written to Kafka, and then consumed by Apache Pinot.
+
+To understand how this recipe processes data, examine the commands executed in the Makefile. 
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.0.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank"  href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/debezium-cdc">
+            startreedata/pinot-recipes/debezium-cdc
+          </a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In the terminal, navigate to this recipe's directory:
+  ```bash
+  cd pinot-recipes/recipes/debezium-cdc
+  ```
+
+3. Spin up a Pinot cluster using the Makefile, which uses Docker compose:
+
+```bash
+make recipe
+```
+
+4. Navigate to [localhost:9000/#/query](http://localhost:9000/#/query) to see the data in Apache Pinot.
+
+
+## Clean up
+
+```bash
+make clean
+```
+
+## Troubleshooting
+
+To clean up old Docker installations that may be interfering with your testing of this recipe, run the following command:
+
+```bash
+docker system prune
+```

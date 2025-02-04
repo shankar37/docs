@@ -1,0 +1,98 @@
+# Alert Configuration Examples
+
+Here are some example configurations which you can copy, change parameters, and quickly create alert in few clicks.
+
+## Example-1 - StarTree Threshold
+
+```javascript
+{
+  "name": "Sample-alert-name", //change this before you try
+  "description": "Using StarTree ThirdEye Threshold alert",
+  "template": {
+    "name": "startree-threshold"
+  },
+  "templateProperties": {
+    "dataSource": "Sample-datasource", //change this before you try
+    "dataset": "sample-dataset", //change this before you try
+    "timeColumn": "time-column-from-pinot-schema", //change this before you try
+    "timeColumnFormat": "timezone-format-from-pinot-schema", //change this before you try. You can get this info from Pinot schema. Just copy and paste    
+    "aggregationFunction": "sample-metric-name", //change this before you try
+    "aggregationColumn": "orders",
+    "monitoringGranularity": "P1D",
+    "max": "500", //Adjust this and preview to get best results
+    "min": "100" //Adjust this and preview to get best results
+  },
+  "cron": "0 0 0/2 1/1 * ? *"
+}
+```
+
+
+  ## Example-2 - StarTree ETS
+```javascript
+{
+  "name": "Sample-alert-name", //change this before you try
+  "description": "Uses template startree-ets.",
+  "template": {
+    "name": "startree-ets"
+  },
+  "templateProperties": {
+    "dataSource": "Sample-datasource", //change this before you try
+    "dataset": "sample-dataset", //change this before you try
+    "timeColumn": "time-column-from-pinot-schema", //This is optional. change this to overwrite default value. 
+    "timeColumnFormat": "timezone-format-from-pinot-schema", //This is optional. change this to overwrite default value.You can get this info from Pinot schema. Just copy and paste    
+    "aggregationFunction": "sum",
+    "aggregationColumn": "sample-metric-name", //change this before you try
+    "seasonalityPeriod": "P7D", //Adjust this and preview to get best results
+    "lookback": "P120D", //Adjust this and preview to get best results
+    "monitoringGranularity": "P1D", //Adjust this and preview to get best results
+    "sensitivity": "3" //Adjust this and preview to get best results
+  },
+  "cron": "0 0 0 1/1 * ? *"
+  }
+  ```
+  
+  ## Example-3 - StarTree ETS with dimension exploration
+```javascript
+{
+  "name": "pageviewsdemo-ets-dx-withdifferentTuningParameters",
+  "description": "",
+  "template": {
+    "name": "startree-ets-dx"
+  },
+  "templateProperties": {
+    "dataSource": "pinot",
+    "dataset": "PageViewsData",
+    "aggregationFunction": "sum",
+    "seasonalityPeriod": "P7D",
+    "lookback": "P20D",
+    "monitoringGranularity": "P1D",
+    "sensitivity": "${sensitivity}",
+    "aggregationColumn": "views",
+    "queryFilters": "${queryFilters}",
+    "enumerationItems": [
+      {
+        "name": "overall",
+        "params": {
+          "queryFilters": "",
+          "sensitivity": "1"
+        }
+      },
+      {
+        "name": "US",
+        "params": {
+          "queryFilters": " AND country = 'US'",
+          "sensitivity": "1"
+        }
+      },
+      {
+        "name": "chrome",
+        "params": {
+          "queryFilters": " AND browser = 'chrome'",
+          "sensitivity": "3"
+        }
+      }
+    ]
+  },
+  "cron": "0 0 5 ? * * *"
+}
+  ```

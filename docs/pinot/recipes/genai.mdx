@@ -1,0 +1,100 @@
+import { Callout } from 'nextra/components';
+
+
+# Real-Time RAG Pinot
+
+This repository is a Retrieval-Augmented Generation (RAG) example using Apache Pinot,  LangChain, and OpenAI. The use case is to load documentation and allow an LLM to answer questions provided by a user. This approach enables you to generate AI responses that are fresh and in real time.
+
+This RAG example uses LangChain's `RecursiveUrlLoader`. It accepts a URL, recursively loads pages, and converts them into `documents`. These documents are converted into embeddings, submitted to a Kafka topic, and consumed by Apache Pinot.
+
+To understand how this recipe processes data, examine the commands executed in the Makefile. 
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.1.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/genai">
+            startreedata/pinot-recipes/genai
+            </a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+
+## Prerequisites
+
+To follow the code examples in this guide, do the following:
+- [Install Docker](https://docs.docker.com/get-docker/) locally.
+- [Download recipes](/docs/pinot/recipes/#download-recipes)
+
+
+## Docker
+
+This repo builds the Apache Pinot project. You may get an error `No space left on device` when building the container. Execute the command below to free resources before building.
+
+```bash
+docker system prune --all --force
+```
+
+**NOTE:** Building the Pinot image will take about 25 minutes to finish
+
+
+## Makefile
+
+To start the example, run the command below.
+
+```bash
+make all
+```
+
+This will start Pinot and Kafka.
+
+## Load Documentation
+
+Run the command below to load Pinot with embeddings from your document site by providing a URL. The loader will recursively read the document site, generate embeddings, and write them into Pinot.
+
+```bash
+make loader URL=https://dev.startree.ai/docs
+```
+
+If you have a large document site, this loader will take longer. You will see confirmations on the screen as each embedding is sent to Kafka and Pinot.
+
+This loader creates an embedding per page so that we can perform an UPSERT in Pinot. If you have larger pages and depending on the AI model you are using, you may get this error:
+
+```
+This model's maximum context length is 8192 tokens
+```
+
+Alternatively, you can chunk the pages into smaller sizes and UPSERT those records in Pinot by URL + ChunkId. The implementation in this repository does not do that.
+
+## Ask Your Questions
+
+Run the command below and ask a question that the documentation you loaded can answer.
+
+```bash
+make question
+```
+
+
+## Clean up
+
+```bash
+make clean
+```
+
+## Troubleshooting
+
+To clean up old Docker installations that may be interfering with your testing of this recipe, run the following command:
+
+```bash
+docker system prune
+```
+

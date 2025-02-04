@@ -1,0 +1,16 @@
+{
+    "getting-started": "Getting Started",
+    "concepts-data-alerts-notifications": "Data, alerts, and notifications",
+    "templates": "StarTree ThirdEye templates",
+    "concepts-thirdeye-components": "ThirdEye components",
+    "operators": "ThirdEye operators",
+    "how-tos": "How-To Guides",
+    "access-control-in-thirdeye": "ThirdEye access control",
+    "troubleshooting": "Troubleshooting",
+    "resources": "Resources",
+    "alert-configuration": "Alert configuration and execution",
+    "dimension-exploration": "Dimension Exploration",
+    "worker-scaling": "Scaling Workers",
+    "cohort-recommender": "ThirdEye Dimensions Recommender",
+    "rca-aggregation-functions": "ThirdEye RCA aggregation functions"
+}

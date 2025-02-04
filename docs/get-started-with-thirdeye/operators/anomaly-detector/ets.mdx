@@ -1,0 +1,111 @@
+import { Callout } from 'nextra/components';
+
+# ETS
+
+<Callout>
+Enterprise only
+</Callout>
+
+Compares current value to the value predicted by a model combining a regression model and an ETS forecasting algorithm[^1]. The regression model learns the events effect. Eg Christmas, sales. The ETS model learns the level, the trend and the seasonality in the timeseries after the effect of events have been removed. 
+
+
+## Inputs
+
+`"targetProperty": "current"`: The data on which to perform detection. It should contain the historical data to use for training.  
+
+`"targetProperty": "current_events"`: **Optional**. The events data on which to perform detection. It should contain the historical events data to use for training.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.intervalsMethod`| Method to compute intervals. In `CONFIDENCE`, `PERCENTAGE`, `ABSOLUTE`.  | `CONFIDENCE`|
+|`component.sensitivity`| Detection sensitivity. For `CONFIDENCE`, value range is in `[-25, 14]`. 0 means z-score of 1. 10 means z score of 3. | `5`|
+|`component.lookbackPeriod`| Historical period to use for training. In [ISO-8601][iso-8601] format. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). Eg: `P14D`. If `component.lookbackPeriod` is not set, `component.lookback` is used. | |
+|`component.pattern`| Detect as an anomaly if the metric drop, rise or both directions. `UP`, `DOWN`, `UP_OR_DOWN`. | `UP_OR_DOWN`|
+|`component.regressors`| For advanced users. Additional list of features to add to the regression model. See [available regressors](#regressors). These additional features may help the model to learn the effect of events. Events features are created automatically. | `[]` ie only use event regressors |
+|`component.forecastingProtocol`| Process to use to run the detection. Used to make the alert evaluation calls and the first run of the alert faster. `EXACT_REPLAY` performs an exact [one-step][one-step-eval] backtracking, training one model for each point. Can be slow. `FAST_REPLAY` trains 1 model and then predict and updates this model incrementally. | `EXACT_REPLAY`|
+|`component.seasonalityPeriod`| Seasonality biggest period to learn. In ISO-8601 format. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). Eg: `P7D` will learn weekly and smaller seasonalities.  | |
+|`component.trendMode`| Trend mode as defined in ETS paper[^1]. In `NONE`, `ADDITIVE`, `DAMPED`. | `ADDITIVE`|
+|`component.seasonalMode`| Seasonal mode as defined in ETS paper[^1]. In `NONE`, `ADDITIVE`, `MULTIPLICATIVE`. | `ADDITIVE`|
+|`component.errorMode`| Error mode as defined in ETS paper[^1]. In `ADDITIVE`, `MULTIPLICATIVE`. | `ADDITIVE`|
+|`component.alpha`| Level smoothing factor. `In [0,1]` | `-1` - Optimized by BOBYQA|
+|`component.beta`| Trend smoothing factor. `In [0,1]` | `-1` - Optimized by BOBYQA|
+|`component.gamma`| Seasonal smoothing factor. `In [0,1]` | `-1` - Optimized by BOBYQA|
+|`component.phi`| Damping factor. `In [0,1]`. Only used if `trendMode` is set to `DAMPED`. | `-1` - Optimized by BOBYQA|
+|`component.alphaMax`| Maximum value of alpha if alpha is optimized automatically. | 0.5 |
+|`component.alphaMin`| Minimum value of alpha if alpha is optimized automatically. | 0.001 |
+|`component.betaMax`| Maximum value of beta if beta is optimized automatically. | 0.5 |
+|`component.betaMin`| Minimum value of beta if beta is optimized automatically. | 0.001 |
+|`component.gammaMax`| Maximum value of gamma if gamma is optimized automatically. | 0.5 |
+|`component.gammaMin`| Minimum value of gamma if gamma is optimized automatically. | 0.001 |
+|`component.phiMax`| Maximum value of phi if phi is optimized automatically. | 0.98 |
+|`component.phiMin`| Minimum value of phi if phi is optimized automatically. | 0.75 |
+
+
+### Regressors
+
+|name| description|
+|----|------------|
+|`EPOCH`| Unix epoch in milliseconds|
+|`MINUTE_OF_HOUR`| Minute of the hour|
+|`HOUR_OF_DAY`| Hour of the day|
+|`DAY_OF_WEEK`| Day of the week, between 0 and 6|
+|`IS_WEEKEND`| True if the day is Saturday or Sunday|
+|`IS_MONDAY`| True if the day is Monday|
+|`IS_TUESDAY`| True if the day is Tuesday|
+|`IS_WEDNESDAY`| True if the day is Wednesday|
+|`IS_THURSDAY`| True if the day is Thursday|
+|`IS_FRIDAY`| True if the day is Friday|
+|`IS_SATURDAY`| True if the day is Saturday|
+|`IS_SUNDAY`| True if the day is Sunday|
+|`DAY_OF_MONTH`| Day number of the month|
+|`DAY_OF_YEAR`| Day number of the year|
+|`WEEK_OF_YEAR`| Week number of the year|
+|`MONTH_OF_YEAR`| Month number of the year|
+
+
+## Example
+
+### Recommended defaults
+
+```json
+{
+      "name": "root",
+      "type": "AnomalyDetector",
+      "params": {
+        "type": "ETS",
+        "component.sensitivity": "3",
+        "component.seasonalityPeriod": "P7D",
+        "component.lookbackPeriod": "P28D",
+        
+        "component.alpha": "0.3",
+        "component.beta": "0.1",
+        "component.gamma": "0.05",
+        ...  # other ets parameters
+        ...  # shared parameters
+      },
+      "inputs": [
+        {
+          "targetProperty": "current",
+          "sourcePlanNode": "currentData",
+          "sourceProperty": "currentOutput"
+        },
+        {
+          "targetProperty": "current_events",
+          "sourcePlanNode": "currentEvents",
+          "sourceProperty": "events"
+        }
+      ],
+      "outputs": []
+    }
+```
+
+
+[^1]: See https://www.researchgate.net/publication/5179823_Prediction_Intervals_for_Exponential_Smoothing_State_Space_Models
+
+[iso-8601]: https://en.wikipedia.org/wiki/ISO_8601#Durations
+[one-step-eval]: https://otexts.com/fpp2/forecasting-on-training-and-test-sets.html#one-step-forecasts-on-test-data
+
+

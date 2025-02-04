@@ -1,0 +1,9 @@
+{
+    "install-pinot": "Install Pinot",
+    "quick-start": "Quickstart",
+    "create-cluster": "Create Cluster",
+    "table-config-file-usage": "Configure tables in Apache Pinot",
+    "ingest-batch-data-source": "Ingest batch data",
+    "ingest-streaming-data-source": "Ingest streaming data",
+    "configure-indexes": "Configure indexes"
+}

@@ -1,0 +1,79 @@
+---
+description: In this guide we'll learn how to import fields that have DateTime strings that contain timezones using StarTree Data Manager.
+---
+
+# Importing DateTimes that contain timezones
+
+In this guide we'll learn how to import fields that have DateTime strings in various formats, including one with timezones.
+
+We'll start with the following file, [`events.json`](/data/events-ns.json) that contains JSON documents :
+
+```json
+{"ts": "1659949952791", "ts1": "Mon 08 Aug 2022 10:12:32 +0100", "ts2": "2022-08-08 10:12:32", "ts3": "1659949952", "ts4": "2022-08-08T10:12:32.795Z"}
+{"ts": "1659949952797", "ts1": "Mon 08 Aug 2022 10:12:32 +0100", "ts2": "2022-08-08 10:12:32", "ts3": "1659949952", "ts4": "2022-08-08T10:12:32.802Z"}
+{"ts": "1659949952805", "ts1": "Mon 08 Aug 2022 10:12:32 +0100", "ts2": "2022-08-08 10:12:32", "ts3": "1659949952", "ts4": "2022-08-08T10:12:32.809Z"}
+```
+*events.json*
+
+This file contains timestamps in different formats:
+
+* `ts` - epoch milliseconds.
+* `ts1` - DateTime string of the format `EEE dd MMM YYYY HH:mm:ss Z`.
+* `ts2` - DateTime string of the format `YYYY-MM-dd HH:mm:ss`.
+* `ts3` - epoch seconds.
+* `ts4` - DateTime string of the ISO DateTime format (`yyyy-MM-dd'T'HH:mm:ss.SSS'Z'`)
+
+Upload that file following the instructions in the [upload file](../upload-file.md) guide.
+
+Once you've selected the file and clicked through to the next screen, you'll see the following:
+
+![Data Modeling](/img/dataset-manager/timezones-data-modeling.png)
+*Data Modeling*
+
+Let's change the field type for each column to `DATETIME`:
+
+![DateTime Fields](/img/dataset-manager/timezones-datetime-fields.png)
+*DateTime Fields*   
+
+The `ts` column is already in the right format, but we'll need to apply transformation functions to the `ts1`, `ts2`, and `ts3` columns.
+If you click on the cog icon next to each row, you'll see a modal window like this:
+
+![Adding a transformation function](/img/dataset-manager/timezones-modal.png)
+*Adding a transformation function*
+
+*Use 1:MICROSECONDS:EPOCH in case of the data is stored in seconds instead of millis*
+
+We'll need to change the column name (you can't use the same field name when applying a transformation function) and paste the transformation function into `Mapping Function` based on the table below:
+
+| Current column name       | New column name | Transformation function  |
+|----------|-------------|-------------|
+|ts1	|timestamp1	|<pre lang="sql"><code>FromDateTime(ts1, 'EEE dd MMM YYYY HH:mm:ss Z')</code></pre>	|
+|ts2	|timestamp2	|<pre lang="sql"><code>FromDateTime(ts2, 'YYYY-MM-dd HH:mm:ss')</code></pre>	|
+|ts3	|timestamp3	|<pre lang="sql"><code>"ts3" * 1000</code></pre>	|
+
+*Transformation functions to apply*
+
+After you've updated each column, click **Apply** to apply your changes.
+
+For the field `ts4` we need to change Date Time Format to `ISO DATETIME`.
+Making this change will change the field type to `STRING`.
+
+
+
+Now click on **Pinot Data** and you should see the following:
+
+![Pinot Data](/img/dataset-manager/pinot-data.png)
+*Pinot Data*
+
+Before you click through to the next screen, make sure that the Pinot Time Column is set to `ts`. 
+
+
+![Pinot Time Column](/img/dataset-manager/pinot-time-column.png)
+*Pinot Time Column*
+
+You can now click through the rest of the steps to add this dataset.
+
+If you click on **query console** from the final screen and then select this table, you'll see the results of a query that gets the first 10 rows:
+
+![Timestamps in Pinot](/img/dataset-manager/timestamps-pinot-ui.png)
+*Timestamps in Pinot*

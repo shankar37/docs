@@ -1,0 +1,45 @@
+# COLD_START
+
+Adds a `ColdStart` label to anomalies that occur at the beginning of the dataset. Used to filter anomalies until the detection model has enough historical data. The start of the dataset is obtained by looking at the minimum time value in the Pinot main time column. The cold start period is defined as `[start, start + coldStartPeriod]`. `coldStartPeriod`is configurable.
+
+
+## Inputs
+
+The info source is the output of the detector. Labels are applied to the anomalies of this input.
+
+```json
+{
+  "sourcePlanNode": "anomalyDetector"
+}
+```
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.coldStartPeriod`| Cold start period. In [ISO-8601][iso-8601] format. Eg `P7D`. If the anomaly is in \[start, start + Period\], label the anomaly. | |
+|`component.tableName`| Table to look at to find the start. Eg `my_dataset`. | |
+
+
+## Example
+
+```json
+{
+  "name": "root",
+  "type": "PostProcessor",
+  "params": {
+    "type": "COLD_START",
+    "component.ignore": "true", # filter anomaly in notifications an ui bydefault
+    "component.coldStartPeriod": "P14D", # filter anomalies in the first 14 days of the dataset
+    "component.tableName": "my_dataset"
+  },
+  "inputs": [
+    {
+      "sourcePlanNode": "anomalyDetector"
+    }
+  ]
+}
+```
+
+[iso-8601]: https://en.wikipedia.org/wiki/ISO_8601#Durations

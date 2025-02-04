@@ -1,0 +1,95 @@
+import { Callout } from 'nextra/components';
+
+
+# How to perform root cause analysis
+
+<Callout type="info">
+Before you perform the actions on this page, you must have configured a [data source](database), data set, and [created an alert](alert).
+</Callout>
+
+In this guide we learn how to perform root cause analysis. 
+
+## Find anomalies
+
+First, find an anomaly to investigate.
+
+<Callout>
+If you received an anomaly email you can skip to the [anomaly chart](#anomaly-chart) section of this guide.
+</Callout>
+
+Click on the <svg style={{maxWidth:"20px", minWidth: "20px", display: "inline-block"}} viewBox="0 0 64 64" fill="#4F4F4F" xmlns="http://www.w3.org/2000/svg"><path class="anomaly_svg__st0" d="M32 5C17.1 5 5 17.1 5 32s12.1 27 27 27 27-12.1 27-27S46.9 5 32 5zm0 44.7c-1.8 0-3.3-1.5-3.3-3.3s1.4-3.3 3.3-3.3c1.8 0 3.3 1.5 3.3 3.3s-1.5 3.3-3.3 3.3zm2-14.4l-.4 4.2h-3.2l-.4-4.2c-.9-8.8-1.6-14.7-1.6-17 0-2.8 1.4-4 3.6-4s3.6 1.2 3.6 4c0 2.3-.7 8.2-1.6 17z"></path></svg> tab on the left menu to view all anomalies. You should see the following screen:
+
+![](/img/thirdeye/anomalies.png)
+
+Select an anomaly by clicking on the anomaly in the `Name` column. You should then see the following screen:
+
+<p>
+    <img src="/img/thirdeye/anomaly2.png" width="600px" alt="An anomaly" />
+    <em>An anomaly</em>
+</p>
+
+At the top of the screen is a calendar control that we can use to control the date range shown on the screen.
+
+<p>
+    <img src="/img/thirdeye/date_select.gif" width="600px" alt="Date range selection" />
+    <em>Date range selection</em>
+</p>
+
+Below is a summary of the anomaly showing a chart of varied values over time.
+
+<p>
+    <img src="/img/thirdeye/anomaly_chart_view.png" width="600px" alt="Anomaly Summary" />
+    <em>Anomaly Summary</em>
+</p>
+
+Finally we have a heatmap at the bottom of the screen that allows us to drill down into the data based on various properties.
+
+<p>
+    <img src="/img/thirdeye/heatmap.png" width="600px" alt="Heatmap" />
+    <em>Heatmap</em>
+</p>
+
+
+## Anomaly chart
+
+Let's have a look at how to use the anomaly chart. The animation below shows how to use the various controls:
+
+<p>
+    <img src="/img/thirdeye/anomaly-chart2.gif" alt="Investigating the anomaly chart" width="80%" />
+    <em>Investigating the anomaly chart</em>
+</p>
+
+You can update the chart to include add or remove anomalies, upper and lower bounds, as well as the values themselves. You can also zoom in to specific parts of the chart to do further investigation, as shown in the animation below:
+
+<p>
+    <img src="/img/thirdeye/anomaly-chart-zoom2.gif" alt="Investigating the anomaly chart" width="80%" />
+    <em>Investigating the anomaly chart</em>
+</p>
+
+## Heatmap
+
+Next let's have a look at how to use the heatmap. The heatmap shows how the data has changed compared to the same period seven days ago. You can then drill down by each property to see the current value and the percentage change, as shown in the animation below.
+
+<p>
+    <img src="/img/thirdeye/heatmap2.gif" alt="Investigating the heatmap" width="80%" />
+    <em>Investigating the heatmap</em>
+</p>
+
+In this example, there's been a significant decrease in page views for the Chrome browser. Our next step is to determine what's changed, causing Chrome's page views to decrease.
+
+## Events
+
+You could also ingest events like holiday events and code check-ins, for example, to ThirdEye. Let's have a look at how to create an event.
+
+To view your events, click on the **Events** tab on your Configuration page. You would then see your list of events.
+
+<p>
+    <img src="/img/thirdeye/events.png" alt="Events page" width="80%" />
+    <em>Investigating related events</em>
+</p>
+
+If you do not have events and want to create an event, click on the **Create** dropdown button and select **Create Event**. For ingesting events in bulk, you could view our [API Swagger documentation](https://thirdeye.saas.demo.startree.cloud/swagger#/Event) for available Event API routes to configure event ingestion.
+
+<p>
+    <img src="/img/thirdeye/create_event.png" alt="Create event" width="80%" />
+</p>

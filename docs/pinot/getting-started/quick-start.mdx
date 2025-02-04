@@ -1,0 +1,521 @@
+import { Callout } from 'nextra/components';
+import { Tabs } from 'nextra/components'
+
+# Quickstart
+
+<Callout type="info">In this guide you'll launch an Apache Pinot quickstart example.
+This guide assumes that you have already [installed Apache Pinot](install-pinot.md).</Callout>
+
+
+Apache Pinot ships with a set of quickstart examples that spin up a single instance of the various Pinot components in the same process. For a full list, see [quickstart examples](https://docs.pinot.apache.org/basics/getting-started/quick-start) in the Apache Pinot documentation.
+
+In this tutorial, we'll go through the Hybrid quickstart, which ingests flight data.
+
+The hybrid quickstart example starts Apache Kafka, Apache Zookeeper, Pinot controller, Pinot broker, and Pinot server, and then creates a `airlineStats` schema, an `airlineStats` offline table, and an `airlineStats` real-time table that ingests messages from a Kafka topic.
+
+## Launch quickstart
+
+To launch the quickstart, run one of the commands below:
+
+<Tabs items={['Docker', 'Brew', 'Launcher Scripts']}> 
+  <Tabs.Tab>
+    ```bash
+    docker run \
+      -p 9000:9000 \
+      apachepinot/pinot:1.0.0 QuickStart \
+      -type hybrid
+    ```
+  </Tabs.Tab> 
+
+  <Tabs.Tab>
+    ```bash
+    pinot-admin QuickStart -type hybrid
+    ```
+  </Tabs.Tab>
+  
+  <Tabs.Tab>
+    ```bash
+    ./bin/pinot-admin.sh QuickStart -type hybrid
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+Now, let's go through this quickstart's schema, table configuration, and run through sample queries.
+
+## Data source
+
+The data ingested by this quickstart contains flight information from the Bureau of Transportation Statistics, including the origin airport, destination airport, departure time, delays incurred, plane details, and other bits of information.
+
+The diagram below shows how the data gets into Pinot:
+
+<p>
+    <img src="/img/quickstart-diagram.png" width="450px" alt="QuickStart Architecture" />
+    <em>QuickStart Architecture</em>
+</p>
+
+
+## Schema
+
+A schema defines what fields are present in the table along with their data types in JSON format.
+The `airlineStats` schema is described below:
+
+```json
+{
+  "metricFieldSpecs": [
+  ],
+  "dimensionFieldSpecs": [
+    {
+      "dataType": "INT",
+      "name": "ActualElapsedTime"
+    },
+    {
+      "dataType": "INT",
+      "name": "AirTime"
+    },
+    {
+      "dataType": "INT",
+      "name": "AirlineID"
+    },
+    {
+      "dataType": "INT",
+      "name": "ArrDel15"
+    },
+    {
+      "dataType": "INT",
+      "name": "ArrDelay"
+    },
+    {
+      "dataType": "INT",
+      "name": "ArrDelayMinutes"
+    },
+    {
+      "dataType": "INT",
+      "name": "ArrTime"
+    },
+    {
+      "dataType": "STRING",
+      "name": "ArrTimeBlk"
+    },
+    {
+      "dataType": "INT",
+      "name": "ArrivalDelayGroups"
+    },
+    {
+      "dataType": "INT",
+      "name": "CRSArrTime"
+    },
+    {
+      "dataType": "INT",
+      "name": "CRSDepTime"
+    },
+    {
+      "dataType": "INT",
+      "name": "CRSElapsedTime"
+    },
+    {
+      "dataType": "STRING",
+      "name": "CancellationCode"
+    },
+    {
+      "dataType": "INT",
+      "name": "Cancelled"
+    },
+    {
+      "dataType": "STRING",
+      "name": "Carrier"
+    },
+    {
+      "dataType": "INT",
+      "name": "CarrierDelay"
+    },
+    {
+      "dataType": "INT",
+      "name": "DayOfWeek"
+    },
+    {
+      "dataType": "INT",
+      "name": "DayofMonth"
+    },
+    {
+      "dataType": "INT",
+      "name": "DepDel15"
+    },
+    {
+      "dataType": "INT",
+      "name": "DepDelay"
+    },
+    {
+      "dataType": "INT",
+      "name": "DepDelayMinutes"
+    },
+    {
+      "dataType": "INT",
+      "name": "DepTime"
+    },
+    {
+      "dataType": "STRING",
+      "name": "DepTimeBlk"
+    },
+    {
+      "dataType": "INT",
+      "name": "DepartureDelayGroups"
+    },
+    {
+      "dataType": "STRING",
+      "name": "Dest"
+    },
+    {
+      "dataType": "INT",
+      "name": "DestAirportID"
+    },
+    {
+      "dataType": "INT",
+      "name": "DestAirportSeqID"
+    },
+    {
+      "dataType": "INT",
+      "name": "DestCityMarketID"
+    },
+    {
+      "dataType": "STRING",
+      "name": "DestCityName"
+    },
+    {
+      "dataType": "STRING",
+      "name": "DestState"
+    },
+    {
+      "dataType": "INT",
+      "name": "DestStateFips"
+    },
+    {
+      "dataType": "STRING",
+      "name": "DestStateName"
+    },
+    {
+      "dataType": "INT",
+      "name": "DestWac"
+    },
+    {
+      "dataType": "INT",
+      "name": "Distance"
+    },
+    {
+      "dataType": "INT",
+      "name": "DistanceGroup"
+    },
+    {
+      "dataType": "INT",
+      "name": "DivActualElapsedTime"
+    },
+    {
+      "dataType": "INT",
+      "name": "DivAirportIDs",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "DivAirportLandings"
+    },
+    {
+      "dataType": "INT",
+      "name": "DivAirportSeqIDs",
+      "singleValueField": false
+    },
+    {
+      "dataType": "STRING",
+      "name": "DivAirports",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "DivArrDelay"
+    },
+    {
+      "dataType": "INT",
+      "name": "DivDistance"
+    },
+    {
+      "dataType": "INT",
+      "name": "DivLongestGTimes",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "DivReachedDest"
+    },
+    {
+      "dataType": "STRING",
+      "name": "DivTailNums",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "DivTotalGTimes",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "DivWheelsOffs",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "DivWheelsOns",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "Diverted"
+    },
+    {
+      "dataType": "INT",
+      "name": "FirstDepTime"
+    },
+    {
+      "dataType": "STRING",
+      "name": "FlightDate"
+    },
+    {
+      "dataType": "INT",
+      "name": "FlightNum"
+    },
+    {
+      "dataType": "INT",
+      "name": "Flights"
+    },
+    {
+      "dataType": "INT",
+      "name": "LateAircraftDelay"
+    },
+    {
+      "dataType": "INT",
+      "name": "LongestAddGTime"
+    },
+    {
+      "dataType": "INT",
+      "name": "Month"
+    },
+    {
+      "dataType": "INT",
+      "name": "NASDelay"
+    },
+    {
+      "dataType": "STRING",
+      "name": "Origin"
+    },
+    {
+      "dataType": "INT",
+      "name": "OriginAirportID"
+    },
+    {
+      "dataType": "INT",
+      "name": "OriginAirportSeqID"
+    },
+    {
+      "dataType": "INT",
+      "name": "OriginCityMarketID"
+    },
+    {
+      "dataType": "STRING",
+      "name": "OriginCityName"
+    },
+    {
+      "dataType": "STRING",
+      "name": "OriginState"
+    },
+    {
+      "dataType": "INT",
+      "name": "OriginStateFips"
+    },
+    {
+      "dataType": "STRING",
+      "name": "OriginStateName"
+    },
+    {
+      "dataType": "INT",
+      "name": "OriginWac"
+    },
+    {
+      "dataType": "INT",
+      "name": "Quarter"
+    },
+    {
+      "dataType": "STRING",
+      "name": "RandomAirports",
+      "singleValueField": false
+    },
+    {
+      "dataType": "INT",
+      "name": "SecurityDelay"
+    },
+    {
+      "dataType": "STRING",
+      "name": "TailNum"
+    },
+    {
+      "dataType": "INT",
+      "name": "TaxiIn"
+    },
+    {
+      "dataType": "INT",
+      "name": "TaxiOut"
+    },
+    {
+      "dataType": "INT",
+      "name": "Year"
+    },
+    {
+      "dataType": "INT",
+      "name": "WheelsOn"
+    },
+    {
+      "dataType": "INT",
+      "name": "WheelsOff"
+    },
+    {
+      "dataType": "INT",
+      "name": "WeatherDelay"
+    },
+    {
+      "dataType": "STRING",
+      "name": "UniqueCarrier"
+    },
+    {
+      "dataType": "INT",
+      "name": "TotalAddGTime"
+    }
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "DaysSinceEpoch",
+      "dataType": "INT",
+      "format": "1:DAYS:EPOCH",
+      "granularity": "1:DAYS"
+    }
+  ],
+  "schemaName": "airlineStats"
+}
+```
+*airlineStats_schema.json*
+*[Download schema](https://github.com/apache/pinot/blob/master/pinot-tools/src/main/resources/examples/batch/airlineStats/airlineStats_schema.json)*
+
+## Table Config
+
+A table is a logical abstraction that represents a collection of related data. Tables are composed of columns and rows (known as documents in Pinot). The table configuration defines the table's properties in JSON format.
+
+<Callout>The Hybrid quickstart contains both offline and real-time tables.
+Offline tables ingest data from batch data sources, such as CSV or Parquet files.
+Real-time tables ingest data from streaming data sources like Kafka or Kinesis.</Callout>
+
+The offline table config is described below:
+
+```json
+{
+  "tableName": "airlineStats",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "timeColumnName": "DaysSinceEpoch",
+    "timeType": "DAYS",
+    "segmentPushType": "APPEND",
+    "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
+    "replication": "1"
+  },
+  "tenants": {},
+  "tableIndexConfig": {
+    "loadMode": "MMAP"
+  },
+  "metadata": {
+    "customConfigs": {}
+  }
+}
+```
+*airlineStats_offline_table_config.json*
+*[Download table](https://github.com/apache/pinot/blob/master/pinot-tools/src/main/resources/examples/batch/airlineStats/airlineStats_offline_table_config.json)*
+
+Data is ingested into this table using an [ingestion job](https://github.com/apache/pinot/blob/master/pinot-tools/src/main/resources/examples/batch/airlineStats/ingestionJobSpec.yaml). 
+
+The real-time table config is described below:
+
+```json
+{
+  "tableName": "airlineStats",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "DaysSinceEpoch",
+    "timeType": "DAYS",
+    "retentionTimeUnit": "DAYS",
+    "retentionTimeValue": "5",
+    "segmentPushType": "APPEND",
+    "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
+    "schemaName": "airlineStats",
+    "replication": "1",
+    "replicasPerPartition": "1"
+  },
+  "tenants": {},
+  "tableIndexConfig": {
+    "loadMode": "MMAP",
+    "streamConfigs": {
+      "streamType": "kafka",
+      "stream.kafka.consumer.type": "simple",
+      "stream.kafka.topic.name": "flights-realtime",
+      "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+      "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+      "stream.kafka.hlc.zk.connect.string": "localhost:2191/kafka",
+      "stream.kafka.zk.broker.url": "localhost:2191/kafka",
+      "stream.kafka.broker.list": "localhost:19092",
+      "realtime.segment.flush.threshold.time": "3600000",
+      "realtime.segment.flush.threshold.size": "50000",
+      "stream.kafka.consumer.prop.auto.offset.reset": "smallest"
+    }
+  },
+  "metadata": {
+    "customConfigs": {}
+  }
+}
+```
+*airlineStats_realtime_table_config.json*
+*[Download table](https://github.com/apache/pinot/blob/master/pinot-tools/src/main/resources/examples/stream/airlineStats/airlineStats_realtime_table_config.json)*
+
+The data ingested into this table comes from the `flights-realtime` topic in Kafka. 
+
+## Sample queries
+
+To query the flight data, navigate to [localhost:9000/#/query](http://localhost:9000/#/query).
+
+To run a query that returns the first 10 records in the `airlineStats` table, click the `airlineStats` table.
+
+Try some of the following queries:
+
+### Airports with the most incoming flights
+
+```sql
+select Dest, count(*) AS count
+from airlineStats
+GROUP BY Dest
+ORDER BY count DESC
+LIMIT 10
+```
+
+### Flights from 'ORD' to 'ATL'
+
+```sql
+select DayOfWeek, DayofMonth, DepTime, ArrTime
+from airlineStats
+WHERE Dest = 'ATL' and Origin = 'ORD'
+LIMIT 10
+```
+
+### Origins and Destinations for the plane with tail number 'N416SW'
+
+```sql
+select Origin, Dest, count(*)
+from airlineStats 
+where TailNum = 'N416SW'
+group by Origin, Dest
+order by count(*) DESC
+```
+
+## Next steps
+
+Now that you've seen an example of Pinot in action, it's time to [set up our own local cluster](create-cluster.md).

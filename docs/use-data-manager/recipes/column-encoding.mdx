@@ -1,0 +1,69 @@
+---
+description: In this guide we'll learn how to configure column encoding using StarTree Data Manager.
+---
+
+# Column Encoding
+
+In this guide we're going to learn how to select the appropriate encoding for the columns in our tables.
+
+Pinot stores data in columns and each column has a configurable encoding. 
+The available options are described in the table below:
+
+| Type       | Description|
+|----------|-------------|
+| Dictionary 	| Use this when there are duplicate values in a column.	|
+| Variable Length Dictionary | Only applicable to `STRING` and `BYTE` columns. Columns of these types will usually be stored in fixed size blocks equal to the length of the largest value, but with this config values will be variable length. Use this if you have outlier values.  |
+| On Heap Dictionary | Avoids doing string deserializaiton and therefore gives faster lookup times. But this is an advanced setting that can lead to out of memory exceptions, so use with caution. 
+| None 	|Use this when a column has high cardinality/most rows are unique. Don't use this encoding if you want to apply an inverted index to the column as this index type isn't supported without a dictionary encoding. 	|
+*Pinot Encodings*
+
+Let's have a look at how to select the encoding with a worked example.
+
+Imagine we have the following file, [events.json](/data/events-column-encoding.json), that contains a bunch of JSON documents:
+
+```json
+{"id": "9408eff2-85ca-42e1-aaa0-ef1f10404886", "ts": 1659712133644, "name": "Marilyn Day", "count": 45, "description": "According artist party movement. Discussion call meet government."}
+{"id": "348a42a3-b053-42ba-bf4e-7e7e0ab5af84", "ts": 1659712133644, "name": "Jade Strong", "count": 26, "description": "Second shake cost treat history hold behavior. Policy popular idea research cup remain receive. Small other kitchen.Business possible increase idea pull deep drive. Play yes role maintain within new.Join open conference think open one I. Time knowledge service."}
+{"id": "19aabf5b-8363-4cb9-a8f2-d61f88a0de53", "ts": 1659712133644, "name": "David Miller", "count": 29, "description": "Beautiful speech place act would there. Trip account he rock to establish maybe.Talk stage follow central. Check individual might. Senior policy simple get should.Might hour site however. Test soldier matter whatever economic support. About true at throughout city attack.Player hit back the. Mention end door structure explain lead.State fire than idea may employee. Cover travel meeting teacher return speech buy.Remain speech marriage value. What step in ago understand relationship.Reality loss spring. Politics son beautiful growth more.Rock history capital mean bed."}
+
+```
+*events.json*
+
+Upload that file following the instructions in the [upload file](../upload-file.md) guide.
+
+Once you've selected the file and clicked through to the next screen configure `ts` to have the field type `DATETIME` and then click **NEXT**. 
+You should see the following:
+
+![Advanced configuration](/img/dataset-manager/advanced-config.png)
+*Advanced configuration*
+
+Click the slider next to **Advanced Setup**, which will open up the following section:
+
+![Advanced setup](/img/dataset-manager/advanced-setup-columns.png)
+*Advanced setup*
+
+Data Manager has chosen default encodings for each of our fields, which we can change if we want to.
+For this dataset the following encodings would make sense:
+
+| Column Name       | Encoding| Why? |
+|----------|-------------| ----------|
+| `description` | `Variable Length Dictionary` | This field contains free text whose length varies a lot across columns, so we'll use a variable length dictionary encoding to save space. |
+|`id` | `None` | Every value in this column is likely to be unique and we probably aren't going to be filtering by `id`. We should also remove the inverted index. |
+|`name` | `Dictionary` | There won't be that many duplicates in this field, but we want to have an inverted index, so we'll use dictionary encoding.  |
+| `count` | `None` | This is a metrics field, so we'll need to have no encoding so that aggregate metrics can be computed for this field.  |
+|`ts` | `Dictionary` | We have some duplicate values for this field, so we'll get some benefit from having dictionary encoding.   |
+
+*Pinot Encodings*
+
+Once you've configured each of the columns, click **NEXT** and click through to create the dataset.
+If you click on **query console**, you can then run the following query to see the imported data:
+
+```sql
+select id, name, count, ts,
+       concat(substr(description, 0, 50), '...', ' ') AS description
+from <table_name> 
+limit 10
+```
+
+![Query results](/img/dataset-manager/encodings-query.png)
+*Query results*

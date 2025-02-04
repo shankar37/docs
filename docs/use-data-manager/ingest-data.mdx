@@ -1,0 +1,62 @@
+# Ingest data
+
+Complete the following steps to ingest data from any supported source:
+
+1. [Create a connection to the source](#create-a-connection-to-the-source)
+3. Perform data modeling
+4. Add indexes and perform additional configuration
+5. Review and submit
+
+## Create a connection to the source
+
+The data source and connection are separate so you can reuse connection configurations. 
+
+1. Select the type of data source from the data source catalog, for example S3 or Confluent Cloud.
+2. Drill down to select the exact data source from that connection, for example, the directory in S3 or topic in Confluent Cloud. 
+The data source is mapped to a specific Pinot table.
+3. Click **Next**.
+4. Enter configuration information specific to the data source you selected. For more information, see about configuration details, 
+see your selected connector:
+     * [Apache Kafka](kafka.md)
+     * [AWS Kinesis](kinesis.md)
+     * [AWS S3](s3.md)
+     * [Confluent Cloud](confluent.md)
+     * [Delta Lake](delta-lake.md)
+     * Google BigQuery
+     * Snowflake
+     * [File Upload](upload-file.md)
+     * [Custom connection](custom-connection.md)
+
+## Perform data modeling
+
+Update the schema by adding new fields, removing fields from the source, or changing the fields that already exist in the source.
+
+1. Do the following as needed to model the data:
+
+    - Delete a column: Click the **Delete** button at the end of the row of the column to delete.
+    - Edit a column: To change the column's field type, data type, or to specify whether the column is multi-value, 
+    find the column to update, and then click the **Edit** button at the end of the row. Make changes as needed, including transformations. 
+    For information about transformation functions, see [supported transformations in Apache Pinot](https://docs.pinot.apache.org/users/user-guide-query/supported-transformations).
+    - Add a new column: This will open a modal window similar to edit column and you can create a new column and use 
+    the transformation functions to provide the logic to fill values for that column.
+    - Alternatively, provide the schema in JSON format, and preview the changes to the data model.
+2. Click **Next**.
+
+## Add indexes and perform additional configuration
+
+1. Do the following as needed:
+  - Select indexes from a variety of available indexes for one or many fields in the schema.
+ Configure the star-tree index as needed, and apply advanced configurations (like upsert, data retention,
+  and batch schedules).
+  - Provide the applicable configuration as JSON to apply all the indexes and other configurations.
+  - Improve query performance by adding indexes to the appropriate columns and choose encoding types for each column.
+  - Configure unique details such as tenants, scheduling, data retention, and a primary key for upsert.
+
+2. Click **Next**.
+
+## Review and submit
+
+Preview and create a Pinot table for your dataset. 
+
+1. Review the schema and table configuration details and preview data. 
+2. When ready, click **Create Dataset**.

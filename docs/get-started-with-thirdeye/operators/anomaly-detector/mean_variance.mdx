@@ -1,0 +1,45 @@
+# MEAN_VARIANCE
+
+Detects an anomaly if the metric is not in `mean ± n*std`. `mean` and `std` (standard deviation) are estimated with historical data. The amount of historical data to use is set via `lookbackPeriod`.
+
+
+## Inputs
+
+`"targetProperty": "current"`: The data on which to perform detection. It should contain the historical data to use for training.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.sensitivity`| Detection sensitivity. 5 means `n=1` sigma. The smaller, the less anomalies are detected.| `5`|
+|`component.lookbackPeriod`| Historical period to use to estimate mean and std. In ISO-8601 format. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). Eg: `P14D`. If `component.lookbackPeriod` is not set, `component.lookback` is used. | |
+|`component.lookback`| Deprecated. Prefer `component.lookbackPeriod`. Number of data points to use to estimate mean and std. | `52`|
+|`component.seasonalityPeriod`| Seasonality to consider when computing mean and variance. Possible values are `P7D` (weekly and smaller periods), `P1D` (daily and smaller periods), `PT0S` (no seasonality management). Eg: with `P7D`, a Monday 12 AM value will be estimated from mean and variance of the previous Monday 12 AM values. Requires `component.monitoringGranularity`, [see shared parameters](./#shared-parameters). | `PTOS`|
+|`component.pattern`| Detect as an anomaly if the metric drop, rise or both directions. `UP`, `DOWN`, `UP_OR_DOWN`. | `UP_OR_DOWN`|
+
+
+## Example
+
+```json
+{
+  "name": "root",
+  "type": "AnomalyDetector",
+  "params": {
+    "type": "MEAN_VARIANCE",
+    "component.monitoringGranularity": "P1D",
+    "component.lookbackPeriod": "P14D",
+    "component.sensitivity": "5",
+    "component.pattern": "UP",
+    ...  # shared parameters
+  },
+  "inputs": [
+    {    # data with historical data for mean/std estimation
+      "targetProperty": "current",
+      "sourcePlanNode": "currentDataFetcher",
+      "sourceProperty": "currentOutput"
+    }
+  ]
+}
+```
+

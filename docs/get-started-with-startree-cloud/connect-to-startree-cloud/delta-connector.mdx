@@ -1,0 +1,44 @@
+---
+title: Delta table
+description: In this developer guide, you'll learn how to ingest data from a Delta Lake table into Apache Pinot.
+---
+
+# Delta lake ingestion
+
+## Overview
+The Delta Lake table connector for Apache Pinot, allows ingestion, and syncing of an existing Delta Lake table into Apache Pinot.
+The DeltaLake connector leverages the Pinot Minion task framework, along with the delta lake java connector to ingest Delta Lake table data into Pinot, and subsequently keeping it in sync with the latest state of the Delta Table, ensuring any additions / updations / deletions to the source table are reflected automatically into the corresponding Pinot table.
+Once enabled, a scheduled task will run and check for any changes in the source delta table, and trigger minion tasks that will eventually update the Pinot table.
+
+## Table configurations
+A Pinot table can be enabled to ingest data from an existing Delta Table by enabling the DeltaTableIngestionTask. The task can be enabled by adding the following to the table config.
+
+```json
+"task": {
+    "taskTypeConfigsMap": {
+        "DeltaTableIngestionTask": {
+            "delta.ingestion.table.fs": "S3",
+            "delta.ingestion.table.s3.accessKey": "<key>",
+            "delta.ingestion.table.s3.secretKey": "<secret>",
+            "delta.ingestion.table.s3.region": "<region>",
+            "delta.ingestion.table.uri": "s3a://<deltaTablePath>",
+            "tableMaxNumTasks": "1",
+            "schedule": "0 20 * ? * * *"
+        }
+    }
+},
+```
+
+The properties in the task config are defined as follows:
+
+| Property Name                      | Required | Description                                                                                                                                                                                                                                                            |
+|------------------------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| delta.ingestion.table.fs           | Yes      | The filesystem where delta table is stored (Only S3 supported as of now).                                                                                                                                                                                              |
+| delta.ingestion.table.s3.accessKey | No       | Credentials to access the S3 bucket and path                                                                                                                                                                                                                           |
+| delta.ingestion.table.s3.secretKey | No       | Credentials to access the S3 bucket and path                                                                                                                                                                                                                           |
+| delta.ingestion.table.s3.region    | Yes      | AWS Region where S3 bucket is located.                                                                                                                                                                                                                                 |
+| delta.ingestion.table.uri          | Yes      | The path where the delta table is stored                                                                                                                                                                                                                               |
+| tableMaxNumTasks                   | No       | The maximum number of minion tasks to trigger per run. Setting this to 1 ensures all pinot table updates are always atomic wrt the delta table's state (default = 1)                                                                                                   |
+| schedule                           | No       | CRON per [Quartz cron syntax](http://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html) for when the job will be routinely triggered. If not set, the task is not cron scheduled but can still be triggered via endpoint /tasks/schedule. |
+
+Once enabled, the sync will start as per the `schedule` set, and will read the delta table transaction logs to identify added and removed files in the delta table. It'll then trigger minion tasks to update the Pinot table accordingly.

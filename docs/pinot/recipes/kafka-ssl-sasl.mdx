@@ -1,0 +1,171 @@
+import { Callout } from 'nextra/components';
+
+# Connecting to Kafka with SSL and SASL authentication
+
+In this guide we'll learn how to ingest data into Apache Pinot from an [Apache Kafka cluster configured with SSL and SASL authentication](https://docs.confluent.io/platform/current/kafka/authentication_sasl/index.html).
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.10.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/kafka-ssl-sasl">startreedata/pinot-recipes/kafka-ssl-sasl</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, do the following:
+- [Install Docker](https://docs.docker.com/get-docker/) locally.
+- Ensure you have a Kafka cluster with SSL enabled. [Confluent Cloud](https://confluent.cloud/) offers a hosted Kafka service with free credits to get started.
+- [download recipes](/docs/pinot/recipes/#download-recipes)
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/kafka-ssl-sasl
+  ```
+
+### Launch Pinot Cluster
+
+You can spin up Pinot cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/kafka-ssl-sasl/docker-compose.yml) file on GitHub.
+
+### Pinot Schema and Table
+
+Let's create a Pinot Schema and Table.
+
+The schema is defined below:
+
+```json
+{
+  "schemaName":"events",
+  "dimensionFieldSpecs":[
+    {
+      "name":"uuid",
+      "dataType":"STRING"
+    }
+  ],
+  "metricFieldSpecs":[
+    {
+      "name":"count",
+      "dataType":"INT"
+    }
+  ],
+  "dateTimeFieldSpecs":[
+    {
+      "name":"ts",
+      "dataType":"TIMESTAMP",
+      "format":"1:MILLISECONDS:EPOCH",
+      "granularity":"1:MILLISECONDS"
+    }
+  ]
+}
+```
+*config/schema.json*
+
+And the table configuration below:
+
+```json {15-18}
+{
+  "tableName": "events",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "ts",
+    "schemaName": "events",
+    "replication": "1",
+    "replicasPerPartition": "1"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP",
+    "streamConfigs": {
+      "streamType": "kafka",
+      "stream.kafka.topic.name": "events",
+      "stream.kafka.broker.list": "<bootstrap.servers>",
+      "security.protocol": "SASL_SSL",
+      "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<cluster-api-key>\" password=\"<cluster-api-secret>\";",
+      "sasl.mechanism": "PLAIN",
+      "stream.kafka.consumer.type": "lowlevel",
+      "stream.kafka.consumer.prop.auto.offset.reset": "smallest",
+      "stream.kafka.consumer.factory.class.name": "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+      "stream.kafka.decoder.class.name": "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder"
+    }
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "tenants": {},
+  "metadata": {}
+}
+```
+*config/table.json*
+
+{/* The part of this configuration that we're interested in is highlighted.
+*/}
+
+You'll need to replace `<bootstrap-servers>` with the host and port of your Kafka cluster. 
+
+The credentials that we want to use are specified in the `sasl.jaas.config` property.
+You'll need to replace `<cluster-api-key>` and `<cluster-api-secret>` with your own credentials.
+
+<Callout>
+If our Kafka cluster does not have SSL enabled, we would need to specify `security_protocol` as `SASL_PLAINTEXT` instead of `SASL_SSL`.
+For an example of using SASL without SSL, see [Connecting to Kafka with SASL authentication](kafka-sasl.md)
+</Callout>
+
+Create the table and schema by running the following command:
+
+```bash
+docker exec -it pinot-controller-ssl-sasl bin/pinot-admin.sh AddTable   \
+  -tableConfigFile /config/table.json   \
+  -schemaFile /config/schema.json \
+  -exec
+```
+
+### Ingesting Data
+
+Ingest a few messages into your Kafka cluster:
+
+```json
+{"ts": "1649757242937", "uuid": "fc43b2fafbf64d9e8dff8d6be75d881d", "count": 308}
+{"ts": "1649757242941", "uuid": "11f2500386ec42be84debba1d5bfd2f7", "count": 515}
+{"ts": "1649757242945", "uuid": "f2dcf496957146eaa12605c5d8c005a0", "count": 142}
+```
+
+If you're using Confluent Cloud you can ingest these messages via the UI.
+
+## Querying 
+
+Now let's navigate to [localhost:9000/#/query](http://localhost:9000/#/query?query=select+count%28*%29%2C+sum%28count%29+%0Afrom+events&tracing=false&pqlSyntax=false) and copy/paste the following query:
+
+```sql
+select count(*), sum(count) 
+from events 
+```
+
+You will see the following output:
+
+|count(*)|	sum(count)|
+|----------|-------------|
+|3	|965|
+
+*Query Results*

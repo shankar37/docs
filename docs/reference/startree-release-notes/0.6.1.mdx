@@ -1,0 +1,35 @@
+# Release Version 0.6.1: Apr 2023
+
+## Apache Pinot
+
+* HLL and Theta Aggregation support in star-tree index and Merge/Rollup
+* API to track the status/progress of segment rebalance
+* Pinot Spark 3 Connector 
+* Bug fixes, metric improvement query performance improvement (both single-stage and multi-stage query engines)
+
+
+## StarTree Extensions for Apache Pinot: Available only in StarTree Cloud
+
+* Tiered storage performance improvement
+
+## StarTree Cloud - includes BYOC (Bring Your Own Cloud) and SaaS
+
+* EKS upgrade to Kubernetes version 1.23. 
+* S3 bucket versioning is turned ON by default along with a lifecycle policy to expire all non-current object versions after 5 days.
+* Profiles (S,M,L)  for  prometheus and automated remote-write configuration
+
+
+## Data Manager: Self-Service Ingestion tool 
+
+* BigQuery SQL ingestion improvements:
+    * Support for only ‘dataset’ level access instead of requiring access to the entire ‘project’ 
+    * Support for BigQuery specific lexical policies such as hyphens. 
+    * Support to read UNION type by extracting a non-null child field and using it as the schema.
+    * New Data Manager usage metrics used for centralized monitoring.
+
+
+## ThirdEye: Anomaly Detection and Root Cause Analysis Tool
+
+* Users can decide which [ThirdEye algorithms](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/concepts/anomaly-detection-algorithms#choosing-the-right-algorithm) and [related templates](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/reference/templates/) to select and apply it on their data for accurate anomaly detection.
+* Users can detect anomalies in [mutable data](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/concepts/mutable-data) using StarTree ThirdEye.
+* Users can now [subscribe to anomaly notifications](https://dev.startree.ai/docs/startree-enterprise-edition/startree-thirdeye/how-tos/notification/#creating-a-subscription-group-using-apis) at dimension level granularity.

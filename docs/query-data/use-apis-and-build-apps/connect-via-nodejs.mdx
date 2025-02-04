@@ -1,0 +1,72 @@
+# Connecting to StarTree Cloud via Node.js
+
+import { Callout } from 'nextra/components';
+
+
+Applications can use this sample client Node.js driver to query Pinot.
+
+<Callout type="note">
+    **Caution:** This solution may not scale to meet performance and throughput requirements for your use case.
+</Callout>
+
+### Integrate Pinot in Node.js applications
+
+1. Install axios.
+
+```
+ npm install axios
+```
+
+2. Contact StarTree Support to obtain the following information:
+
+- **Controller URL:** The general format is `https://pinot.<random-string>.cp.s7e.startree.cloud`
+- **Broker URL:** The general format is `https://pinot.<random-string>.cp.s7e.startree.cloud`
+- **AUTH_TOKEN**
+
+3. Run the Node.js driver script:
+
+```
+node queryPinot.js
+```
+
+## queryPinot.js: Node.js driver script
+
+```
+const axios = require('axios');
+    // Pinot broker and controller URLs
+    const pinotBrokerUrl = '<Broker URL mentioned above>';
+    const pinotControllerUrl = '<Controller URL mentioned above>';
+    // Function to query Pinot broker
+    async function queryPinotBroker() {
+     try {
+    const response = await axios.post(`${pinotBrokerUrl}/query/sql`, {
+      // Add your SQL query here
+      sql: 'SELECT count(*) FROM <TABLE_NAME>,
+    }, {
+      headers: {
+        Authorization: 'Basic <AUTH_TOKEN>',
+      }
+    });
+    console.log('Query Result:', response.data);
+  } catch (error) {
+    console.error('Error querying Pinot broker:', error.message);
+  }
+}
+// Function to fetch Pinot table schema from controller
+async function getPinotTableSchema(tableName) {
+  try {
+    const response = await axios.get(`${pinotControllerUrl}/tables/${tableName}/schema`, {
+      headers: {
+        Authorization: 'Basic <AUTH_TOKEN>',
+      }
+    });
+    console.log('Table Schema:', response.data);
+  } catch (error) {
+    console.error('Error fetching table schema:', error.message);
+  }
+}
+
+// Example usage
+queryPinotBroker();
+getPinotTableSchema('companies_v1');
+```

@@ -1,0 +1,121 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to extract parts of a date from a timestamp column
+sidebar_label: Exract parts of date
+---
+
+# Extract parts of date
+
+In this recipe we'll learn how to extract parts of a date from a timestamp column.
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command, which starts up the Hybrid QuickStart:
+
+```bash
+docker run \
+    -p 9000:9000 \
+    apachepinot/pinot:1.0.0 QuickStart \
+    -type hybrid
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, Kafka, and Zookeeper all in one container.
+
+## The Hybrid Quickstart
+
+The Hybrid Quickstart contains an offline and real-time table called `airlineStats`. 
+These tables contain details of various flights from 2014. 
+
+We can view the schema of the table by calling the `/schemas/<schemaName>` command. 
+
+To get a list of the dimension fields, we can filter the results using jq like this:
+
+```bash
+curl -X GET "http://localhost:9000/schemas/airlineStats" 2>/dev/null | jq -c '.dimensionFieldSpecs[]'
+```
+
+Output:
+
+```json
+{"name":"ActualElapsedTime","dataType":"INT"}
+{"name":"AirTime","dataType":"INT"}
+{"name":"AirlineID","dataType":"INT"}
+{"name":"ArrDel15","dataType":"INT"}
+{"name":"ArrDelay","dataType":"INT"}
+...
+```
+
+To get a list of date time fields, we can filter the results using jq like this:
+
+```bash
+curl -X GET "http://localhost:9000/schemas/airlineStats" 2>/dev/null | jq -c '.dateTimeFieldSpecs[]'
+```
+
+Output:
+
+```json
+{"name":"DaysSinceEpoch","dataType":"INT","format":"1:DAYS:EPOCH","granularity":"1:DAYS"}
+{"name":"ts","dataType":"TIMESTAMP","format":"1:MILLISECONDS:TIMESTAMP","granularity":"1:SECONDS"}
+{"name":"tsRaw","dataType":"TIMESTAMP","format":"1:MILLISECONDS:TIMESTAMP","granularity":"1:SECONDS"}
+```
+
+`ts` and `tsRaw` are the timestamp columns in this table.
+
+## Extracting date components
+
+We can extract various components of the `ts` column using the [`EXTRACT`](https://modern-sql.com/feature/extract) function that was added in Apache Pinot 0.12.
+An example of all the available components is shown below:
+
+```sql
+select ts, 
+       EXTRACT(YEAR FROM ts) AS year,
+       EXTRACT(MONTH FROM ts) AS month,
+       EXTRACT(DAY FROM ts) AS day, 
+       EXTRACT(HOUR FROM ts) AS hour,
+       EXTRACT(MINUTE FROM ts) AS min,
+       EXTRACT(SECOND FROM ts) AS sec
+from airlineStats
+order by ts DESC
+limit 10
+```
+
+|ts|year|month|day|hour|min|sec|
+|----------|-------------|-------------|-------------|-------------|-------------|-------------|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+|2014-02-14 00:00:00.0|2014|2|14|0|0|0|
+
+*Query Results*
+
+We can also group by the extracted values, as shown below:
+
+```sql
+select EXTRACT(MONTH FROM ts) AS month,
+       EXTRACT(DAY FROM ts) AS day, 
+	   count(*)
+from airlineStats
+group by month, day
+order by count(*) DESC
+limit 10
+```
+
+|month|day|count(*)|
+|----------|-------------|-------------|
+|1|5|422|
+|1|3|409|
+|1|2|403|
+|1|6|354|
+|1|24|343|
+|1|9|340|
+|1|10|338|
+|1|30|333|
+|1|29|322|
+|1|26|319|
+
+*Query Results*

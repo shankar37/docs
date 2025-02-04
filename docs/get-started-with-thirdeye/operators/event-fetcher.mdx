@@ -1,0 +1,84 @@
+import { Callout } from 'nextra/components';
+
+# EventFetcher
+
+Fetch events data from ThirdEye internal events database. These events can be fed to detectors downstream.
+
+
+## Inputs
+
+None.
+
+
+## Outputs
+
+One output.
+
+No naming constraint for `outputKey` and `outputName`.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|  `component.startTimeLookback` | Offset to apply to the startTime of the event timeframe. In [ISO-8601][iso-8601] format. Eg `P7D`. | No offset ie `eventStartTime = detectionStartTime` |
+|  `component.endTimeLookback` | Offset to apply to the endTime of the event timeframe. In [ISO-8601][iso-8601] format. Eg `P7D`.  | No offset ie `eventEndTime = detectionEndTime` |
+|  `component.lookaround` | Offset to apply on startTime and endTime to look around the timeframe. In [ISO-8601][iso-8601] format. Eg `P1D`. | `P1D` ie events are fetched on [minTime - 1 day, maxTime + 1 day]  |
+| `component.eventTypes` | List of event types to filter by. Eg `["HOLIDAY", "DEPLOYMENT"]`. `[]` or `null` means no filtering. | `[]` ie no filtering |
+| `component.sqlFilter` | Sql filter to apply on the events. See [documentation below](#sql-filter). Eg `type='HOLIDAY' and 'US' member of dimensionMap['countryCode']`. `""` empty string or `null` means no sql filtering. | `""` ie no sql filtering|
+
+
+### SQL Filter
+
+SQL filters are applied to a table with the following schema: 
+
+| name: String  | type: String  | dimensionMap: Map[String, List(String)]  |
+|---------------|---------------|------------------------------------------|
+|  `Christmas` | `HOLIDAY` | `{"countryCode": ["US", "CA"]}` |
+|  `Christmas` | `HOLIDAY` | `{"countryCode": ["NL", "FR"]}` |
+|  `Product X deployment` | `CUSTOM` | `{"env": ["prod", "dev"], "device": ["android"]}` |
+|  `Product Y deployment` | `CUSTOM` | `{"env": ["prod", "dev"], "device": ["android", "ios"]}` |
+|  `Product X deployment` | `CUSTOM` | `{"env": ["prod"], "language": ["android"]}` |
+
+The same event can happen in different timezone, so on a slightly different timeframe.   
+For instance, Christmas in France happens around 7 hours before Christmas in the United-States, so 
+it is good practice to filter the `HOLIDAY` events by a limited set of countries. 
+
+Example: 
+- Take all `HOLIDAY` events happening in the `US` and all `CUSTOM` events created by the business team:  
+  `'US' member of dimensionMap['countryCode'] OR (type = 'CUSTOM')`
+
+The dialect used is Apache Calcite SQL. It is very close to ANSI SQL. [See SQL reference](https://calcite.apache.org/docs/reference.html). Try Calcite SQL [online here](https://calcite-online.system.gavinray.dev).  
+
+<Callout type="warning"> 
+<span className="flex font-bold uppercase">Combining filtering</span>
+The `eventTypes` filter is applied before the `sqlFilter`.
+</Callout>
+
+
+## Example
+
+```json
+{
+  "name": "eventsDataFetcher",
+  "type": "EventFetcher",
+  "params": {
+    "component.startTimeLookback": "P30D",
+    "component.endTimeLookback": "P0D",
+    "component.lookaround": "P1D",
+    "component.eventTypes": ["HOLIDAY", "CUSTOM"],
+    "component.sqlFilter": "'US' member of dimensionMap['countryCode'] OR (type = 'CUSTOM')"
+  },
+  "outputs": [
+    {
+      # no constraint
+      "outputKey": "events",
+      # no constraint
+      "outputName": "events"
+    }
+  ]
+},
+```
+
+[iso-8601]: https://en.wikipedia.org/wiki/ISO_8601#Durations
+[calcite-sql]: https://calcite.apache.org/docs/reference.html

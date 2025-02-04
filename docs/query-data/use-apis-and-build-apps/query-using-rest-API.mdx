@@ -1,0 +1,42 @@
+# Query using the REST API  
+
+To query Pinot via a broker endpoint, complete the following steps:
+
+**Serverless Trial Users**
+1. Generate a [Pinot API token](generate-an-api-token.md).
+2. In [StarTree Cloud](https://startree.cloud/), click **Go to Data Manager**.
+3. Copy the name of the **workspace** from top-left corner of the screen.
+4. Click a dataset to test, and then highlight and copy the **Broker URL**.
+5. Access the Pinot REST API by invoking `POST` operation with a JSON body containing the parameter `sql` to the `/query/sql` endpoint on a broker, including the broker URL.
+
+```java
+Example when you are running the following curl for StarTree Serverless Trial:   
+$ curl --location --request POST 'https://broker.pinot.<your url>.startree.cloud:443/query/sql'
+--header 'Authorization: Bearer <API Token>' \
+--header 'Content-Type: application/json' \
+--header 'database: <your workspace id>' \
+--data-raw '{"sql":"select foo, count(*) from MyData group by foo order by foo desc limit 100"}'
+```
+
+
+**StarTree Customers**
+1. Generate a [Pinot API token](generate-an-api-token.md).
+2. In [StarTree Cloud](https://startree.cloud/), click **Go to Data Manager**.
+3. Click a dataset to test, and then highlight and copy the **Broker URL**.
+4. Access the Pinot REST API by invoking `POST` operation with a JSON body containing the parameter `sql` to the `/query/sql` endpoint on a broker, including the broker URL.
+
+```java
+Example when you are running the following curl for StarTree Cloud:   
+$ curl --location --request POST 'https://broker.pinot.<your url>.startree.cloud/query/sql'
+--header 'Authorization: Bearer <API Token>' \
+--header 'Content-Type: application/json' \
+--data-raw '{"sql":"select foo, count(*) from MyData group by foo order by foo desc limit 100"}'
+```
+
+The following example assumes broker is running on `localhost:8099` and StarTree Cloud. 
+```java
+Example when you are running the following curl for localhost:
+$ curl -H "Content-Type: application/json" -X POST \
+   -d '{"sql":"select foo, count(*) from myTable group by foo limit 100"}' \
+   http://localhost:8099/query/sql or https://broker.pinot.<your url>.startree.cloud:443/query/sql
+

@@ -1,0 +1,309 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to handle null values in Apache Pinot tables.
+sidebar_label: Handle null values
+---
+import { Callout } from 'nextra/components';
+
+# How to handle null values
+
+In this recipe we'll learn how to handle null or missing values in Apache Pinot tables.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.10.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank" href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/null-values">startreedata/pinot-recipes/null-values</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/null-values
+  ```
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/json-unnest/docker-compose.yml) file on GitHub.
+
+## Dataset
+
+We're going to import the following JSON file:
+
+```json
+{"title": "Valentine's Day", "genre": "Comedy", "year": 2010, "id": 361248901147483647}
+{"title": "The Ugly Truth", "year": 2009, "id": 332567813147483648}
+{"title": "P.S. I Love You", "genre": "Romance", "year": 2007, "id": 346905752147483649}
+{"title": "Dear John", "year": 2010, "id": 300441473147483650}
+{"title": "The Curious Case of Benjamin Button", "genre": "Fantasy", "year": 2008, "id": 394030854147483651}
+```
+*data/import.json*
+
+`The Ugly Truth` and `Dear John` are both missing a value for `genre`, which we'll explore in this guide.
+
+## Pinot Schema and Table
+
+Now let's create a couple of Pinot Schemas and Table.
+We're going to create one table where nulls are allowed and one where they aren't.
+We need to create one schema per table even though they will be identical except for the name.
+
+
+```json
+{
+  "schemaName": "movies_nulls",
+  "dimensionFieldSpecs": [
+    {
+      "name": "id",
+      "dataType": "LONG"
+    },
+    {
+      "name": "title",
+      "dataType": "STRING"
+    },
+    {
+      "name": "genre",
+      "dataType": "STRING"
+    },
+    {
+      "name": "year",
+      "dataType": "INT"
+    }
+  ]
+}
+```
+*config/schema.json*
+
+And the schema for the no-nulls table:
+
+```json
+{
+  "schemaName": "movies_no_nulls",
+  "dimensionFieldSpecs": [
+    {
+      "name": "id",
+      "dataType": "LONG"
+    },
+    {
+      "name": "title",
+      "dataType": "STRING"
+    },
+    {
+      "name": "genre",
+      "dataType": "STRING"
+    },
+    {
+      "name": "year",
+      "dataType": "INT"
+    }
+  ]
+}
+```
+*config/schema.json*
+
+We're also going to create two tables: one that allows null values and one that doesn't.
+
+This table doesn't handle null values:
+
+```json
+{
+  "tableName": "movies_no_nulls",
+  "tableType": "OFFLINE",
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "movies_no_nulls"
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "tableIndexConfig": {
+    "loadMode": "MMAP"
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "metadata": {}
+}
+```
+*config/table_no_nulls.json*
+
+You can create the table by running the following command:`
+
+```bash
+docker run \
+   --network null-values \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+     -jobSpecFile /config/job-spec.yml \
+     -values tableName='movies_no_nulls'
+```
+
+And this table allows null values:
+
+
+```json {6}
+{
+  "tableName": "movies_nulls",
+  "tableType": "OFFLINE",
+  "tableIndexConfig": {
+    "loadMode": "MMAP",
+    "nullHandlingEnabled": "true"
+  },
+  "segmentsConfig": {
+    "replication": 1,
+    "schemaName": "movies_nulls"
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "ingestionConfig": {
+    "batchIngestionConfig": {
+      "segmentIngestionType": "APPEND",
+      "segmentIngestionFrequency": "DAILY"
+    }
+  },
+  "metadata": {}
+}
+```
+*config/table_nulls.json*
+
+The highlighted config is how we indicate that we want this table to have null values.
+
+You can create the table by running the following command:`
+
+```bash
+docker run \
+   --network null-values \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+     -jobSpecFile /config/job-spec.yml \
+     -values tableName='movies_nulls'
+```
+
+## Ingestion Job
+
+Now we’re going to import the JSON file into these tables.
+We'll do this with the following ingestion spec:
+
+```yaml
+executionFrameworkSpec:
+  name: 'standalone'
+  segmentGenerationJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentGenerationJobRunner'
+  segmentTarPushJobRunnerClassName: 'org.apache.pinot.plugin.ingestion.batch.standalone.SegmentTarPushJobRunner'
+jobType: SegmentCreationAndTarPush
+inputDirURI: '/data'
+includeFileNamePattern: 'glob:**/import.json'
+outputDirURI: '/opt/pinot/data/${tableName}'
+overwriteOutput: true
+pinotFSSpecs:
+  - scheme: file
+    className: org.apache.pinot.spi.filesystem.LocalPinotFS
+recordReaderSpec:
+  dataFormat: 'json'
+  className: 'org.apache.pinot.plugin.inputformat.json.JSONRecordReader'
+tableSpec:
+  tableName: ${tableName}
+pinotClusterSpecs:
+  - controllerURI: 'http://pinot-controller-nulls:9000'
+pushJobSpec:
+  pushParallelism: 2
+  pushAttempts: 2
+```
+*config/job-spec.yml*
+
+The import job will map fields in each JSON document to a corresponding column in the `movies` schema.
+
+You can run the following command to run the import on the `movies_no_null` table:
+
+```bash
+docker run \
+   --network null-values \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+     -jobSpecFile /config/job-spec.yml \
+     -values tableName='movies_no_nulls'
+```
+
+And the following to run the import on the `movies_nuls` table:
+
+```bash
+docker run \
+   --network null-values \
+   -v $PWD/config:/config \
+   -v $PWD/data:/data \
+   apachepinot/pinot:1.0.0 LaunchDataIngestionJob \
+     -jobSpecFile /config/job-spec.yml \
+     -values tableName='movies_nulls'
+```
+
+## Querying 
+
+Once that's completed, navigate to [localhost:9000/#/query](http://localhost:9000/#/query) and run the following query to return the rows that have a genre and year in the `movies_no_nulls` table:
+
+```sql
+select * 
+from movies_no_nulls
+WHERE genre IS NOT NULL AND year IS NOT NULL;
+```
+
+You will see the following output:
+
+|genre|	id|	title|	year|
+|----------|-------------|-------------|-------------|
+|Comedy|	361248901147483647|	Valentine's Day|	2010|
+|null	|332567813147483648	|The Ugly Truth	|2009|
+|Romance|	346905752147483649|	P.S. I Love You|	2007|
+|null	|300441473147483650	|Dear John	|2010|
+|Fantasy|	394030854147483651|	The Curious Case of Benjamin Button|	-2147483648|
+
+*Query Results*
+
+We can see from the results that the null genres and null years haven't been filtered out for the `movies_no_nulls` table.
+
+The `genre` and `year` columns in the `movies_nulls` table, on the other hand, supports null values, which we can see by running the following query:
+
+```sql
+select * 
+from movies_nulls
+WHERE genre IS NOT NULL AND year IS NOT NULL;
+```
+
+You will see the following output:
+
+|genre|	id|	title|	year|
+|----------|-------------|-------------|-------------|
+|Comedy|	361248901147483647|	Valentine's Day|	2010|
+|Romance|	346905752147483649|	P.S. I Love You|	2007|
+
+*Query Results*
+
+Pinot still stores the same default values for those columns, but when null handling is enabled the query engine filters them out of the result set when evaluating the `IS NOT NULL` clause.

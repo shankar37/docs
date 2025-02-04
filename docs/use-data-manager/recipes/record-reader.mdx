@@ -1,0 +1,173 @@
+---
+description: In this guide we'll learn how to configure column encoding using StarTree Data Manager.
+---
+
+# Configure record reader
+
+Add a record reader configuration to specify how to read file formats during batch ingestion or streaming ingestion.
+
+## Configure files for batch ingestion (File Ingestion Task) for S3, Upload File, GCS
+
+Configure the record reader to customize how the file format is read during ingestion.
+Data manager supports configuring batch ingestion for the following file formats:
+
+### CSV
+
+Data Manager provides the `CSVRecordReaderConfig` for handling CSV files with the following customizable options:
+
+- *header*: Provide a header when the input file has no headers.
+- *skipHeader*: Provide an alternate header when the input file has a corrupt header.
+- *delimiter*: Use an alternate delimiter when fields are not separated by the default delimiter comma.
+- *skipUnParseableLines*: Skip records that are not parseable instead of failing ingestion.
+
+Example: Provide a header when the input file has no headers.
+
+```bash
+{
+  "header": "colA,colB,colC"
+}
+```
+
+Example: Provide an alternate header when the input file has a corrupt header.
+
+```bash
+{
+ "header": "colA,colB,colC",
+ "skipHeader": "true"
+}
+```
+
+Example: Use an alternate delimiter when fields are not separated by the default delimiter comma.
+
+```bash
+{
+ "delimiter": ";"
+}
+```
+
+OR
+
+```bash
+{
+  "delimiter": "\\t"
+}
+```
+
+Example: Skipping records that are not parseable instead of failing ingestion. This option to be used with caution as it can lead to data loss.
+
+```bash
+{
+  skipUnParseableLines: "true"
+}
+```
+
+Example: Handling CSV files with no header, tab-separated fields, empty lines, and unparsable records.
+
+```bash
+{
+  "header": "colA,colB,colC",
+  "delimiter": "\\t",
+  "ignoreEmptyLines": "true",
+  "skipUnParseableLines": "true"
+}
+```
+
+For a comprehensive list of available CSV record reader configurations, see the Pinot [CSV documentation](https://docs.pinot.apache.org/basics/data-import/pinot-input-formats#csv).
+
+### AVRO
+
+Data Manager supports one configuration option in `AvroRecordReaderConfig`.
+- *enableLogicalTypes*: Enable logical type conversions for specific Avro logical types, such as DECIMAL, UUID, DATE, TIME_MILLIS, TIME_MICROS, TIMESTAMP_MILLIS, and TIMESTAMP_MICROS.
+
+```bash
+{
+  "enableLogicalTypes": "true"
+}
+```
+
+For example, if the schema type is INT, logical type is DATE, the conversion applied is a TimeConversion, and the value is V;
+then a date is generated V days from epoch start.
+
+### Parquet
+
+For Parquet files, Data Manager provides the ParquetRecordReaderConfig with customizable configurations in Data Manager.
+
+Use Parquet Avro Record Reader:
+
+```bash
+{
+    "useParquetAvroRecordReader" : "true"
+}
+```
+
+When this config is used the parquet record reader used is: `org.apache.pinot.plugin.inputformat.parquet.ParquetAvroRecordReader`
+
+Use Parquet Native Record Reader:
+
+
+```bash
+{
+    "useParquetNativeRecordReader" : "true"
+}
+```
+
+When this config is used the parquet record reader used is: `org.apache.pinot.plugin.inputformat.parquet.ParquetNativeRecordReader`
+
+
+### JSON
+
+The JSONRecordReader isn't a supported record reader configuration, so no customizations are possible.
+
+### ORC
+
+The ORCRecordReader in Pinot does not support a record reader config, hence no customizations are possible.
+
+
+## Streaming ingestion from Kafka
+
+### AVRO
+
+Data Manager supports one configuration option in `AvroRecordReaderConfig`.
+- *enableLogicalTypes*: Enable logical type conversions for specific Avro logical types, such as DECIMAL, UUID, DATE, TIME_MILLIS, TIME_MICROS, TIMESTAMP_MILLIS, and TIMESTAMP_MICROS.
+
+```bash
+{
+  "enableLogicalTypes": "true"
+}
+```
+
+For example, if the schema type is INT, logical type is DATE, the conversion applied is a TimeConversion, and the value is V;
+then a date is generated V days from epoch start.
+
+
+### JSON
+
+No specific record reader config is available for JSON in the streaming ingestion context.
+
+### PROTO
+
+ProtoBufRecordReaderConfig exists in Pinot and the following configuration is possible.
+
+```bash
+{
+  "descriptorFile": "/path/to/descriptor/file"
+}
+```
+
+## Streaming ingestion from Kinesis
+
+### AVRO
+Similar to Kafka streaming ingestion, the configurations for AVRO in Kinesis streaming ingestion are similar to those described in the Batch Ingestion section.
+
+### JSON
+No specific record reader config is available for JSON in the Kinesis streaming ingestion context.
+
+## SQL ingestion from BigQuery
+RecordReader configs are not applicable for this data source. DataManager UI does not expose a RecordReader config for this data source.
+
+## SQL ingestion from Snowflake
+RecordReader configs are not applicable for this data source. DataManager UI does not expose a RecordReader config for this data source.
+
+## Delta ingestion tasks
+Record reader configurations are not supported for Parquet
+

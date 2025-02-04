@@ -1,0 +1,152 @@
+import { Callout } from 'nextra/components';
+
+# REMOTE_HTTP
+
+<Callout>
+    Enterprise only
+</Callout>
+
+The Remote HTTP detector allows the anomaly detection to be performed by a remote HTTP service. The user can configure the alert to point to a REST endpoint. This endpoint must be able to accept the ThirdEye detection payload and respond back with a specific response API. Upon successful exchange, the response is shared back with downstream operators thereby completing the detection workflow.
+
+
+## Inputs
+
+`"targetProperty": "current"`: The data on which to perform detection. It should contain the historical data to use for training.
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|`component.url`| URL of the endpoint that has to be called by ThirdEye | |
+
+
+## Payloads format
+
+### Request payload
+
+Here is a sample request payload that is sent to the remote http service.
+
+```json
+{
+  "startMillis": 1553468646555,
+  "endMillis": 1653468646555,
+  "spec": {
+    "help": "This is the anomaly detector spec object which is sent as is to the remote service",
+    ...
+  },
+  "dataframe": {
+    "seriesMap": {
+      "timestamp": [1, 2, 3],
+      "current": ["v1", "v2", "v3"]
+    }
+  }
+}
+```
+
+
+### Response Payload
+
+Here's a sample response payload. The endpoint must return a json that follows this schema for ThirdEye to execute successfully.
+
+In this case, the expectation is to receive a dataframe in a format defined below with a predefined set of columns.
+- current: The value of the metric at different timestamps
+- timestamp: The timestamps associated with the observed values of the metric
+- value: baseline/predicted values of the metric
+- lower_bound: The allowed lower bound of the metric
+- upper_bound: The allowed upper bound of the metric
+- anomaly: boolean if this is or isn't an anomaly.
+
+```json
+{
+  "dataframe": {
+    "seriesMap": {
+      "timestamp": [1, 2, 3],
+      "current": ["v1", "v2", "v3"],
+      "value": ["baseline1", "baseline2", "baseline3"],
+      "lower_bound": ["lower_bound1", "lower_bound2", "lower_bound3"],
+      "upper_bound": ["upper_bound1", "upper_bound2", "upper_bound3"],
+      "anomaly": ["true", "false", "false"]
+    }
+  }
+}
+```
+
+
+## Example
+
+### Recommended defaults
+
+```json
+{
+  "name": "root",
+  "type": "AnomalyDetector", 
+  "params": {
+    "type": "REMOTE_HTTP", 
+    "component.url": "http://localhost:5000/api/http-detector",
+    ...  # shared parameters
+  },
+  "inputs": [
+    {    # data with historical data for training
+      "targetProperty": "current",
+      "sourcePlanNode": "currentData",
+      "sourceProperty": "currentOutput"
+    }
+  ]
+}
+```
+
+
+### Full alert
+
+```json
+{
+  "name": "sample-alert-using-remote-http",
+  "description": "Sample description payload for testing",
+  "cron": "0 0 0 1/1 * ? *",
+  "template": {
+    "nodes": [
+      {
+        "name": "root",
+        "type": "AnomalyDetector",
+        "params": {
+          "type": "REMOTE_HTTP",
+          "component.url": "http://localhost:5000/api/http-detector"
+        },
+        "inputs": [
+          {
+            "targetProperty": "current",
+            "sourcePlanNode": "currentDataFetcher",
+            "sourceProperty": "currentOutput"
+          }
+        ],
+        "outputs": []
+      },
+      {
+        "name": "currentDataFetcher",
+        "type": "DataFetcher",
+        "params": {
+          "component.dataSource": "${dataSource}",
+          "component.query": "SELECT __timeGroup(\"${timeColumn}\", '${timeColumnFormat}', '${monitoringGranularity}') as ts, ${metric} as met FROM ${dataset} WHERE __timeFilter(\"${timeColumn}\", '${timeColumnFormat}') GROUP BY ts ORDER BY ts LIMIT 1000"
+        },
+        "inputs": [],
+        "outputs": [
+          {
+            "outputKey": "pinot",
+            "outputName": "currentOutput"
+          }
+        ]
+      }
+    ]
+  },
+  "templateProperties": {
+    "dataSource": "pinotQuickStartLocal",
+    "dataset": "pageviews",
+    "metric": "sum(views)",
+    "monitoringGranularity": "P1D",
+    "timeColumn": "date",
+    "timeColumnFormat": "yyyyMMdd"
+  }
+}
+```
+

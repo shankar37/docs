@@ -1,0 +1,5 @@
+{
+    "segment-refresh-task": "Segment Refresh Task",
+    "purge-data-with-segment-purge-task": "Segment Purge Task",
+    "offheap-upsert": "Off-heap upsert"
+}

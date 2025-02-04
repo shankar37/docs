@@ -1,0 +1,46 @@
+# Connect a Data Source
+
+A `datasource` is an entity, such as an Apache Pinot instance. Data sources must be registered in ThirdEye to enable ThirdEye to use them. A datasource can have many `datasets` which are like tables. Those datasets can have many `metrics`.
+
+Currently ThirdEye supports connecting with Apache Pinot. To connect to other data sources, [reach out to StarTree](https://www.startree.ai/#talk).
+
+To connect with StarTree Extensions, Pinot SQL and Pinot, use the following links:
+- [Managed Pinot](database/startree-pinot.md)
+- [Pinot SQL](database/pinot-sql.md)
+- [Pinot](database/pinot.md)
+
+## Steps to register a new datasource
+
+<p>
+    <img src="/img/thirdeye/AddDatasource.png" alt="Add Datasource" width="1640" />
+</p>
+
+1. Visit the Configuration Page
+2. Click on Create
+3. Click on "Create Datasource"
+
+<p>
+    <img src="/img/thirdeye/AddDatasourceForm.png" alt="Add Datasource Form" width="1640" />
+</p>
+
+5. Enter the configuration for your datasource
+6. Optionally you can choose to auto onboard all the datasets that currently exist in the datasource. Note that this is the only time you can do this
+7. Click Next and Finish
+
+## Steps to add a new dataset
+
+<p>
+    <img src="/img/thirdeye/AddDataset.png" alt="Add Dataset" width="1640" />
+</p>
+
+1. Visit the Configuration Page
+2. Click on Create
+3. Click on "Onboard Dataset"
+
+<p>
+    <img src="/img/thirdeye/AddDatasetForm.png" alt="Add Dataset" width="1640" />
+</p>
+
+5. Enter the name of the dataset you want to add. Make sure its the exact table name
+6. Choose the datasource the dataset is from
+7. Click Next and Finish

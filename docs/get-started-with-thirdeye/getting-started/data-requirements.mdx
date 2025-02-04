@@ -1,0 +1,102 @@
+import { Callout } from 'nextra/components';
+
+
+# ThirdEye data requirements
+
+StarTree ThirdEye searches through your data looking for data points that are unexpected. For anomaly detection to be effective, your data must be configured in a way that makes sense to the algorithm examining it. This page provides the data schema requirements and configuration to help you use ThirdEye effectively.
+
+<Callout type="info">
+Time series data may have different scales, ranges, and units. You must normalize your data for it to be balanced in how it affects anomaly detection algorithms.
+</Callout>
+
+There are three types of columns that are required for ThirdEye to work; a timestamp, a metric, and a dimension. Further considerations are listed after a presentation of details for each of these followed by examples.
+
+## Data readiness and validation checklist
+   - Timestamp needs to be in epoch millis for ThirdEye to work efficiently. If there is a non-epoch millis column then convert it to epoch millis using the “derived column” and apply time range indexes based on time granularity used in ThirdEye (Daily, hourly, 15 mins, 1 min).
+   - Cannot have data gaps [Link to completeness delay](https://dev.startree.ai/docs/get-started-with-thirdeye/alert-configuration#metadata), [definition](https://dev.startree.ai/docs/get-started-with-thirdeye/alert-configuration#completenessdelay), [Link to external blog how to do DQ check using ThirdEye](https://medium.com/the-ab-tasty-tech-blog/data-quality-timeseries-anomaly-detection-at-scale-with-thirdeye-468f771154e6)
+   - Based on Query patterns from ThirdEye to Pinot - apply those specific indexing. 
+   - Joins are not supported in ThirdEye. Make sure derived columns pre-ingestion are created for those to support TE use cases.
+   - ThirdEye needs a denormalized schema for the following reasons:
+     - TE can run any SQL query Pinot can support for just running alerts. We can do this with a custom template. [Link to ThirdEye templates](https://dev.startree.ai/docs/get-started-with-thirdeye/templates). One can clone this to create a custom template and update the dag in it (query against Pinot). However, all the templates need to be cloned to add this custom query)
+     - The complexity is more on: how the metric is then defined, how people can choose different detection algorithms on it, how it is exposed in the UI, how that is shared in RCA, notifications, etc., alerts might work, but the entire experience is not great. RCA may break. If RCA top contributors, heatmap needs to provide accurate insights at a quicker speed then transformed data will be ideal.
+   - If there are too many dimensions in the table how to make RCA more performant? Ans: Number of dimensions in a schema - indexes on dimensions (too many dimensions will slow down RCA UI) - rcaExcludedDimensions [Link to the doc](https://dev.startree.ai/docs/get-started-with-thirdeye/alert-configuration#rcaexcludeddimensions)
+
+## Timestamp
+
+This field is vital for detection accuracy. ThirdEye works with seasonal or trend-based patterns, but does not perform well with random or cyclic data. It also requires at least 30 days worth of data for granularity in the hourly/daily range.
+
+ThirdEye works with timestamps that have:
+- One column, with type of 'DateTime'
+- When this column isn't set, the timestamp is automatically set as the start time of each ingestion period
+- A format that Pinot can use, see [DateTime strings in Pinot](../../pinot/recipes/datetime-string-to-timestamp#datetime-strings-in-pinot) for more.
+
+
+## Metric
+
+A metric is a quantifiable value. With ThirdEye, metrics can be:
+- One or more columns containing numeric or categorical values in the data feed. For each data feed, you can specify multiple metrics, but you must select at least one column as `metrics`.
+- Directly configured during alert configuration and need not be a column in the dataset, such as events streams on which you can use count metric.
+
+<Callout type="info">
+If you want to use `SUM` to aggregate your data, make sure your metrics are additive in each dimension. Fraction-based metrics are non-additive. This includes ratio, percentage, and so on.
+
+You can use pre-aggregated metrics or configure aggregation methods in ThirdEye and run it during anomaly detection at run time. If the Pinot data has correct indexes and data volume is not too high then you will get sub-seconds results for aggregated queries.
+</Callout>
+
+
+## Dimension
+
+A dimension is one or more categorical values. For ThirdEye:
+- A combination of different values identifies a particular single-dimension time series, for example: country, language, tenant.
+- You can select zero or more columns as dimensions.
+- The dimension columns can be of any data type.
+
+<Callout type="info">
+Avoid using large volumes of columns and values to prevent excessive numbers of dimensions from being processed, which is very slow.
+</Callout>
+
+
+## Further considerations
+
+If you are doing real-time anomaly detection, verify the logical steps done correctly. These are:
+- Get event
+- Write event
+- Query historic events (requires at least 30 days' worth of data)
+- Run anomaly detector
+
+You want to ensure missing data is handled well or use filters in anomaly detection configuration do avoid that becoming a problem.
+
+Find the right granularity of your data.
+- When data granularity is very high, you have more data, but it will become noisy
+- As your data granularity goes down, it becomes tough to detect anomalies
+- Pay attention to consistency, use the same granularity across data so you don't have one source being recorded with a granularity of 1 minute and another with a granularity of 5 minutes.
+
+
+## Examples
+
+### Revenue metrics
+
+| Timestamp | Category | Market | Revenue |
+| --------- | -------- | ------ | ------- |
+| 2020-6-1  | Food     | US     | 1000    |
+| 2020-6-1  | Apparel  | US     | 2000    |
+| 2020-6-2  | Food     | UK     | 800     |
+
+In this table, the:
+- Metric is Revenue
+- Dimensions are Category and Market
+- Timeseries pattern is daily
+
+
+### Application errors
+
+| Timestamp | Application component | Region  | Error count |
+| --------- | --------------------- | ------- | ----------- |
+| 2020-6-1  | Employee database     | WEST EU | 9000        |
+| 2020-6-1  | Message queue         | EAST US | 1000        |
+| 2020-6-2  | Message queue         | EAST US | 8000        |
+
+In this table, the:
+- Metric is Error count
+- Dimensions are Application component and Region
+- Timeseries pattern is Daily

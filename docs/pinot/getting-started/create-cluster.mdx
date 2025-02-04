@@ -1,0 +1,145 @@
+# Create Pinot Cluster
+
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+  In this guide you will learn how to create a Pinot Cluster in your local machine. You should have completed the
+  instructions in the [Install Pinot](install-pinot.md) guide.
+</Callout>
+
+This guide will teach you how to create a Pinot Cluster in your local machine.
+
+Apache Pinot is a distributed system made of different components, each performing a unique task while in operation. In the [Quickstart example](quick-start.mdx), we saw all these components deployed inside a single JVM (Java Virtual Machine). But, in
+reality, Pinot components are deployed as separate runtimes to enable high scalability and fault tolerance.
+
+A typical Pinot cluster consists of the following components:
+
+- Zookeeper (not strictly a Pinot component, but Pinot depends on it)
+- Pinot Controller
+- Pinot Broker
+- Pinot Server
+
+When creating a cluster, these components must be configured and started separately.
+
+Let’s start with Docker first.
+
+## With Docker Compose ##
+
+With Docker, we will spin up each component as a container. Rather than doing it individually, let’s create a Docker Compose project to bundle everything together.
+
+<Callout>
+  Before getting started, make sure that your Docker installation meets the minimum requirements.
+We would recommend that you allocate 8 CPUs, 16GB of RAM, 4GB of swap, and 50 GB, but you can adjust this accordingly.
+</Callout>
+
+Create a file called `docker-compose.yml` and add the following content to it.
+
+```yaml
+version: '3.7'
+services:
+  zookeeper:
+    image: zookeeper:3.5.6
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - pinot-demo
+  pinot-controller:
+    image: apachepinot/pinot:1.0.0
+    command: "StartController -zkAddress zookeeper:2181"
+    container_name: "pinot-controller"
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    depends_on:
+      - zookeeper
+    networks:
+      - pinot-demo
+  pinot-broker:
+    image: apachepinot/pinot:1.0.0
+    command: "StartBroker -zkAddress zookeeper:2181"
+    restart: unless-stopped
+    container_name: "pinot-broker"
+    ports:
+      - "8099:8099"
+    depends_on:
+      - pinot-controller
+    networks:
+      - pinot-demo
+  pinot-server:
+    image: apachepinot/pinot:1.0.0
+    command: "StartServer -zkAddress zookeeper:2181"
+    restart: unless-stopped
+    container_name: "pinot-server"
+    depends_on:
+      - pinot-broker
+    networks:
+      - pinot-demo
+networks:
+  pinot-demo:
+    name: pinot-demo
+```
+
+Here, we are using the `apachepinot/pinot:1.0.0` Docker image.
+
+Start the stack by typing:
+
+```bash
+docker-compose up
+```
+
+That will bring up a collection of containers including Zookeeper, Kafka, Pinot Controller, Pinot Broker, and Pinot Server. 
+
+Check their status by running:
+
+```bash
+docker-compose ps
+```
+## With Launcher Scripts ##
+
+We can set up a Pinot cluster using the launcher scripts that come with the Pinot distribution. Here, each Pinot component will be started as a separate JVM.
+
+First, download the Pinot distribution, unpack it, and navigate to the `bin` directory, as described in the [Installation Developer Guide](install-pinot.md#with-launcher-scripts).
+Next we'll start up each of the components. 
+
+
+<Callout>
+  You'll need to run each of the commands below in a separate terminal window.
+</Callout>
+
+### Start Zookeeper ###
+
+```bash
+bin/pinot-admin.sh StartZookeeper
+```
+### Start Pinot Controller ###
+
+```bash
+bin/pinot-admin.sh StartController \
+  -zkAddress localhost:2181
+```
+
+### Start Pinot Broker ###
+
+```bash
+bin/pinot-admin.sh StartBroker \
+  -zkAddress localhost:2181
+```
+
+### Start Pinot Server ###
+
+```bash
+bin/pinot-admin.sh StartServer \
+  -zkAddress localhost:2181
+```
+
+## Next Steps
+
+Now that you've got Pinot running locally, it's time to see what it can do by ingesting some data. 
+
+* To learn how to ingest batch data, see [Ingesting from a batch data source](ingest-batch-data-source.md).
+* To learn how to ingest streaming data, see [Ingesting from a streaming data source](ingest-streaming-data-source.md).

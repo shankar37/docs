@@ -1,0 +1,113 @@
+import { Callout } from 'nextra/components';
+
+# TimeIndexFiller
+
+Fills missing time data points. Used to ensure data fetched with SQL is a correct timeseries for downstream nodes. The SQL language is not timeseries oriented. The `GROUP BY timeColumn` clause does not create a point if there is no data for a time bucket.
+
+
+## Inputs
+
+A table with a time index to fill.
+
+
+## Outputs
+
+The table with the time index filled. No naming constraint for `outputKey` and `outputName`.  
+
+
+## Parameters
+
+| name  | description  | default value  |
+|---|---|---|
+|  `component.timestamp` | The name of the time index column. | `timestamp` |
+|  `component.monitoringGranularity` | Granularity of the time index. In ISO-8601 format. <br/>Eg `P1D`. |  |
+|  `component.minTimeInference` | Inference strategy for the minimum time constraint. | `FROM_DATA`  |
+|  `component.maxTimeInference` | Inference strategy for the maximum time constraint. | `FROM_DETECTION_TIME`  |
+|  `component.lookback` | Offset to use for a time inference with lookback. In ISO-8601 format. <br/>Eg `P7D`. |   |
+|  `component.fillNullMethod` | Method to use to fill null values in the metric column. | `FILL_WITH_ZEROES` |
+
+<Callout> 
+<span className="flex font-bold uppercase">Automatic configuration with macros.</span>
+`minTimeInference`, `maxTimeInference` and  `lookback` are **not required** if the `__timeFilter`  macro was used to get the input data.      
+`monitoringGranularity` is **not required** if the `__timeGroup` macro was used to get the input data.
+</Callout>
+
+
+### Available inference strategies for `minTimeInference` and `maxTimeInference`
+
+The `TimeIndexFiller` needs a start and an end to fill the time index. These boundaries can be computed with different strategies.
+
+| name| description|
+|---|---|
+|`FROM_DATA`|The minimum (resp maximum) time for which to fill the index is the minimum (resp maximum) time observed in the input data.|
+|`FROM_DETECTION_TIME`|The minimum (resp maximum) time corresponds to the minimum (resp maximum) time used by the detection pipeline run.|
+|`FROM_DETECTION_TIME_WITH_LOOKBACK`|Like above, use the detection pipeline boundaries, but apply an offset. <br/>Eg: minTime - lookback.|
+
+
+### Available methods for `fillNullMethod`
+
+When a missing time point is added, the metric value is unknown. This value can be filled with one the following methods.
+
+| name| description|
+|---|---|
+|`FILL_WITH_ZEROES`|Replace null values with zeroes.|
+|`KEEP_NULL`|Keep the null values.|
+|`INTERPOLATE`| *Available soon*. Interpolate a value based on the preceding and next available values.|
+Note that most of the detectors are not compatible with null values for the moment.
+
+
+## Examples
+
+### Without macros
+
+```json
+    {
+      "name": "baselineMissingDataManager",
+      "type": "TimeIndexFiller",
+      "params": {
+        "component.monitoringGranularity": "P1D",
+        "component.timestamp": "ts",
+        "component.minTimeInference": "FROM_DETECTION_TIME_WITH_LOOKBACK",
+        "component.maxTimeInference": "FROM_DETECTION_TIME_WITH_LOOKBACK",
+        "component.lookback": "P7D"
+      },
+      "inputs": [
+        {
+          "sourcePlanNode": "baselineDataFetcher",
+          "sourceProperty": "baselineOutput"
+        }
+      ],
+      "outputs": [
+        {
+          "outputKey": "filler",
+          "outputName": "baselineOutput"
+        }
+      ]
+    }
+```
+
+
+### With macros
+
+If `__timeFilter` and `__timeGroup` macros are used in the upstream DataFetcher node, and if the metric is named `metric`: 
+```json
+  {
+    "name": "missingDataManager",
+    "type": "TimeIndexFiller",
+    "params": {
+        "component.timestamp": "ts"
+      },
+    "inputs": [
+      {
+        "sourcePlanNode": "baselineDataFetcher",
+        "sourceProperty": "baselineOutput"
+      }
+    ],
+    "outputs": [
+      {
+        "outputKey": "filler",
+        "outputName": "baselineOutput"
+      }
+    ]
+  }
+```

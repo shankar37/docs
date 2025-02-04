@@ -1,0 +1,67 @@
+# Connecting to StarTree Cloud via Python
+import { Callout } from 'nextra/components';
+
+Applications can use this Python client library to query StarTree Cloud.
+
+### Prerequisite
+Ensure you have the latest `pinotdb` library installed. To install the library, run the following command in your terminal:
+
+```
+pip install pinotdb
+```
+
+### Usage
+
+####  Query the broker directly using the REST API
+```
+from pinotdb import connect
+
+conn = connect(host='localhost', port=8099, path='/query/sql', scheme='http')
+curs = conn.cursor()
+curs.execute("""
+    SELECT place,
+           CAST(REGEXP_EXTRACT(place, '(.*),', 1) AS FLOAT) AS lat,
+           CAST(REGEXP_EXTRACT(place, ',(.*)', 1) AS FLOAT) AS lon
+      FROM places
+     LIMIT 10
+""")
+for row in curs:
+    print(row)
+```
+
+####  Use SQLAlchemy to query Pinot
+
+The db engine connection string is formatted like this: `pinot://:?controller=://:/`
+```
+from sqlalchemy import *
+from sqlalchemy.engine import create_engine
+from sqlalchemy.schema import *
+
+engine = create_engine('pinot://localhost:8099/query/sql?controller=http://localhost:9000/')  # uses HTTP by default
+# engine = create_engine('pinot+http://localhost:8099/query/sql?controller=http://localhost:9000/')
+# engine = create_engine('pinot+https://localhost:8099/query/sql?controller=http://localhost:9000/')
+
+places = Table('places', MetaData(bind=engine), autoload=True)
+print(select([func.count('*')], from_obj=places).scalar())
+```
+
+#### Connect to StarTree Cloud to query Pinot
+
+```
+from pinotdb import connect
+
+conn = connect(host='pinot.<random-string>.cp.s7e.startree.cloud', port=443, path='/query/sql', username='xxxx', password='xxxx=',scheme='https')
+curs = conn.cursor()
+curs.execute("""
+    select * from website limit 10
+""")
+for row in curs:
+    print(row)
+```
+
+#### Clone the Python pinot-dbapi repository
+
+```
+git clone git@github.com:python-pinot-dbapi/pinot-dbapi.git
+cd pinot-dbapi
+```

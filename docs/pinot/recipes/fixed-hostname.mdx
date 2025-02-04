@@ -1,0 +1,86 @@
+---
+description: In this Apache Pinot Recipe, we'll learn how to fix the host name of components in a cluster.
+sidebar_label: Fixed host names
+---
+import { Callout } from 'nextra/components';
+
+# How to fix host names
+
+In this recipe, we'll learn how to fix the host name of components in an Apache Pinot cluster.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.0.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank"  href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/fixed-hostname">startreedata/pinot-recipes/fixed-hostname</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+
+## Prerequisites
+
+To follow the code examples in this guide, you must [install Docker](https://docs.docker.com/get-docker/) locally and [download recipes](/docs/pinot/recipes/#download-recipes).
+
+## Navigate to recipe
+
+1. If you haven't already, [download recipes](/docs/pinot/recipes/#download-recipes).
+2. In terminal, go to the recipe by running the following command:
+  ```bash
+  cd pinot-recipes/recipes/fixed-hostname
+  ```
+
+## Launch Pinot Cluster
+
+You can spin up a Pinot Cluster by running the following command:
+
+```bash
+docker-compose up
+```
+
+This command will run a single instance of the Pinot Controller, Pinot Server, Pinot Broker, Pinot Minion, and Zookeeper.
+You can find the [docker-compose.yml](https://github.com/startreedata/pinot-recipes/blob/main/recipes/fixed-hostname/docker-compose.yml) file on GitHub.
+
+Navigate to the [Pinot UI](http://localhost:9000) and you should see the following:
+
+<p>
+    <img src="/img/pinot-ui-fixed-hosts.png" width="600px" alt="Pinot UI showing fixed host names" />
+    <em>Fixed hostnames</em>
+</p>
+
+## Configuring fixed host names
+
+Let's have a look at the [Docker Compose file](https://github.com/startreedata/pinot-recipes/blob/main/recipes/fixed-hostname/docker-compose.yml) to see how we did this.
+The commands to start the container for each component are described below:
+
+**Controller**
+
+```yml
+StartController -zkAddress zookeeper-fixedhost:2181 -controllerHost pinot-controller-fixedhost
+````
+
+**Broker**
+
+```yml
+StartBroker -zkAddress zookeeper-fixedhost:2181  -brokerHost pinot-broker-fixedhost
+````
+
+**Server**
+
+```yml
+StartServer -zkAddress zookeeper-fixedhost:2181 -serverHost pinot-server-fixedhost
+````
+
+**Minion**
+
+```yml
+StartMinion -zkAddress zookeeper-fixedhost:2181 -minionHost pinot-minion-fixedhost
+````

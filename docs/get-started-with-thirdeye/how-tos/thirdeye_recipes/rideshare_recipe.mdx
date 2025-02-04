@@ -1,0 +1,440 @@
+# Monitoring Rideshare Booking Metrics to improve customer satisfaction
+
+In this recipe, we'll use Startree ThirdEye to monitor metrics critical to rideshare customer experience, such as cancellations and wait time. In addition to monitoring, we'll also perform a root cause analysis within ThirdEye to identify dimensions that have changed and contributed the most to the outlier/deviation in the metric (spike or drop or trend change).
+
+## Challenges faced by rideshare apps
+
+In order to be competitive, rideshare apps must provide fast and timely rides for their customers. When wait times and ride cancellations begin to spike, quick action is critical to restoring customer satisfaction.
+
+Wait times can be affected by external factors such as weather, traffic, driver availability, and more. When wait times are too long, customers begin to look for alternatives. This often leads to customers cancelling their current ride in order to try for a closer driver or choosing an alternative option. Cancelled rides add extra stress and costs to a system already struggling to provide timely rides. Quickly and confidently responding to changes in wait time and other key metrics will have a big impact on customer satisfaction and retention.
+
+## How anomaly detection helps
+
+In order to respond to deviations in key metrics, we need a system that detects these deviations and notifies us that they have occurred. When the deviation is large enough, the side effects are readily apparent; site outages, angry customers, and damage to the brand. ThirdEye uses statistical models and dimensional analysis to detect smaller deviations and anomalies before they become big problems.
+
+Aggregate timeseries can often mask anomalies that occur in a single dimension of the data. For example, a single city might see wait times increase 10x, but this increase may have a negligible effect on the aggregate wait time across all cities. ThirdEye can run anomaly detection across multiple dimensions of data to detect these local anomalies.
+
+ThirdEye automatically detects when our key metrics unexpectedly deviate from their normal behavior, even across multiple dimensions. ThirdEye can report these anomalies to Slack, email, or an external webhook.
+
+**Anomaly detect for ride cancellations:**
+![Anomaly detection for ride cancellations](/img/thirdeye/rideshare_recipe/cancellation_anomalies_3.png)
+
+## Interested in trying out StarTree ThirdEye?
+
+[Follow this link](../../getting-started/install-thirdeye.md)
+to find different deployment options for trying out StarTree ThirdEye.
+
+## Architecture diagram
+
+<img width="800" alt="image" src="https://user-images.githubusercontent.com/98617940/199865359-7d6b77ea-6361-4241-9b4a-ee4272f0d8c0.png" />
+
+## Steps to try StarTree ThirdEye anomaly detection for real-time or near real-time monitoring
+
+- Data preparation and availability
+- Data ingestion
+- Alert creation and notifications
+- Tuning anomaly detection models (if needed based on use-case and context)
+- Anomaly reporting
+- Root cause analysis/anomaly investigation
+
+### Data preparation and availability
+
+- **Identify key metrics** to monitor. <br/> This recipe uses:
+    - Ride_Cancellations
+    - Ride_Request_WaitTime
+    - Driver_Request_API_Errors
+
+- **Identify the dimensions** that are applicable for a given metric. <br/> This recipe uses:
+    - City
+    - Device_Type
+    - RideType
+
+- **Decide granularity for your detection**:
+    - Granularity enables you for real-time or near real-time monitoring (hourly/daily/weekly time series).
+      The sample data is aggregated into hourly buckets, so this recipe uses hourly granularity.
+
+**Types of time series data**
+
+<img width="650" alt="image" src="https://user-images.githubusercontent.com/98617940/202969262-e6820218-2898-4d38-baef-76ac47251ed9.png" />
+
+<br/>
+
+### Data ingestion
+
+1. Download this CSV file [link](https://docs.google.com/spreadsheets/d/1wO2iHjuRJqyMVnaLuFNqviVr034JlLycpgQ10APM_c8/edit?usp=sharing)
+1. Ingest this CSV data to Pinot using Data Manager [link](../../../use-data-manager/upload-file.md) or Pinot API.
+
+Here's a preview of the first 5 rows:
+
+| timestamp  | RideType | City        | Device_Type | OS_Version | Ride_Cancellations | Rides_Completed | Ride_Request_WaitTime | Driver_Request_API_Errors |
+|------------|----------|-------------|-------------|------------|--------------------|-----------------|-----------------------|---------------------------|
+| 1512867600 | Shared   | Los_Angeles | Mobile      | Android    | 6241.5174          | 11320.5833      | 2434.6632             | 1772.2415                 |
+| 1512871200 | Shared   | Los_Angeles | Mobile      | Android    | 6840.4272          | 11429.2984      | 2611.5766             | 1886.1431                 |
+| 1512874800 | Shared   | Los_Angeles | Mobile      | Android    | 7421.9474          | 11509.1625      | 2859.7099             | 1970.7529                 |
+| 1512878400 | Shared   | Los_Angeles | Mobile      | Android    | 7780.715           | 11350.5748      | 2986.9979             | 2076.0819                 |
+| 1512882000 | Shared   | Los_Angeles | Mobile      | Android    | 7996.7762          | 11804.1036      | 2976.7476             | 2238.1518                 |
+
+The Pinot schema looks like this:
+
+```json
+{
+  "schemaName": "rideshare",
+  "dimensionFieldSpecs": [
+    {
+      "name": "ver",
+      "dataType": "STRING"
+    },
+    {
+      "name": "RideType",
+      "dataType": "STRING"
+    },
+    {
+      "name": "City",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Device_Type",
+      "dataType": "STRING"
+    },
+    {
+      "name": "OS_Version",
+      "dataType": "STRING"
+    }
+  ],
+  "metricFieldSpecs": [
+    {
+      "name": "Ride_Cancellations",
+      "dataType": "FLOAT"
+    },
+    {
+      "name": "Rides_Completed",
+      "dataType": "FLOAT"
+    },
+    {
+      "name": "Ride_Request_WaitTime",
+      "dataType": "FLOAT"
+    },
+    {
+      "name": "Driver_Request_API_Errors",
+      "dataType": "FLOAT"
+    }
+  ],
+  "dateTimeFieldSpecs": [
+    {
+      "name": "timestamp",
+      "dataType": "LONG",
+      "format": "1:SECONDS:EPOCH",
+      "granularity": "1:SECONDS"
+    }
+  ]
+}
+```
+
+### Alert creation and notifications
+
+To create our alerts, we need to inspect the timeseries for trends, seasonality, and obvious outliers. ThirdEye's alert preview lets us view the timeseries and the predicted anomalies. To start, we'll preview the data using the simplest alert temlate, `startree-threshold`.
+
+Copy and paste the following into ThirdEye's alert json editor:
+
+```json
+{
+  "name": "",
+  "description": "",
+  "cron": "0 0 5 ? * MON-FRI *",
+  "template": {
+    "name": "startree-threshold"
+  },
+  "templateProperties": {
+    "dataSource": "mypinot",
+    "dataset": "rideshare",
+    "aggregationColumn": "Ride_Request_WaitTime",
+    "aggregationFunction": "SUM",
+    "seasonalityPeriod": "P7D",
+    "lookback": "P90D",
+    "monitoringGranularity": "PT1H",
+    "sensitivity": "3",
+    "max": "100000",
+    "min": "0"
+  }
+}
+```
+
+You should now see this timeseries in the preview:
+
+![Timeseries of alert wait time](/img/thirdeye/rideshare_recipe/alert_preview.png)
+
+From the preview, we see a fairly cyclic pattern each day, with some variation between the days, and a large outlier towards the end of March. The cyclic pattern is called the seasonality. In fact, all our key metrics, wait time, cancellations, and api errors, show a seasonality period of 1 day. At the beginning of the day, the metrics are fairly low, they reach a peak towards the middle of the day, and end at roughly the same value as the start of the day.
+
+A simple threshold alert will not work for this data, since the threshold would depend on the time of day. We also want to monitor different dimensions of the data, which would require their own time-dependent thresholds. Instead, we'll use the [startree-ets-dx](../../templates/startree-ets-dx.md) template which is designed to model data with seasonality and trends.
+
+- [Guide: How to create an alert.](../../getting-started/create-your-first-alert.md)
+- [Guide: How to subscribe to notifications.](../add_notification.md)
+
+#### Alert Configuration for Wait Time
+
+```json
+{
+  "id": 36736,
+  "name": "Ride_Request_WaitTime",
+  "description": "",
+  "template": {
+    "name": "startree-ets-dx"
+  },
+  "templateProperties": {
+    "dataSource": "mypinot",
+    "dataset": "rideshare",
+    "timeColumn": "timestamp",
+    "timeColumnFormat": "EPOCH",
+    "aggregationFunction": "SUM",
+    "seasonalityPeriod": "P1D",
+    "lookback": "P28D",
+    "monitoringGranularity": "PT1H",
+    "aggregationColumn": "Ride_Request_WaitTime",
+    "queryFilters": "${queryFilters}",
+    "enumerationItems": [
+      {
+        "name": "overall",
+        "params": {
+          "queryFilters": ""
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Shared'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Premium'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Shared'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Premium'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'San_Francisco' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'San_Francisco' and RideType = 'Shared'"
+        }
+      }
+    ],
+    "pattern": "UP",
+    "sensitivity": "3"
+  },
+  "cron": "0 0 5 ? * MON-FRI *",
+  "lastTimestamp": 1677690000000,
+  "active": true,
+  "created": 1677686514149,
+  "updated": 1677708931249,
+  "owner": {
+    "principal": "no-auth-user"
+  }
+}
+```
+
+#### Alert Configuration for Cancellations
+
+```json
+{
+  "id": 36735,
+  "name": "Ride_Cancellations",
+  "description": "",
+  "template": {
+    "name": "startree-ets-dx"
+  },
+  "templateProperties": {
+    "dataSource": "mypinot",
+    "dataset": "rideshare",
+    "timeColumn": "timestamp",
+    "timeColumnFormat": "EPOCH",
+    "aggregationFunction": "SUM",
+    "seasonalityPeriod": "P1D",
+    "lookback": "P28D",
+    "monitoringGranularity": "PT1H",
+    "sensitivity": "3",
+    "aggregationColumn": "Ride_Cancellations",
+    "queryFilters": "${queryFilters}",
+    "enumerationItems": [
+      {
+        "name": "overall",
+        "params": {
+          "queryFilters": ""
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Shared'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Premium'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Shared'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Premium'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'San_Francisco' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'San_Francisco' and RideType = 'Shared'"
+        }
+      }
+    ],
+    "impactThreshold": "1000",
+    "pattern": "UP"
+  },
+  "cron": "0 0 5 ? * MON-FRI *",
+  "lastTimestamp": 1677693600000,
+  "active": true,
+  "created": 1677686514097,
+  "updated": 1677695955731,
+  "owner": {
+    "principal": "no-auth-user"
+  }
+}
+```
+
+#### Alert Configuration for Api Errors
+
+```json
+{
+  "name": "Driver_Request_API_Errors",
+  "description": "",
+  "template": {
+    "name": "startree-ets-dx"
+  },
+  "templateProperties": {
+    "dataSource": "mypinot",
+    "dataset": "rideshare",
+    "timeColumn": "timestamp",
+    "timeColumnFormat": "EPOCH",
+    "aggregationFunction": "SUM",
+    "seasonalityPeriod": "P7D",
+    "lookback": "P28D",
+    "monitoringGranularity": "PT1H",
+    "sensitivity": "3",
+    "aggregationColumn": "Driver_Request_API_Errors",
+    "queryFilters": "${queryFilters}",
+    "enumerationItems": [
+      {
+        "name": "overall",
+        "params": {
+          "queryFilters": ""
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Shared'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'Los_Angeles' and RideType = 'Premium'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Shared'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'New_York' and RideType = 'Premium'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'San_Francisco' and RideType = 'Standard'"
+        }
+      },
+      {
+        "params": {
+          "queryFilters": " AND City = 'San_Francisco' and RideType = 'Shared'"
+        }
+      }
+    ],
+    "pattern": "UP",
+    "impactThreshold": "100"
+  },
+  "cron": "0 0 5 ? * MON-FRI *"
+}
+```
+
+### Anomaly reporting
+
+Now that the alerts are created, we view the detected anomalies for each alert and it's dimensions. To see anomalies for a single alert, click **Alerts** in the sidebar, then click on the alert you want to inspect. To see anomalies for all alerts, click on **Anomalies** in the sidebar.
+
+Below are screenshots from the anomaly detection results. 
+The graphs are zoomed in to show the most interesting results.
+
+**Anomalies in wait time**
+![Anomalies in wait time](/img/thirdeye/rideshare_recipe/wait_time_anomalies.png)
+
+**Anomalies in ride cacellations**
+![Anomalies in ride cancellations](/img/thirdeye/rideshare_recipe/cancellation_anomalies_2.png)
+
+**Anomalies in API errors**
+![Anomalies in API errors](/img/thirdeye/rideshare_recipe/api_errors_anomalies.png)
+
+ThirdEye has several options for reporting anomalies:
+
+- [View Anomalies directly in ThirdEye.](../../how-tos/perform-root-cause-analysis.md#find-anomalies)
+- [Email, Slack, and webhook notifications.](../../how-tos/add_notification.md)
+- [Programmatically with ThirdEye's API.](../../how-tos/use-the-api.md)
+
+### Root-cause analysis
+
+Follow [this guide](../../how-tos/perform-root-cause-analysis.md) to perform root cause analysis with heatmaps, custom events, and other signals.

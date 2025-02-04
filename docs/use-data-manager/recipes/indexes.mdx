@@ -1,0 +1,67 @@
+---
+description: In this guide we'll learn how to configure indexes using StarTree Data Manager.
+---
+
+# Indexes
+
+In this guide we're going to learn how to select the appropriate indexes for the columns in our tables.
+
+Pinot stores data in columns and each column has a configurable index.
+The available options are described in the table below:
+
+| Type       | Description|
+|----------|-------------|
+| Sorted | When enabled, Pinot uses a sorted forward index with run-length encoding on top of the dictionary-encoding. Instead of saving dictionary ids for each document id, Pinot will store a pair of start and end document ids for each value.  |
+| Inverted | When enabled, Pinot maintains a map from each value to a bitmap of rows, which makes value lookup take constant time. If you have a column that is frequently used for filtering, adding an inverted index will improve performance greatly. |
+| Range | Better performance for queries that involve filtering over a range. |
+| Bloom Filter | Prunes segments that do not contain any record matching an EQUALITY predicate. |
+| Text |  Used on STRING columns where doing standard filter operations (EQUALITY, RANGE, BETWEEN) doesn't fit the bill because each column value is a  large blob of text. |
+| JSON | Can be applied to JSON string columns to accelerate the value lookup and filtering for the column. |
+| Star-Tree | The StarTree index is built across multiple columns and leverages pre-aggregated results to substantially reduce the number of values that need to be processed, leading to enhanced query performance. Refer to the [OSS documentation](https://docs.pinot.apache.org/basics/indexing/star-tree-index) for more details |
+
+### Working Example
+
+Let's have a look at how to select indexes with a worked example.
+
+Imagine we have the following file, [events.json](/data/events-column-encoding.json), that contains a bunch of JSON documents:
+
+```json
+{"id": "9408eff2-85ca-42e1-aaa0-ef1f10404886", "ts": 1659712133644, "name": "Marilyn Day", "count": 45, "description": "According artist party movement. Discussion call meet government."}
+{"id": "348a42a3-b053-42ba-bf4e-7e7e0ab5af84", "ts": 1659712133644, "name": "Jade Strong", "count": 26, "description": "Second shake cost treat history hold behavior. Policy popular idea research cup remain receive. Small other kitchen.Business possible increase idea pull deep drive. Play yes role maintain within new.Join open conference think open one I. Time knowledge service."}
+{"id": "19aabf5b-8363-4cb9-a8f2-d61f88a0de53", "ts": 1659712133644, "name": "David Miller", "count": 29, "description": "Beautiful speech place act would there. Trip account he rock to establish maybe.Talk stage follow central. Check individual might. Senior policy simple get should.Might hour site however. Test soldier matter whatever economic support. About true at throughout city attack.Player hit back the. Mention end door structure explain lead.State fire than idea may employee. Cover travel meeting teacher return speech buy.Remain speech marriage value. What step in ago understand relationship.Reality loss spring. Politics son beautiful growth more.Rock history capital mean bed."}
+
+```
+*events.json*
+
+Upload that file following the instructions in the [upload file](../upload-file.md) guide.
+
+Once you've selected the file and clicked through to the next screen configure `ts` to have the field type `DATETIME` and then click **NEXT**.
+You should see the following:
+
+![Advanced configuration](/img/dataset-manager/advanced-config.png)
+
+Data Manager has chosen default indexes for each of our fields, which we can change if we want to.
+For this dataset the following indexes would make sense:
+
+| Column Name       | Index | Why? |
+|----------|-------------| ----------|
+| `description` | `Text` | This field contains free text whose length varies a lot across columns, so we'll use a variable length dictionary encoding to save space. |
+|`id` | `None` | We aren't likely to filter by this column, so we can save space by not creating an index. |
+|`name` | `Inverted` | We probably do want to filter by this column and likely by an exact lookup, so an inverted index is the best fit. |
+| `count` | `None` | We'll most likely only be aggregating by this column, so if we do have infrequent queries that filter on the column those queries can just use a column scan.  |
+|`ts` | `Range` | Any timestamp based queries will likely be finding the records less than, equal to, or between dates, so a range index works best.  |
+
+*Pinot Indexes*
+
+Once you've configured each of the columns, click **NEXT** and click through to create the dataset.
+If you click on **query console**, you can then run the following query to see the imported data:
+
+```sql
+select *
+from <table_name>
+where TEXT_MATCH(description, '"meet" AND "government"')
+limit 10
+```
+
+![Query results](/img/dataset-manager/query-indexes.png)
+*Query results*

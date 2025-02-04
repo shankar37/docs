@@ -1,0 +1,194 @@
+# Clickstream Analytics Dashboard with StarTree Cloud Free Tier and Streamlit
+
+This guide will walk you through creating a real-time clickstream analytics dashboard using StarTree Cloud Free Tier (Apache Pinot) and Streamlit.
+
+## Use Case
+
+An e-commerce company wants to understand user behavior on their website to improve engagement, streamline the customer journey, and increase conversions. They need real-time insights into how users interact with their website's content and design.
+
+## Solution
+
+Use the following technologies:
+- Apache Pinot: A real-time OLAP datastore to capture and analyze clickstream data.
+- StarTree Cloud Free Tier: A managed service for Apache Pinot, providing a free tier for experimentation and development.
+- Streamlit: A Python framework for building interactive web applications, perfect for creating our dashboard.
+
+## Dashboard Features
+
+The dashboard will provide the following insights:
+- Event Counts by Type: A bar chart showing how often different user actions occur (e.g., page views, product clicks, add to carts, purchases).
+- Average Duration by Event Type: A table displaying the average time users spend on each type of event.
+
+## Benefits
+- Content Optimization: Identify underperforming pages and improve them based on user engagement.
+- Conversion Funnel Enhancement: Analyze the user journey and find areas where users drop off.
+- Personalization: Tailor website content and recommendations in real-time.
+- A/B Testing: Measure the impact of website changes by comparing clickstream data.
+- Marketing Campaign Effectiveness: Track the success of marketing campaigns.
+
+## Prerequisites
+StarTree Cloud Free Tier Account: Sign up for a free account at [StarTree.ai](https://www.startree.ai/)
+- Python and Streamlit: Install Python and Streamlit on your local machine.
+- Sample Data: Prepare sample clickstream data or use the provided sample data.
+
+## Steps
+
+### Generate an Authentication Token:
+- Log in to your StarTree Cloud account.
+- Navigate to the "API Tokens" section.
+- Generate a new token with appropriate permissions.
+
+### Update Broker URL and Token:
+- Replace placeholders in the Python script with your actual StarTree Cloud broker URL and authentication token.
+
+### Install Required Packages:
+- Run pip install streamlit pandas altair requests in your terminal.
+
+### Run the Streamlit App:
+- Save the provided Python script as streamlit_app.py.
+- Execute streamlit run streamlit_app.py.
+
+### Access the Dashboard:
+- Open your web browser and go to [http://localhost:8501](http://localhost:8501).
+
+### Code
+
+#### [streamlit_app.py] For the StarTree Free Tier - Serverless use the following script
+Note: Before running the script make sure to update the Pinot Broker URL and Bearer Token
+
+```Python
+import streamlit as st
+   import requests
+   import pandas as pd
+   import altair as alt
+   # StarTree Cloud Broker URL and Bearer Auth Token
+   PINOT_BROKER_URL = 'https://broker.pinot.XXXX:443/query/sql'  # Ensure the URL ends with /query/sql
+   BEARER_AUTH_TOKEN = 'Bearer XXXX'  # Replace with your actual Bearer Auth token
+ 
+ # Function to query StarTree Cloud Pinot
+def query_pinot(query):
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': BEARER_AUTH_TOKEN,
+         'database':'test_workspace'
+    }
+    st.write("Headers being sent:")
+    st.json(headers)  # Log headers to ensure they are correctly formatted
+    response = requests.post(
+        PINOT_BROKER_URL,
+        json={'sql': query},
+        headers=headers
+)
+    if response.status_code != 200:
+        st.error(f"Error querying Pinot: {response.status_code}{response.reason}")
+        st.text(response.text)  # Display the response text for additional debugging
+        return []
+    try:
+        result = response.json()
+        if 'resultTable' not in result or 'rows' not in result['resultTable']:
+            st.error("Unexpected response format")
+            st.json(result)  # Display the unexpected JSON for debugging
+            return []
+        return result['resultTable']['rows']
+    except ValueError:
+        st.error("Failed to parse response as JSON")
+        st.text(response.text)  # Display the raw response text for debugging
+        return []
+# Streamlit app
+st.title('Clickstream Metrics Dashboard')
+# Query event counts by type
+event_counts_query = """
+    SELECT event_type, COUNT(*) as event_count
+    FROM clickstream
+        GROUP BY event_type
+   """
+   event_counts_data = query_pinot(event_counts_query)
+   if event_counts_data:
+       event_counts_df = pd.DataFrame(event_counts_data, columns=['event_type', 'event_count'])
+       # Display event counts
+       st.write("## Event Counts by Type")
+       st.write(event_counts_df)
+       # Bar chart of event counts
+       bar_chart = alt.Chart(event_counts_df).mark_bar().encode(
+           x='event_type',
+           y='event_count'
+       )
+       st.altair_chart(bar_chart, use_container_width=True)
+   # Query average duration by event type
+   avg_duration_query = """
+       SELECT event_type, AVG(duration) as avg_duration
+       FROM clickstream
+       GROUP BY event_type
+"""
+   avg_duration_data = query_pinot(avg_duration_query)
+   if avg_duration_data:
+       avg_duration_df = pd.DataFrame(avg_duration_data, columns=['event_type','avg_duration'])
+       # Display average duration
+       st.write("## Average Duration by Event Type")
+       st.write(avg_duration_df)
+       # Line chart of average duration
+       line_chart = alt.Chart(avg_duration_df).mark_line().encode(
+           x='event_type',
+           y='avg_duration'
+       )
+       st.altair_chart(line_chart, use_container_width=True)
+```
+#### [streamlit_app.py] For Dedicate Pinot Instance use this script
+Note: Before running the script make sure to replace the Pinot Broker URL and Basic Auth Token
+
+```Python
+import streamlit as st
+   import requests
+   import pandas as pd
+   import altair as alt
+   # StarTree Cloud Broker URL and Basic Auth Token
+   PINOT_BROKER_URL = 'https://broker.pinot.XXXX:443/query/sql'  # Replace with your actual broker URL
+   BASIC_AUTH_TOKEN = 'Basic your-basic-auth-token'  # Replace with your actual Basic Auth token
+   # Function to query StarTree Cloud Pinot
+   def query_pinot(query):
+       headers = {
+           'Content-Type': 'application/json',
+           'Accept': 'application/json',
+           'Authorization': BASIC_AUTH_TOKEN
+       }
+       response = requests.post(
+           f'{PINOT_BROKER_URL}/query/sql',
+           json={'sql': query},
+         headers=headers
+    )
+    if response.status_code != 200:
+        st.error(f"Error querying Pinot: {response.status_code}{response.reason}")
+        return []
+    try:
+        result = response.json()
+        if 'resultTable' not in result or 'rows' not in result['resultTable']:
+            st.error("Unexpected response format")
+            st.json(result)  # Display the unexpected JSON for debugging
+            return []
+        return result['resultTable']['rows']
+    except ValueError:
+        st.error("Failed to parse response as JSON")
+        st.text(response.text)  # Display the raw response text for debugging
+        return []
+# Streamlit app
+st.title('Clickstream Metrics Dashboard')
+# Query event counts by type
+event_counts_query = """
+    SELECT event_type, COUNT(*) as event_count
+    FROM clickstream
+    GROUP BY event_type
+"""
+event_counts_data = query_pinot(event_counts_query)
+if event_counts_data:
+    event_counts_df = pd.DataFrame(event_counts_data, columns=['event_type','event_count'])
+    # Display event counts
+    st.write("## Event Counts by Type")
+    st.write(event_counts_df)
+    # Bar chart of event counts
+    bar_chart = alt.Chart(event_counts_df).mark_bar().encode(
+        x='event_type',
+        y='event_count'
+    )
+    st.altair_chart(bar_chart, use_container_width=True)
+```

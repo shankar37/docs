@@ -1,0 +1,129 @@
+---
+description: In this developer guide, you'll learn how to install Trino and how the Pinot proxy makes it possible to use Trino with Pinot.
+keywords: [trino, startree cloud]
+---
+
+# Connect Trino to StarTree Cloud
+
+To connect Trino to StarTree Cloud, do the following:
+
+1. Convert your API token to the `[username]:[password]` format.
+2. Choose one of the following ways to install Trino:
+
+     - [Install Trino](https://trino.io/docs/current/installation.html)
+     - [Install Trino using the Trino CLI](https://trino.io/docs/current/client/cli.html)
+     - [Install Trino using the JDBC driver](https://trino.io/docs/current/client/jdbc.html)
+
+## Convert your API token to `[username]:[password]` format
+
+To connect Trino to StarTree Cloud, you must convert your API token to a `[username]:[password]` format.
+
+**For basic tokens**
+
+If your basic API token is `NGNlZmI4NDgwZjhmNGE3ODg2YTVjOWRhMTA1NmE3YjU6eVlHVVlsV1BVaU5OTjQ2bkZaY09vM2FUT3FJQ1AyYUFrMXF4VDVCOEFKUT0=`
+
+You can use https://www.base64decode.org/ to decode your token from the base64 format to the following string:
+
+`4cefb8480f8f4a7886a5c9da1056a7b5:yYGUYlWPUiNNN46nFZcOo3aTOqICP2aAk1qxT5B8AJQ=`
+
+The username and password are separated by a colon within the decoded string.
+
+`username = 4cefb8480f8f4a7886a5c9da1056a7b5`
+
+`password = yYGUYlWPUiNNN46nFZcOo3aTOqICP2aAk1qxT5B8AJQ=`
+
+As an alternative to the method above, you can use the following bash command to infer the username and password from the API token:
+
+```bash
+PINOT_API=NGNlZmI4NDgwZjhmNGE3ODg2YTVjOWRhMTA1NmE3YjU6eVlHVVlsV1BVaU5OTjQ2bkZaY09vM2FUT3FJQ1AyYUFrMXF4VDVCOEFKUT0=
+
+PINOT_USERNAME=`echo ${PINOT_API} | base64 --decode | awk -F ':' '{print $1}'`
+echo ${PINOT_USERNAME}
+
+PINOT_PASSWORD=`echo ${PINOT_API} | base64 --decode | awk -F ':' '{print $2}'`
+echo ${PINOT_PASSWORD}
+```
+
+The output is
+
+```
+4cefb8480f8f4a7886a5c9da1056a7b5
+yYGUYlWPUiNNN46nFZcOo3aTOqICP2aAk1qxT5B8AJQ=
+```
+
+**For bearer tokens**
+
+To convert your bearer token, drop the `st-` prefix, and then use the 16 alphanumeric string before the hyphen as your `username` and the following 32 alphanumeric string as your `password`.
+
+For example, if your bearer token is `st-XkQBXKr652MV1VF9-5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg`, use the following as your username and password:
+
+`username = XkQBXKr652MV1VF9`
+`password = 5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg`
+
+## Trino Pinot Proxy
+
+In a StarTree deployment, Pinot components are hosted within a Kubernetes cluster. Pinot server endpoints are not exposed outside the Kubernetes cluster in this setup. While this is fine for most use cases, it creates a problem for external services like Trino.
+
+Pinot Proxy is our solution to enable Trino connection into the Pinot cluster when inside the Kubernetes cluster. Without Pinot Proxy, we will have to create dedicated Kubernetes routes for each single Pinot Server host, and such a solution is not scalable for Kubernetes.
+
+### High-Level Architecture
+
+At a very high level, Pinot Proxy behaves similarly to a reverse proxy like Nginx. It proxies RPC requests into Pinot clusters inside Kubernetes.
+
+A special feature of Pinot Proxy is that it can forward Trino gRPC requests to specific Pinot Servers rather than routing them by load balancers.
+
+This diagram illustrates how it communicates with Trino Pinot drivers.
+
+![proxy-architecture-trino](/img/proxy-architecture-trino.png)
+
+We have [detailed slides](https://docs.google.com/presentation/d/1DNWmAg4YqU3ZD2ckrnVpBHRtSKDqMrCXFuistUk5gII/edit#slide=id.g1198770321e_0_15) explaining the technical aspect of this design and why we need a Pinot proxy.
+
+### What does it mean for Pinot Clients
+
+The main benefit is that with Pinot Proxy, Trino can finally run queries in streaming mode when connecting to Pinot inside a Kubernetes cluster.
+
+For more information on Pinot connectors, view [Apache Pinot Connector](https://trino.io/docs/current/connector/pinot.html) documentation.
+
+### Connection Settings for Trino
+
+> **Note**: Trino has to be version `400` or higher to properly connect to Pinot in Kubernetes.
+
+The Trino connection URLs must be modified to point to Pinot Proxy host names to connect via Pinot Proxy. Suppose your pinot cluster is named `pug`, the environment name is `prod`, and StarTree cloud domain is `awesome-company.startree.cloud`. Below are the configs needed in `pinot.properties` configuration in Trino:
+
+```
+# Pinot controller URI, in the format of <scheme>://<hostname>:<port>, scheme is required.
+# Replace the pug.prod.awesome-company.startree.cloud with the link to your pinot cluster
+pinot.controller-urls=https://proxy.broker.pug.prod.awesome-company.startree.cloud:443
+
+# Pinot Server gRPC port, Trino default is 8090, StarTree Cloud default is 8096
+pinot.grpc.port=8096
+
+# Enable Pinot Rest Proxy
+pinot.proxy.enabled=true
+
+# Pinot Rest Proxy gRPC URI, in the format of <hostname>:<port>
+# Replace the pug.prod.awesome-company.startree.cloud with the link to your pinot cluster
+# For the clusters without TLS enabled, the port number will be 80
+pinot.grpc.proxy-uri=proxy-grpc.broker.pug.prod.awesome-company.startree.cloud:443
+```
+
+#### Extra settings for clusters with TLS enabled
+
+If the cluster has TLS enabled, we will need the extra properties in the configuration file.
+
+Follow the doc to [generate a API token and Credential](../../query-data/use-apis-and-build-apps/generate-an-api-token.md) for your Pinot Auth Token and get the Username/Password out from it.
+
+```
+# Extra Pinot gRPC configs
+# Enable gRPC TLS
+pinot.grpc.use-plain-text=false
+
+# Authentication configs
+pinot.controller.authentication.type=PASSWORD
+pinot.controller.authentication.user=<startree-cloud-pinot-user>
+pinot.controller.authentication.password=<startree-cloud-pinot-password>
+
+pinot.broker.authentication.type=PASSWORD
+pinot.broker.authentication.user=<startree-cloud-pinot-user>
+pinot.broker.authentication.password=<startree-cloud-pinot-password>
+```

@@ -1,0 +1,169 @@
+# Segment purge
+Use `SegmentPurgeTask` to purge records from a Pinot table, for example, to ensure GDPR (General Data Protection Regulation) compliance. 
+`SegmentPurgeTask` reads input files from a remote location, like AWS S3, to build hash keys used to uniquely identify records to purge in a Pinot table.
+
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>0.13.0-ST.58+ </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+## Configure SegmentPurgeTask
+
+Configure `SegmentPurgeTask` under `taskConfig` in the table configuration.
+
+| Property Name                   | Required | Description                                                                                                                 |
+|:--------------------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------|
+| input.fs.className              | Yes      | The class name used to read the files from source location.                                                                 |
+| inputFormat                     | Yes      | The input file format.                                                                                                      |
+| inputDirURI                     | Yes      | The input dir containing the purge input files.                                                                             |
+| input.fs.prop.accessKey         | No       | Required if reading from AWS S3.                                                                                            |
+| input.fs.prop.secretKey         | No       | Required if reading from AWS S3.                                                                                            |
+| input.fs.prop.region            | No       | Required if reading from AWS S3.                                                                                            |
+| recordReader.prop.delimiter     | No       | Defaults to ",". Supported values are "," and ";".                                                                          |
+| max.num.purge.input.files       | No       | Maximum number of input files processed at a time. Default value is 10.                                                     |
+| max.total.purge.input.file.size | No       | Maximum total size of all input files combined. Default value is 100_000_000 bytes. A single file cannot exceed this value. |
+| table.max.num.tasks             | No       | Maximum number of minion sub tasks generated per task invocation. Default value is 10.                                      | 
+
+## Example Table Configuration
+```json
+"task": {
+  "taskTypeConfigsMap": 
+  {
+    "SegmentPurgeTask": 
+    {
+      "input.fs.className": "org.apache.pinot.plugin.filesystem.S3PinotFS",
+      "inputFormat": "CSV",
+      "inputDirURI": "s3://myBucket/myTable/input/",
+      "input.fs.prop.accessKey": "MY_ACCESS_KEY",
+      "input.fs.prop.secretKey": "MY_SECRET_KEY",
+      "input.fs.prop.region": "us-west-2",
+      "table.max.num.tasks": "100",
+      "schedule": "0 */5 * * * ?"
+    }
+  }
+}
+```
+
+## Example Input Files
+
+### File#1
+File Name: purgeRecords1.csv
+
+```text
+userId
+1000
+1001
+1002
+1003
+```
+If the above input file was processed against a table named `users`, all records that match the `userId` field in the Pinot table would be deleted.
+
+### File#2
+FileName: purgeRecords2.csv
+```text
+firstName,lastName
+john,doe
+jane,doe
+```
+
+If the above input file was processed against a table named `users`, all records that match both the `firstName` and `lastName` 
+fields in the Pinot table would be deleted.
+
+## Guidance on input files 
+- An input file must not be appended or overwritten. 
+- New data should not be generated for the records which are to be purged. If this does happen, new input files must be dropped.
+- We recommend periodically cleaning up the input directory to purge files that have been processed.
+
+## Limits
+Note the following limits.
+
+| Item                       | Limit                      | Description                                                                                       |
+|:---------------------------|:---------------------------|:--------------------------------------------------------------------------------------------------|
+| Input file format | CSV | Contents within the input file should conform to CSV format.                                      |
+| Input files source | AWS S3 | Only S3 is supported as of now.                                                                   |
+| Data Types                 | int, long, boolean, string | The input files must contain fields that conform to one of these types.                           |
+| Field Values               | Single Values | All fields in the input file must be of single value dimension. Multi values are not supported.   |
+| Comparison Type            | == | Fields from the input record would be matched against the Pinot record using the equals operator. |
+| Null Value                 | Not Supported | Matching against null values are not supported.                                                   |
+| Empty Value                | Not Supported | Matching against emtpy values are not supported.                                                  |
+| Input file Name Extension  | Not Required | File extension is not required.                                                                   |
+| Input file field delimiter | "," and ";" | Other delimeters like space, tab are not supported. Default value is ",".                         |
+
+
+## Limitations
+
+### Running other tasks such as SegmentRefresh, MergeRollup
+As of now, if a user runs SegmentRefresh and MergeRollup tasks along with the SegmentPurgeTask records won't be purged
+correctly. The SegmentRefresh and MergeRollup tasks needs to be disabled while the SegmentPurgeTask is running to avoid
+race conditions. These tasks can be re-enabled after the SegmentPurgeTask completes.
+
+### Field Values
+
+import { Callout } from 'nextra/components';
+
+<Callout type="info">
+  The string literal `null` is not supported as a field value. Records with this value are not purged.
+</Callout>
+
+As an example, consider the input file `purgeRecords.csv`.
+
+```text
+firstName,lastName
+john,null
+```
+This input record would be skipped, and no record in the corresponding Pinot table would be deleted. You can make use of alternate fields in the table to delete these records.
+
+## FAQ
+
+### How do I know if a given input file is processed?
+Review the minion task metadata to identify the list of files that are successfully processed.
+
+Consider the following minion task metadata for a Pinot table named `suspects`.
+
+```text
+{
+  "id": "suspects_OFFLINE",
+  "simpleFields": {
+    "watermark.start.time.ms": "1682621729000"
+  },
+  "mapFields": {},
+  "listFields": {
+    "processed.input.files": [
+      "s3://startree-pinot-purge/suspects/input/suspectsInput1.csv"
+    ],
+    "processing.input.files": [
+      "s3://startree-pinot-purge/suspects/input/suspectsInput2.csv"    
+    ]
+  }
+}
+```
+
+The field `processed.input.files` contains the list of input files that are completely processed.
+
+The field `processing.input.files` contains the list of input files that are getting processed but have not been
+completed.
+
+### What happens if there are bad records in the input file?
+Bad records in the input file would be skipped. For example, consider the following input file.
+```text
+firstName,lastName
+john,doe
+jane,
+```
+In this case, the second record would be skipped as no value is specified for the `lastName` field.
+
+### Can I append data to an existing input file?
+Appending data to an input file would lead to inconsistencies and data may not be purged as expected.
+
+### Would the records be purged if data is backfilled?
+If a table is backfilled, then a new input file must be provided to purge the records again.
+
+### What happens if new data is generated against records that were purged?
+A new input file needs to be dropped to purge the records again.

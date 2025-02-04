@@ -1,0 +1,122 @@
+import { Callout } from 'nextra/components';
+
+# Using a star-tree index
+
+In this recipe we'll learn how to use the StarTree index.
+
+To understand how this recipe processes data, examine the commands executed in the Makefile.
+
+<Callout type="note" style={{marginBottom: '10px'}}>
+  <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%' }}>
+    <tbody>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Pinot Version</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>1.0.0</td>
+      </tr>
+      <tr>
+        <td style={{ border: '1px solid #ccc', padding: '8px' }}>Code</td>
+        <td style={{ border: '1px solid #ccc', padding: '8px', backgroundColor: '#f5f5f5' }}>
+          <a style={{textDecoration: 'underline'}} target="_blank"  href="https://github.com/startreedata/pinot-recipes/tree/main/recipes/startree-index">
+            startreedata/pinot-recipes/startree-index
+          </a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</Callout>
+
+
+## Makefile
+
+Run this recipe using make.
+
+```bash
+make recipe
+```
+
+This will build up the infrastructure: Pinot and Kafka, create the tables, and produce streaming data. 
+
+Three tables will be generated:
+
+- webtraffic - a real-time table with any Pinot indexes.
+- webstraffic_inverted - a real-time table with an `inverted index` on the columns: country, browserType, and deviceBrand.
+
+```json
+"invertedIndexColumns": [
+  "country",
+  "browserType",
+  "deviceBrand"
+],
+```
+- webtraffic_startree - a real-time table with a `startree index`.
+
+```json
+"starTreeIndexConfigs": [
+  {
+    "dimensionsSplitOrder": [
+      "country",
+      "browserType",
+      "deviceBrand"
+    ],
+    "skipStarNodeCreationForDimensions": [],
+    "functionColumnPairs": [
+      "COUNT__*",
+      "SUM__timeSpent",
+      "AVG__timeSpent"
+    ],
+    "maxLeafRecords": 10000
+  }
+],
+```
+
+Open your browser to the [Pinot console](http://localhost:9000) and execute the SQL statements below.
+
+
+```sql
+select browserType, count(*)
+from webtraffic 
+WHERE country = 'Uruguay'
+GROUP BY browserType
+limit 10
+```
+
+```sql
+select country, sum(timeSpent) AS totalTime
+from webtraffic
+group by country
+order by totalTime DESC
+limit 10
+```
+
+```sql
+select count(*), sum(timeSpent) AS totalTime
+from webtraffic
+where country = 'United Kingdom'
+order by totalTime DESC
+limit 10
+```
+
+```sql
+select browserType, count(*)
+from webtraffic
+WHERE country IN ('Germany', 'United Kingdom', 'Spain')
+GROUP BY browserType
+limit 10
+```
+
+Try changing `FROM webtraffic` to `FROM webtraffic_inverted` or `FROM webtraffic_stree`
+
+
+## Clean up
+
+```bash
+make clean
+```
+
+## Troubleshooting
+
+To clean up old Docker installations that may be interfering with your testing of this recipe, run the following command:
+
+```bash
+docker system prune
+```

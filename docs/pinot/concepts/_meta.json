@@ -1,0 +1,10 @@
+{
+    "managed-offline-flow": "Managed Offline Flow",
+    "time-boundary": "Time Boundary",
+    "segment-retention": "Segment Retention",
+    "segment-threshold": "Segment Threshold",
+    "upserts": "Upserts",
+    "real-time-data-ingestion": "Real-Time Data Ingestion",
+    "zookeeper-znode-size": "Zookeeper znodes",
+    "vector-search": "Vector Search"
+}

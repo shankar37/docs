@@ -1,0 +1,110 @@
+# Generate an API token
+
+import { Callout } from 'nextra/components';
+ 
+Generate an API token to interact with data stored in StarTree Cloud.
+
+<Callout type="note">
+**Note:** If you're using StarTree Serverless trial, complete the following steps to generate an API token. 
+If you're an existing StarTree Cloud customer, contact the [StarTree support team](https://support.startree.ai) to obtain an API token.
+</Callout>
+
+1. Open [StarTree Cloud](https://startree.cloud/) in your browser.
+2. Click **Create Pinot API Token**. 
+3. Click **Log in with StarTree** to log in again. 
+4. On the Pinot API Tokens page, click **Create Pinot API token**. The new Pinot API token appears with a bearer token.
+5. Copy the token and save it for use in your production API calls or to use for testing. You will not be able to access this token again.
+6. Click **OK**.
+
+<Callout type="note">
+**Superset and Trino users**: You must obtain a username and password from your token. Follow the instructions in the [Superset and Trino users](#superset-and-trino-users) section.  
+</Callout>
+
+### Test the StarTree API token
+
+Test the token using one of the following methods:
+
+- **Use CURL** to test the API token; include the API token in the `--header` (`-H`) authorization parameter. If you generated a token in the StarTree Cloud UI, use the CURL command for bearer token.
+  If you obtained a token from the StarTree support team, use the CURL command for basic token.
+
+   - **Basic token**
+     
+     ```json
+     curl --location --request GET 'https://pinot.<your url>.cloud/appconfigs' \
+     --header 'Authorization: Basic NzA2OTM0MWQyN2I3NDhjZDg5YTI1NDdhODk5ZjFlMTA6NGRMVGhmQy85VWN6UXVHbGhhRHE4MGZyMHhnS2pDMnVscE1YUTR5cDc1dz0='
+     ```
+
+   - **Bearer token**
+     ```json
+     curl --location --request GET 'https://pinot.<your url>.cloud/appconfigs' \
+     --header 'Authorization: Bearer st-XkQBXKr652MV1VF9-5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg'
+     ```
+
+     <Callout type="note">
+      **Note:** 
+      - The bearer token format has `st-` prefix and a hyphen (`-`) between the character strings: 
+      `st-<16-character-alphanumeric-string>-<32-character-alphanumeric-string>`. 
+     </Callout>
+
+- **Use the Swagger API** to test the token
+   
+  1.  Do one of the following:
+     
+     - If you obtained a token from the StarTree support team, add `Basic ` (with the space) to the beginning of the token, pasting the combination into the dialog box that appears,
+     and then click **Authorize** to test.
+       <img width="623" alt="image" src="https://user-images.githubusercontent.com/98617940/176019513-0fb7b200-8314-4d15-9e3b-2ffb122a003b.png" />
+     - If you generated a token in the StarTree Cloud UI, add `Bearer ` (with the space) to the beginning of the token, pasting the combination into the dialog box that appears,
+     and then click **Authorize** to test.
+  2. Then, from the list in Swagger, find an API call you want to try and click the related **Try it out** button.
+     <img width="610" alt="image" src="https://user-images.githubusercontent.com/98617940/175752839-f9e90975-972c-4713-bfda-3955d701285b.png" />
+
+### Superset and Trino users
+
+To connect to Superset and Trino, do the following to convert your API token to a username and password:
+
+1. Obtain the username and password from your [basic token](#obtain-the-username-and-password-for-a-basic-token) or [bearer token](#obtain-the-username-and-password-for-a-bearer-token)
+2. Use the username and password to connect to StarTree Cloud:
+    - [Connect Superset to StarTree Cloud](/docs/get-started-with-startree-cloud/connect-to-startree-cloud/connect-superset-to-startree-cloud) 
+    - [Connect Trino to StarTree Cloud](/docs/get-started-with-startree-cloud/connect-to-startree-cloud/connect-to-trino)
+
+#### Obtain the username and password for a basic token
+
+If your basic API token is `NGNlZmI4NDgwZjhmNGE3ODg2YTVjOWRhMTA1NmE3YjU6eVlHVVlsV1BVaU5OTjQ2bkZaY09vM2FUT3FJQ1AyYUFrMXF4VDVCOEFKUT0=`
+
+You can use https://www.base64decode.org/ to decode your token from the base64 format to the following string:
+
+`4cefb8480f8f4a7886a5c9da1056a7b5:yYGUYlWPUiNNN46nFZcOo3aTOqICP2aAk1qxT5B8AJQ=`
+
+The username and password are separated by a colon within the decoded string.
+
+`username = 4cefb8480f8f4a7886a5c9da1056a7b5`
+
+`password = yYGUYlWPUiNNN46nFZcOo3aTOqICP2aAk1qxT5B8AJQ=`
+
+As an alternative to the method above, you can use the following bash command to infer the username and password from the API token:
+
+```bash
+PINOT_API=NGNlZmI4NDgwZjhmNGE3ODg2YTVjOWRhMTA1NmE3YjU6eVlHVVlsV1BVaU5OTjQ2bkZaY09vM2FUT3FJQ1AyYUFrMXF4VDVCOEFKUT0=
+
+PINOT_USERNAME=`echo ${PINOT_API} | base64 --decode | awk -F ':' '{print $1}'`
+echo ${PINOT_USERNAME}
+
+PINOT_PASSWORD=`echo ${PINOT_API} | base64 --decode | awk -F ':' '{print $2}'`
+echo ${PINOT_PASSWORD}
+```
+
+The output is
+
+```
+4cefb8480f8f4a7886a5c9da1056a7b5
+yYGUYlWPUiNNN46nFZcOo3aTOqICP2aAk1qxT5B8AJQ=
+```
+
+#### Obtain the username and password for a bearer token 
+
+To convert your bearer token, drop the `st-` prefix, and then use the 16 alphanumeric string before the hyphen as your `username` and the following 32 alphanumeric string as your `password`.
+
+For example, if your bearer token is `st-XkQBXKr652MV1VF9-5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg`, use the following as your username and password:
+
+`username = XkQBXKr652MV1VF9`
+`password = 5gkhGWNaGAdA1NU5yrHXRSPKMCcNRlRg`

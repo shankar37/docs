@@ -1,0 +1,4 @@
+{
+    "static-drift-operator": "Static Drift Operator",
+    "lookback-drift-operator": "Lookback Drift Operator"
+}
